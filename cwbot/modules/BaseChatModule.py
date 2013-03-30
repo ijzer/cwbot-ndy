@@ -18,7 +18,7 @@ class BaseChatModule(BaseModule):
                                    self._availableCommands)
 
 
-    def _processCommand(self, message, commandText, commandArgs):
+    def _processCommand(self, message, cmd, args):
         """
         Process chat commands (chats which start with !).
         If the module is not set as clan-only, all chats will be sent to this
@@ -27,10 +27,10 @@ class BaseChatModule(BaseModule):
         
         The derived class should process those that apply and ignore the 
         others. 'message' contains the full message structure as defined by
-        pyKol. 'commandText' contains the actual command (without the !) 
-        in lower case. 'commandArgs' contains everything else.
-        For example "!HeLLo     World 123" -> commandText = "hello", 
-                                              commandArgs = "World 123"
+        pyKol. 'cmd' contains the actual command (without the !) 
+        in lower case. 'args' contains everything else.
+        For example "!HeLLo     World 123" -> cmd = "hello", 
+                                              args = "World 123"
         
         This function must return either a string, which will be printed in 
         chat, or None.

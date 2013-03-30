@@ -38,9 +38,6 @@ class DiceModule(BaseChatModule):
     
     requiredCapabilities = ['chat']
     _name = "dice"
-
-    def __init__(self, manager, identity, config):
-        super(DiceModule, self).__init__(manager, identity, config)
         
 
     def _processCommand(self, message, cmd, args):
