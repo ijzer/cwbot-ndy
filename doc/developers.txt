@@ -1,0 +1,932 @@
+CWbot development guide
+Note: please read readme.txt before reading this document.
+CWbot uses a modified PyKol library. See https://github.com/scelis/pykol.
+
+1. CWbot Internal Structure
+---------------------------
+
+
+      ------------
+	  | cwbot.py |
+	  ------------
+           |
+           v
+-------------------------------------------------------------------------------
+|                             BotSystem                                       |
+|                                                                             |
+| Loads directors, setup/teardown, main program loop                          |
+-------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------
+|              CommunicationDirector                     | HeartbeatSubsystem |
+|                                                        |--------------------|
+|Loads managers, checks new chats/kmails, setup/teardown |     EventSubsystem |
+-------------------------------------------------------------------------------
+               | kmails/chats                       | kmails/chats
+			   | (validated)          ...           | (validated)
+			   v                                    v
+--------------------------------------   --------------------------------------
+|           Manager 1                |   |           Manager N                |
+|                                    |...|                                    |
+|Filters kmail/chat; sends to modules|   |Filters kmail/chat; sends to modules|
+--------------------------------------   --------------------------------------
+ |kmails       ^       |kmails       ^   |kmails       ^       |kmails       ^
+ |+chats  chats|       |+chats  chats|   |+chats  chats|       |+chats  chats|
+ |     + kmails|       |     + kmails|   |     + kmails|       |     + kmails|
+ v    (to send)|       v    (to send)|   v    (to send)|       v    (to send)|
+-----------------     ----------------- -----------------     -----------------
+|   Module 1    |     |   Module  N   | |   Module 1    |     |   Module  N   |
+|               | ... |               | |               | ... |               |
+|Process comms  |     |Process comms  | |Process comms  |     |Process comms  |  
+-----------------     ----------------- -----------------     -----------------
+
+
+Modules are the smallest units and are the easiest to create. A module 
+typically performs a single task; for example, the DiceModule responds to the 
+!roll command and returns a random result. (It also responds to the related
+!permute command.) All modules are derived from a base module -- kmail-based 
+modules derive from cwbot.modules.BaseKmailModule, and chat modules derive 
+from cwbot.modules.BaseChatModule. Modules which rely on neither can derive
+directly from cwbot.modules.BaseModule. The special Hobopolis modules
+derive from cwbot.modules.BaseHoboModule, which itself derives from 
+BaseChatModule. Both BaseChatModule and BaseKmailModule in turn derive from
+cwbot.modules.BaseModule. See the module section for details.
+
+Managers are the next step up the ladder. A manager holds a number of modules 
+and passes chats or kmails to them in some way, and then processes the replies.
+Some supply extra information or capabilities to modules. Some filter chats
+or kmails in a certain way. Managers also handle initialization of modules,
+as well as their synchronization of persistent state. A new manager might 
+be necessary, for example, to handle chats in a totally new way -- for 
+example, to only respond to PMs. All managers derive from a base module
+as well. Only one kmail-based manager is included, which derives from
+cwbot.managers.BaseManager; chat-based managers instead derive from its child
+class cwbot.managers.BaseChatManager. See the manager section for more details.
+
+The director is the highest level. There is exactly one director: the
+CommunicationDirector. This class acts as a container for the managers and 
+also performs the actual reading and transmitting of kmail/chats. In most 
+cases, it is unlikely that this needs to be modified.
+More information is available in the Director section.
+
+The BotSystem is the main class of the bot and contains the main loop, which
+sleeps for an amount of time, checks that the bot is still online, and then
+instructs the CommunicationDirector to check for new communications.
+
+All subsystems are all members of the CommunicationDirector. This class directs
+all bot activity inside its processNewCommunications. It also responds to 
+system events and closes all bot activity before rollover. The EventSubsystem 
+and HearybeatSubsystem are described in their own sections.
+
+
+2. The Event Subsystem
+----------------------
+
+The event subsystem is an integrated, lightweight messaging system. Messages
+may either be sent to all listeners, all instances of one specific class,
+or a single class. This is in contrast to a publish/subscribe type of
+messaging system.
+
+Every Director, Manager, and Module is tied to the EventSubsystem by deriving 
+from sys.eventSubsystem.EventSubsystem.EventCapable. Any of these classes
+may raise and respond to events. Every EventCapable object has two
+ways of identifying itself: a "name", which should be unique to its
+class, and an "identity", which should be unique to its instance.
+These objects should use 
+super(MyClass, self).__init__(name=NAME, identity=IDENTITY) inside
+their __init__ function. The EventSubsystem uses dependency injection,
+so the EventSubsystem object must be passed to MyClass, either at
+construction (by using 
+super(MyClass, self).__init__(name=NAME, identity=IDENTITY, evSys=EV_SUBSYS)
+) or by later registering the object with its eventRegister() method.
+An object may only be registered to one EventSubsystem at a time.
+Using the keywords to call __init__ is required.
+
+The event subsystem itself uses a stack-based event subsystems. Events
+are raised, and all objects are notified by calling their _eventCallback()
+method. Those objects can in turn raise another event, or reply to the
+current event to send data back to the caller. In this way, various
+components can "talk to" each other.
+
+An instance O derived from EventCapable implements the O.eventSubsystem
+property, which returns a reference to the objects parent EventSubsystem.
+This method has no threading safeguards, but in almost all cases is safe
+to call, since an object is usually registered at startup and unregistered
+at shutdown.
+
+The instance O also has the following methods:
+
+O.eventRegister(self, evSubsystem): this method "links" the object to
+the eventSubsystem provided as an argument. This will throw an 
+EventSubsystem.EventException if O already is linked to an EventSubsystem.
+An exception will be thrown if the object has already been registered
+(including in the constructor). This detection is thread safe. It is
+also safe to register many objects at the same time. This function
+should not be overridden.
+
+O.eventUnregister(self): unlinks the object from its EventSubsystem.
+If the object has no EventSubsystem, this will do nothing. If 
+O.eventRegister() and O.eventUnregister() are called from different 
+threads at the same time, the result is unknown (but the 
+EventSubsystem and object will be in a valid state). This function
+should not be overridden.
+
+O._raiseEvent(self, subject, receiver=None, data={}): raises an event.
+subject should be a string. If receiver is None, all other objects
+are notified. It is also possible to messages to a specific class or
+a specific object. To send to a specific class, use receiver="NAME",
+where NAME is the name specified in the constructor. To send to a
+specific object, use receiver="__IDENTITY__", where IDENTITY is the
+identity specified in the constructor. Optionally, data can be
+included in the message in the form of a dict object. Events are 
+handled in a single-threaded manner and only one thread may raise
+an event at a time -- events are thread-safe. Callbacks are called 
+in the order of object registration. An event may be raised inside of another
+event. When this function returns, it will return a list of
+EventData objects -- one for each reply. Not all receivers need to
+reply, and some may reply more than once. The subject of every
+EventData object in the returned list will be "reply". This function
+should not be overridden.
+
+O._eventCallback(self, eData): this function should not be called
+by any objects. Instead, this function is called by the EventSubsystem
+when an event is raised. eData is an EventData object E with the 
+following properties:
+
+E.fromName: the NAME of the calling object (str)
+E.fromIdentity: the IDENTITY of the calling object (str)
+E.to: the RECEIVER specified by the calling object (str)
+E.subject: the SUBJECT of the event (str)
+E.data: any DATA supplied with the event (dict)
+
+It is the responsibility of the object to handle such events however
+they wish. However, since events can be broadcast to all listeners, it's a
+good idea to check the subject of an event and ignore it if it is not
+applicable. The default implementation of this does nothing. If you wish
+to use the event subsystem in a class, you should override this function.
+
+O._eventReply(self, data={}): sends a reply to the current event. Calling
+this function while not inside an event callback will raise an
+EventSubsystem.EventException. All replies are collected and returned to
+the original event caller. This can be used to return pass data back to
+the caller. This function should not be overridden.
+
+
+3. The Heartbeat Subsystem
+--------------------------
+
+This subsystem provides a simple threading capability to do asynchronous
+tasks. While not applicable to every task, it makes many such tasks much
+simpler and less verbose to impliment.
+
+Every Director, Manager, and Module is tied to the HeartbeatSubsystem, 
+because each derives from 
+sys.heartbeatSubsystem.HeartbeatSubsystem.HeartbeatCapable. The heartbeat
+subsystem is a simple threading subsystem, designed to assist with threaded
+requests in modules. (Before the introduction of the heartbeat subsystem,
+many managers and modules each created their own daemon threads, resulting
+in a lot of copy-pasted code.) Like the EventSubsystem, the HeartbeatSubsystem
+uses dependency injection. An object may link to the subsystem in its __init__
+function by using super(MyClass, self).__init__(hbSys=HB_SUBSYS). Since
+every object in the bot that derives from HeartbeatCapable also derives from
+EventCapable, the constructors "play nice" with each other. Thus it is 
+possible to initialize both systems at once by calling
+super(MyClass, self).__init__(name=N, identity=I, evSys=EV_SYS, hbSys=HB_SYS)
+and the classes will handle everything themselves. Note that the keyworded
+calling is REQUIRED.
+
+Many attributes inherited from HeartbeatCapable mirror those in EventCapable.
+The O.heartbeatSubsystem returns a reference to an object's HeartbeatSubsystem,
+with the same threading caveat as EventCapable. The object also gets the
+O.heartbeatRegister() and O.heartbeatUnregister(), which work identically to
+their event counterparts.
+
+A HeartbeatCapable object also gets a special _heartbeat() method. While the
+object's HeartbeatSubsystem is active, the object's _heartbeat() method will
+be called periodically. (As of this writing, the period is approximately
+5 seconds). This heartbeat is done using a threadpool that is separate from
+normal execution, so an object that utilizes the _heartbeat() method should 
+take proper care for correct synchronization by using Locks, RLocks, 
+and Events. After the object finishes executing its _heartbeat() method, the 
+HeartbeatSubsystem waits for a predefined time before calling it again. Note
+that the call time is not a guarantee. If something requires very precise 
+timing, the heartbeat subsystem is probably not good enough. However, if an
+object needs periodic upkeep, this is a good option. The default 
+implementation of the _heartbeat() method does nothing. If you wish to use
+the heartbeat subsystem in a class, you should override this function.
+
+
+4. Modules
+----------
+
+4A. BaseModule
+--------------
+
+Every module is derived from BaseModule, which has the following properties
+and methods:
+
+(REQUIRED OVERLOADS)
+When you derive from BaseModule, your class definition must include the
+following attributes (or, @property decorated getter methods):
+_name: this is the NAME of the object, used for the event subsystem and
+	various other purposes. This name should not be used by any
+	other module.
+requiredCapabilities: a list of strings that list the capabilities of
+	the module's manager. If a manager attempts to create a module but
+	does not have the correct capabilities, an exception is thrown.
+	Capabilities include: 'chat', 'hobopolis', 'kmail', 'inventory', 'admin'.
+
+(properties - inherited)
+O.name: return the NAME of the object. This is the same name that is used
+	for the event subsystem.
+O.id: return the IDENTITY of the object. This is the same identity that
+	is used for the event subsystem.
+O.parent: return a reference to the module's parent (i.e., its manager).
+	This can be useful to access the public interface of the parent.
+O.session: return a reference to the KoL session (used by PyKoL functions).
+O.properties: return a reference to the RunProperties object (see: properties).
+O.inventoryManager: return a reference to the InventoryManager (from PyKoL).
+O._log: direct access to the log. It's better to use the logging methods,
+	which are suppressed for unit tests.
+
+(init)
+__init__(self, manager, identity, config): initialize the BaseModule. Every
+	manager calls __init__ with these arguments, so your __init__ should
+	match and call super(O, self).__init__(manager, identity, config) to
+	properly set everything up.
+
+(logging)
+O.debugLog(self, txt): write a message to the appropriate log file (for debug).
+	This only occurs in debug mode. Also, if debug mode is active, the text
+	is output to stdout.
+O.log(self, txt): write a message to the appropriate log file at the INFO
+	level.
+O.errorLog(self, txt): write a message to log with level ERROR.
+	
+(KoL chat/kmail)
+O.chat(self, text, channel=None, waitForReply=False, raw=False): use this
+	method to send chats. If channes is None, the parent manager will determine
+	which channel to send on. The waitForReply argument controls if the chat
+	is sent asynchronously. If false, the return value will be an empty list.
+	If true, the chats will be sent synchronously and the return value will
+	be a list of dicts, using the same format as "vanilla" PyKoL. Under normal
+	circumstances, synchronous chats are not required and slow. However, if
+	issuing special chat commands like /listen, /channel, etc., you will need
+	to use synchronous operation. The raw argument, if true, forces the chat
+	to be undecorated. Usually, the bot decorates chats, but if issuing
+	chat commands, or you need to issue an undecorated chat, you should use 
+	raw=true.
+
+O.whisper(self, uid, text, waitForReply=False): send a PM to a user. PMs are 
+	always sent undecorated.
+	
+O.sendKmail(self, msg): send a Kmail. The msg argument must be a Kmail object,
+	which are in cwbot.common.kmailContainer. Do NOT use this to respond to
+	other kmails if you attach items; use a KmailModule instead. This ensures
+	that items are not double-sent if there is some sort of error or power
+	failure.
+	
+
+--- Methods to OVERRIDE ---
+
+(startup methods)
+O._configure(self, config): this method is called from the BaseModule's 
+	__init__ method. Modules should override this function and handle any 
+	configuration. The config argument is to a ConfigObj section 
+	(see http://www.voidspace.org.uk/python/configobj.html), which is
+	essentially a dict with all of the object options from the config.ini file
+	in its section. If you have default options, you should write them back
+	to this dict, as the contents are output back to the config file. The
+	easiest way to do this is to do "val = config.setdefault('key','default')".
+	This method is called automatically by the BaseModule's constructor.
+	This method should be overridden.
+	
+O.initialize(self, lastKnownState, initData): this method should not be called
+	from the module. Instead, the parent manager calls it after _configure() is
+	run. lastKnownState is a dictionary of the object's state from the last
+	shutdown (see O.state and O.initialState below). initData is a dict that is
+	passed to the module from its manager. Each manager can determine what
+	information goes here. At the moment, all modules pass an empty dict here,
+	except the HoboChannelManager, which passes raid log information. See
+	BaseHoboModule for more information. This method should be overridden.
+	Note that if this method throws an exception -- any exception -- when
+	initialized with persistent state, then the state is discarded and the
+	module is initialized with its initialState instead. This method may also
+	be called when O.reset() is called, so you should reset everything to a
+	valid state and not assume that any "good" values are already set. That
+	is, don't set any initial values in the constructor -- put them here.
+	
+@property
+O.state(self): this method returns the persistent state of the module, in a 
+	dict. If the module has no persistent state, do not override this method.
+	Otherwise, return a dict with strings as keys. This function will be called
+	periodically by the manager for persistent state synchronization.
+	If your module has persistent state, you should also respond to any
+	event with subject "state" with the module's state dictionary. This allows
+	the module to be compatible with the StateModule. Serialization is 
+	performed by first converting the state to JSON with Python's JSON module,
+	so only the following data types are supported:
+	dict, list,	tuple, str, unicode, int, long, float, True, False, None.
+	After conversion, the data is stored in an sqlite3 database.
+	
+@property
+O.initialState(self): this method returns the default state of the module.
+	If no persistent state exists, or if an error occurs in O.initialize(),
+	the module is initialized with O.initialState instead. If you don't
+	override O.state(), you don't need to override this either. By default,
+	this just returns an empty dict.
+	
+O.reset(self, initData): reset the state of the module. This function is not
+	usually	called, except for modules whose parent is a HoboChannelManager, 
+	which resets the state of its child modules whenever a new Hobopolis 
+	instance is created. By default, this calls 
+	self.initialize(self.initialState, initData), but for complicated
+	modules it will probably need to be overridden.
+
+O.cleanup(self): this function is called before shutdown for rollover. If
+	the module needs to do any important tasks before shutdown, this is
+	where they need to be done.
+	
+
+O._heartbeat(self) and O._eventCallback(self, eData) are available for
+	override as well. See EventSubsystem and HeartbeatSubsystem.
+	
+
+--- Special Methods (only for creating new abstract modules) ---
+
+O.extendedCall(self, command, *args, **kwargs): This call should not be
+	used in concrete classes, but is instead used in abstract (base) classes
+	to offer extended functionality to managers, while retaining backwards-
+	compatibility with other modules. This function is called by the manager,
+	and if the class implements that extended call, that function is called.
+	If it is not, the function returns None. There is no need to call this
+	yourself in a module.
+	
+O._registerExtendedCall(self, command, func): used to "register" a call
+	with extendedCall. For example, the BaseChatManager implements the
+	processChat method, and at construction calls 
+	self._registerExtendedCall('process_command', self.processCommand).
+	When the manager calls obj.extendedCall('process_command', ...),
+	any modules that have registered that call execute the appropriate
+	function. Modules that have not registered the call do nothing.
+	This function must be called after BaseModule is initialized.
+	
+--- Summary ---
+
+To create a module, inherent from BaseModule and do the following:
+
+- implement the _name and requiredCapabilities attributes.
+- the constructor should have the signature 
+	__init__(self, manager, identity, config) and call
+	super(MyClass, self).__init__(manager, identity, config).
+- implement _configure(self, config) to handle configuration.
+- implement initialize(self, lastKnownState, initData) to handle initialization
+	and (optionally) persistent state restoration.
+- (optional) implement @property state(self) and @property initialState(self)
+	to handle saving persistent state. Possibly, override reset(self) too.
+- (optional) implement cleanup(self) if you need to have the class do something
+	before rollover.
+- (optional) implement a _heartbeat(self) and/or _eventCallback(self, eData) if
+	you need threading or event callbacks.
+	
+Note that a module that is directly derived from BaseModule can't actually do
+very much, since it can't process chat or kmails. A few modules don't need
+these functions; for example, the shutdown module only responds to rollover
+alerts, which are issued as events.
+	
+
+4B. BaseKmailModule
+-------------------
+
+The BaseKmailModule inherits from BaseModule and adds the following:
+
+__init__ is the same as BaseModule and simply forwards to BaseModule.
+
+O.newMessage(self, uid, text="", meat=0): creates a Kmail object.
+	This object is used by various other methods in BaseKmailModule.
+	To add items to the message, use MyNewMessage.addItems(itemDict),
+	where itemDict is a dict of (ITEM_ID, QUANTITY) pairs.
+	
+
+--- Methods to OVERRIDE ---
+
+O._processMessage(self, message, uid, text, items, meat): This is where kmail
+	processing takes place in a kmail-based module. This function will be 
+	called by the module's manager to request processing of a kmail. Not every
+	kmail will be processed by every module -- with the MessageManager, if a 
+	higher-priority module indicates that it has successfully processed a
+	kmail, lower-priority modules will not be called.
+	The arguments here are: message contains the message as a Kmail object; to
+	get the pyKol representation, use message.info. message.uid is the user id
+	number of the sender; message.text is the kmail text;
+	message.items is a dict with int -> int entries, with (ITEM_ID, QUANTITY)
+	pairs; and message.meat is an integer with the amount of meat included.
+	Your module needs to decide, based on this kmail, whether to PROCESS the
+	kmail or to IGNORE the kmail. For example, the SgeeaModule ignores any
+	kmail that does not have at least one SGEEA attached.
+	To IGNORE the kmail, return None. The manager will then pass the kmail
+	to the next module in the priority chain.
+	To PROCESS the kmail, perform whatever computations are possible and then
+	return a Kmail object. The manager will then send that message. This
+	indicates that the message was processed. If you want to indicate that the
+	message was processed, but you do not want to send a kmail reply, return
+	a Kmail with a negative uid; the message will be ignored but the
+	manager will consider the message processed.
+	If, for some reason, you want to process the message but not indicate that
+	it was processed, use the send() method instead to send a kmail.
+	
+O.messageSendFailed(self, sentMessage): This method is called if a kmail fails
+	to send for some reason. By default, this does nothing. But, you might
+	want to roll back some sort of settings. However, due to the way the that
+	the MailHandler currently works, this function is not called when any of
+	the following occur:
+	- The message cannot be sent because the user is in Hardcore or Ronin. In
+		this case, the message is sent without any items, and the items are
+		withheld. They can be released when the user interacts with the
+		CashoutModule (or with a custom module that interacts with the
+		MailHandler).
+	- The message cannot be sent because the user is ignoring the bot. This
+		case is handled in the same way as the Hardcore/Ronin case, but
+		administrators will be notified that the kmail failed to send. The
+		items are still withheld.
+	- The userId of the sent message is invalid. In this case, the bot will
+		simply ignore the kmail, without sending a reply. If you send a kmail
+		in a module that is addressed to a user and you don't know if that
+		user exists, either check this with a pyKol request or just know that
+		the kmail will fail silently if the user does not exist.
+	- There is some sort of unknown error. In this case, the items will be
+		withheld, but the recipient might not receive any notification that
+		this has happened.
+	
+	However, this function IS called if there is some sort of internal error,
+	or the bot does not have enough items in inventory to send the Kmail.
+	This check is done before the actual Kmail request is made; if the
+	actual request itself fails, it reverts to the default method of silently
+	withholding any items. Any time this happens, an administrator is notified.
+	
+
+--- Summary ---
+
+To create a kmail-based module, perform the following, IN ADDITION to what is
+done for a BaseModule:
+	
+- impliment the processMessage() method.
+- (optional) impliment the messageSendFailed() method.
+- impliment the moduleDescription() method.
+
+
+4C. BaseChatModule
+------------------
+
+The BaseChatModule is the chat-based analogue of the BaseKmailModule. It
+inherits from BaseModule and adds the following:
+
+__init__ is the same as BaseModule and simply forwards to BaseModule.
+
+The following methods should be overridden:
+O._availableCommands(self): return a dict of string -> string pairs, 
+	used for the manager's !help command. An example:
+	{'ahbg':"!ahbg: Display information about the Ancient Hobo Burial Ground."}
+	Note that this information does not have to reflect the actual behavior
+	of the module, but if a user chats "!help ahbg", the text above will
+	be shown. To add a "hidden" command, set its description to None, e.g.,
+	{'ahbg': None}. Commands not in this dictionary will be "hidden" to users,
+	but still function IF the module is not clan-only. (This condition is
+	necessary; without it, the bot needs to check every user to see if they
+	are in-clan the first time it sees a chat from them.)
+	
+O._processCommand(self, message, commandText, commandArgs): this is the chat
+	analogue of BaseKmailManager's processMessage() method. The message
+	argument is a dict object returned by PyKoL; commandText is the command
+	received itself -- for example, if the user types "!fax lobsterfrogman",
+	commandText is "fax". Similarly, commandArgs is the argument string --
+	in this case "lobsterfrogman". Note that by default, the managers will
+	take arguments out of parentheses as stated in the readme -- so if a
+	user sends "!fax (lobsterfrogman) hobo_elf", commandArgs is 
+	"lobsterfrogman".
+	To IGNORE the chat, return None. To PROCESS it, do whatever processing
+	is necessary and return a string. That string will be sent back in the
+	same chat channel, or back to the user if the message came in a PM.
+	
+	
+--- Summary ---
+
+To create a chat-based module, perform the following, IN ADDITION to what is
+done for a BaseModule:
+
+- impliment the processCommand() method.
+- impliment the _availableCommands() method.
+
+
+4D. BaseHoboModule
+------------------
+
+The BaseHoboModule is a subclass of BaseChatModule and is designed to
+interact with the HoboChannelManager. In addition to BaseChatModule, 
+it adds the following:
+
+* the initData arguments for initialize() and reset() can be assumed
+	to have an 'events' key, with a value that is a list of raid log events,
+	as returned from PyKol.
+
+__init__ is the same as BaseModule and simply forwards to BaseModule.
+
+O._dungeonActive(self): returns True if Hodgman is still alive in the
+	current Hobopolis instance.
+
+
+--- Methods to OVERRIDE ---
+	
+O._processDungeon(self, dungeonText, lastEvents): this function is called
+	any time a chat from Dungeon is received. The dungeonText argument is a
+	string that has the text in the chat. The lastEvents argument is a list
+	of the most recent raid log, as returned from PyKol; these events are
+	read after the chat is received, so lastEvents is AT LEAST as up to date
+	as the chat. It is possible that more recent events are included in
+	lastEvents. It's recommended that you either use dungeonText OR
+	lastEvents if keeping track of event counts, but don't use both.
+	It's often useful to call self._processLog(lastEvents) either at the
+	beginning or at the end of this function.
+	
+O._processLog(self, eventLog): this function is called periodically when
+	events are updated. You can do whatever you want with this information.
+	The HoboChatManager does this in a different thread, but everything is
+	synchronized, so you can treat this function as if it is called in the
+	same thread as _processDungeon.
+
+	
+--- Extra Functions ---
+
+Included in the BaseHoboModule file are two auxiliary functions you can import:
+
+eventFilter(events, *text) is a shortcut function to filter events from
+	the event log. eventFilter(events, regex1, regex2, ...) will return
+	a generator with only the events in the list whose event text matches
+	one of the regexes. This makes it simple to count events; for example,
+	to count the total number of hot hobos killed:
+	N = sum(k['turns'] for k in eventFilter(events, r'defeated\s+Hot hobo'))
+
+killPercent(n) returns an integer between 0 and 99 that corresponds to the
+	percent completion of a Hobopolis side zone (assumed to need 500 kills).
+	n is the number of hobos killed in the zone (counting extra kills, for
+	example from trashcanos).
+	
+--- Summary ---
+
+To create a Hobopolis module, perform the following, IN ADDITION to what is
+done for a BaseModule and a BaseChatModule:
+
+- impliment the _processDungeon() method.
+- impliment the _processLog() method.
+
+
+4E. Example Modules
+-------------------
+
+Here are a few good modules to see as examples:
+
+cwbot.modules.general.MiscCommandModule is a very simple chat module.
+cwbot.modules.general.DiceModule is a relatively simple module.
+cwbot.modules.general.AnnouncementModule is an example of receiving events.
+cwbot.modules.general.ShutdownModule shows sending events and using heartbeat.
+cwbot.modules.hobopolis.SewerModule is a simple hobopolis module.
+cwbot.modules.hobopolis.PldModule is a relatively straightforward module, too.
+cwbot.modules.messages.SgeeaModule is a simple kmail module.
+cwbot.modules.messages.DonateModule is a simple kmail module as well.
+
+
+
+5. Managers
+-----------
+
+Like modules, managers are split into the kmail variety and the chat variety,
+but all are child classes of BaseManager. It would, of course, be possible to
+create a manager that handles both by inheriting from BaseChatManager and
+BaseKmailManager; however, this is not included in this package and would
+probably be more trouble than it's worth.
+
+5A. BaseManager
+---------------
+
+All classes deriving from BaseManager must define the following property:
+
+capabilities - a list of string capabilities, corresponding to the
+	requiredCapabilities of modules.
+	
+	
+The BaseManager has many internal functions that are important to know about,
+	but either should be left alone, or have important information before
+	overriding them. This includes:
+	
+O._configure(self, config): load configuration. If you override this, make
+	sure to call BaseManager._configure(self, config), too. This method
+	performs the same function as _configure in BaseModule. In the
+	BaseManager class, this loads some parameters from modules.ini.
+	
+O._addModules(self, config): load modules from config files. This is called
+	by BaseManager.__init__ and should not be called by child classes.
+	It is called after _configure.
+
+O._initialize(self): this is called inside BaseManager.__init__ after
+	_addModules. If you override it, make sure to call 
+	BaseManager._initialize() as well. _initialize is called after
+	_addModules. In BaseManager, this function handles initializing
+	modules with persistent state by using _initializeModules.
+	
+O._initializeModules(self, initData): this is called inside 
+	BaseManager._initialize to call the modules' initialize() methods after
+	they are created and configured. This should not be called by child
+	classes.
+	
+O._syncState(self, force=False): this is called by BaseManager._heartbeat to
+	handle syncing state of modules to disk. If you override this, be sure
+	to call BaseManager._syncState(force) as well. And be VERY careful, because
+	BaseManager uses internal locking around this function, so it can be easy
+	to get an accidental deadlock if you're not paying attention. The _syncLock
+	is used here, so it might be good to be mindful and use this lock as
+	necessary (it's a reentrant lock, so the same thread can acquire it
+	multiple times). If you get a deadlock, see Deadlock Debugging.
+	
+O._heartbeat(self): if you override _heartbeat, be sure to call 
+	BaseManager._heartbeat as well, or the syncing mechanism will not work.
+
+O.cleanup(self) runs before shutdown for rollover. If you override it, be
+	sure to call BaseManager.cleanup, too.
+
+	
+BaseManager properties:
+
+O.session - return KoL session. Same as in BaseModule.
+O.inventoryManager - return InventoryManager. Same as BaseModule.
+O.chatManager - return ChatManager, which is used by PyKol.
+O.director - return the parent director.
+O.properties - return RunProperties. Same as BaseModule.
+
+Other BaseManager methods:
+
+O.errorLog, O.log, and O.debugLog work the same way as in BaseModule. Each 
+	manager writes to its own log file.
+	
+O._processorInitData(self) returns the initData dict that is passed to modules
+	when the manager initializes or resets the module. This function can be
+	overridden to pass different types of data at initialization.
+	
+O._clearPersist(self) clears all persistent state of all modules. It doesn't
+	reset them, though, so if everything is active, their state will be
+	rewritten to disk.
+	
+O.checkClan(uid) is a public function available to modules. It returns true
+	if the user with id uid is in the same clan as the bot.
+	
+O.defaultChannel(self) returns the default chat channel, and can be overridden
+	based on the type of manager.
+	
+O.sendChatMessage, O.whisper, and O.sendKmail use the same syntax as 
+	BaseModule's corresponding methods.
+	
+
+It's important to note that, like the BaseModule, the BaseManager does not 
+the ability to receive communications. It is simply a class that holds logic
+common to all managers.	
+
+
+5B. MessageManager
+------------------
+
+The MessageManager adds Kmail capabilities to the BaseManager, including
+the parseKmail method, which is called by the director. 
+
+Most of the MessageManager's processing is done inside _processMessage, which
+formats a Kmail and then passes it to successive modules until one handles it,
+then sends the resulting Kmail, while handling permissions.
+
+
+5C. BaseChatManager
+-------------------
+
+The BaseChatManager adds chat capability to the BaseManager. The 
+parseChat(self, msg, checkNum) function is called by the director any
+time new chats are received. checkNum is an integer that is incrimented every
+time the director checks for more chats. Every second or so, the director
+gets all new chats at once, so it's possible for more than one chat to have
+the same checkNum. By default, parseChat checks the _chatApplies(self, msg)
+method, and, if it returns true, calls processChat(self, msg, checkNum).
+
+_chatApplies(self, msg) is the function that determines filtering functions.
+Different managers will have different criteria for receiving messages. When
+you create a manager, you will have to think about what chats it will need
+to ignore and return False from this function in those cases.
+
+_processChat(self, msg, checkNum) is the "guts" of the BaseChatManager, and
+is analogous to the MessageManager's _processMessage method. This function
+checks if a chat is a command (i.e., starts with "!"), and if so, splits
+it into command and argument. If the command is the help command, the 
+manager prints applicable help, using the _showHelp method or the
+_showCommandSummary method. Otherwise, the command is passed to the manager's
+modules by order of priority, skipping those for which the user does not have
+sufficient permission. If any return a string, it is sent in chat. This is
+done with the help of the _processCommand method, which sends commands to
+individual modules.
+
+
+5D. MultiChannelManager and AllChannelManager
+----------------------------------------------
+
+Both of these classes are concrete and derived from BaseChatManager. They are
+both extremely similar. MultiChannelManager overrides _chatApplies() so that
+only the channels in its configuration are approved, and its defaultChannel()
+is set to return the first channel in this list. The AllChannelManager reads 
+chat from any channel; its defaultChannel() method returns the same channel as
+the most recent chat received, so that it always replies on the same channel.
+
+
+5E. HoboChannelManager
+----------------------
+
+This manager is derived from MultiChannelManager and adds Hobopolis features.
+
+The first difference between this and MultiChannelManager is the parseChat()
+method. After filtering, chats from Dungeon are routed to the 
+_processDungeonChat() method instead of _processChat(). The _processDungeonChat
+method passes dungeon chats to its modules' _processDungeon() method, if they
+have it.
+
+The HoboChannelManager polls the Hobopolis logs periodically by calling the
+_updateLogs() method. This method checks the amount of time since the last
+update, and if it has been long enough, redownloads the hobopolis logs
+via _getRaidLog() and then calls the _processLog() method for each module.
+
+There are two properties: active is true if the dungeon is active (i.e.,
+Hodgman is alive), and lastEvents holds a copy of the most recent events.
+self.lastEvents returns a copy and is thread safe.
+
+Modules that are under the HoboChannelManager are reset (via their reset()
+methods) whenever a new Hobopolis instance is present.
+
+
+6. CommunicationDirector
+------------------------
+
+The Director is in charge of loading managers. Complete documentation
+is not presented here, but other information should be fairly straightforward.
+The CommunicationDirector's main method is the processNewCommunications()
+method, which is called every second (unless configured otherwise) by the
+BotSystem. Here, new chats are read and new kmails are downloaded, and these
+are passed to the managers. The managers return their replies, and the
+director sends them. The director also is in charge of constructing and
+destructing the managers. It is responsible for interacting with the
+MailHandler as well. Finally, it raises rollover events when rollover
+announcements are detected; the subject is "rollover" and its data is
+{'time': N}, where N is the number of minutes remaining. This event
+is sent from identity "comms" / name "sys.comms". In addition, when a chat
+is sent, it raises the event "chat", with data 
+{'channel': CHANNEL_NAME, 'text': CHAT_TEXT}). No event is raised when a
+whisper is sent or when a Kmail is sent.
+
+
+7. BotSystem / System Events
+----------------------------
+
+The BotSystem holds the main loop. It also responds to and creates system 
+events. The following system events are raised by the BotSystem 
+(they are from identity "system" / name "sys.system"):
+
+"startup": upon entering main loop (after initialization), no data
+"shutdown": when shutting down for rollover, no data
+"manual_restart": when a manual restart is about to occur, no data
+"manual_stop": when a manual stop is about to occur, no data
+"crash": when the bot is crashing (data is {'args': error class name})
+
+In addition, certain actions can be invoked by sending events directly
+to __system__ (broadcast events will NOT work):
+
+"LOGOUT": signals a logout for rollover. The bot will log off, wait for 8
+	minutes, and then log back on.
+"STOP": manually stop the bot. It will not restart.
+"RESTART": manually restart the bot. This reloads the bot as well, so the
+	python code is reloaded.
+
+	
+8. Kmail Handler
+----------------
+
+Kmail events are handled through a complicated handler located in 
+cwbot.sys.mailHandler. The MailHandler operates asynchronously and has
+built-in redundancy in case a Kmail fails to send, to make sure that
+it is sent at next login. Custom modules and managers should not send
+messages using pyKol, but instead use this system (which is used by default
+when using the sendKmail() method of these objects). The MailHandler makes
+a distinction between a kmail that is a REPLY from one that is a NONREPLY.
+
+Note that all of the following steps are already done by the
+CommunicationDirector. The user should not directly use any interface with
+the MailHandler. Nevertheless, it may be prudent to know the internals
+of the system.
+
+When the MailHandler is notified to check for new Kmails using its notify()
+method, it downloads a list of new kmails from KoL and places them in its 
+database with the DOWNLOADED state. It then deletes them from the server
+and changes the state to READY. The next mail can be requested using 
+getNextKmail(), which returns None if no new mail is present, and a 
+pyKol-formatted kmail dict if one is present. When this happens, the state 
+of this kmail in the MailHandler is set to RESPONDING, indicating that the 
+kmail is being processed, but no replies have been sent. If there is an
+interruption before any replies are passed back to the MailHandler, these 
+kmails will be reset to the READY state and reprocessed. This shows the
+importance of a REPLY kmail from a NONREPLY kmail: if there is an
+interruption and a module sends a NONREPLY kmail, it might be re-sent, since
+it is not "attached" to a mail in the inbox.
+
+After processing is done, the CommunicationDirector collects any replies
+and calls respondToKmail() with a list of replies. This must be done even
+if no replies are to be sent. Three things happen as a single atomic 
+transaction: the mail in the database (the original incoming mail) has its
+state changed to HANDLED, any replies are added to the database with state
+SENDING, and any items attached to the message are reserved with the
+InventoryManager. At next startup, all HANDLED mails are purged from the
+database.
+
+At this point, the MailHandler asynchronously sends the kmails. It looks for a
+kmail in the database with SENDING state and attempts to send it. 
+If the kmail is sent, its state is changed to TODELETE. On next startup,
+this kmail will be purged from the KoL outbox. At the same time, the items
+reserved for this Kmail are released from the InventoryManager.
+
+If sending the message fails, the state of the mail in the database is changed:
+- If there are items or meat attached, its state is changed to FAILED.
+- If there are no items/meat attached to the message, its state is changed
+	to COULDNOTSEND. 
+	
+After handling every SENDING message, the MailHandler examines any kmail with
+FAILED state. These messages failed to send for some reason, though the most
+likely reason is that the player was in Hardcore or Ronin. The MailHandler
+tries to send the message again, but with no items or meat attached, and
+a note explaining that items were withheld. Note that it's possible that
+a service interruption results in double-sending this message, but since
+no items or meat are attached, there's not an issue.
+- If this succeeded, the state is changed to WITHHELD.
+- If this fails, the state is changed to COULDNOTSEND.
+
+Next, the MailManager examines any message with WITHHELD state. These messages
+were sent without any items. A special new message is created with the DEFERRED
+state with these items. If one of these messages already exists, the items from
+the new message are merged with these. Simultaneously, the WITHHELD kmail is
+deleted from the database. The DEFERRED kmail is held indefinitely, and has
+its state changed to SENDING when the sendDeferredItems() method is called.
+
+Finally, the MailManager examines any message with COULDNOTSEND state. A kmail
+is sent to any user with the mail_fail permission warning of the failed kmail,
+and the kmail has its state changed to ERROR. If the failure was due to the
+bot being ignored, or out of items, or some other unknown issue, the items are
+still reserved and a copy of the kmail is also set to WITHHELD to keep the
+items for the user. If the failure was due to an unknown userId, the items
+are released and the bot keeps the items.
+
+
+9. Inventory Manager
+--------------------
+
+A custom version of the PyKol InventoryManger is used in CWbot, located in
+cwbot.kolextra.manager.InventoryManager. The key difference is that items
+can be "reserved", after which they are not counted in inventory. To get
+a complete list of inventory, use the completeInventory() method instead
+of inventory(). Right now, the reservation functionality is only used
+by the MailHandler and it should probably stay that way. But developers
+might need to be aware of the change in behavior.
+
+
+10. Debugging Deadlocks
+-----------------------
+
+CWbot has a deadlock-detection mechanism by using Debug Locks. If the bot 
+deadlocks, it will output a file called trace.html that shows a stack trace 
+for each thread, assuming these locks are used. To use them in a file, use
+"import cwbot.util.DebugThreading as threading" to import them. However, there
+is a small performance penalty, as a global lock registry must be accessed
+when a lock is acquired. 
+
+
+11. RunProperties
+-----------------
+
+Many system options are kept in the RunProperties class. The logon information,
+administrators and groups, and related functions are kept here.
+
+The properties userName, password, and clan hold the relevant information
+(clan holds the integer clanID). 
+
+Methods:
+
+getAdmins(self, permissionName="*"): returns a list of userIDs with the
+	requested permission. "*" returns all userIDs with any permission.
+
+getPermissions(self, uid): returns a list of permission for the userID given.
+
+refresh(self): reload information from .ini files.
+
+close(self): call this before quitting; it changes the directory back to
+	its original location.
+	
+Managers and modules can access the properties through thier properties
+attribute.
