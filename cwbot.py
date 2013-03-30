@@ -7,7 +7,8 @@ import logging
 import cwbot.util.DebugThreading as threading
 from cwbot.processArgv import processArgv
 from cwbot.sys.BotSystem import BotSystem
-from cwbot.common.exceptions import ManualException, ManualRestartException
+from cwbot.common.exceptions import ManualException, ManualRestartException, \
+                                    FatalError
 from cwbot.kolextra.manager.ChatManager import ChatManager
 from cwbot.kolextra.request.SendMessageRequest import SendMessageRequest
 from cwbot.kolextra.manager.InventoryManager import InventoryManager
@@ -25,7 +26,6 @@ def openSession(props):
     s = Session()
     s.login(props.userName, props.password)
     log.info("Logged in.")
-    onlineTime = time.time()
     return s
 
 
@@ -44,11 +44,30 @@ def createInventoryManager(s, db):
     return inv
 
 
+def notifyAdmins(s, props, log, etype, value, tb):
+    # kmail the administrators
+    if s is not None and s.isConnected:
+        for uid in props.getAdmins('crash_notify'):
+            errorText = ''.join(traceback.format_exception(
+                                                    etype, value, tb))
+            if len(errorText) > 1800:
+                errorText = "..." + errorText[-1800:]
+                                                    
+            alert1 = SendMessageRequest(
+                    s, {'userId': uid, 
+                        'text': "NOTICE: CWbot encountered an "
+                                "unknown error: {}".format(errorText)})
+            try:
+                log.info("Sending notice to {}".format(uid))
+                tryRequest(alert1)
+            except Exception:
+                log.exception("Exception sending error notice.")
+
+
 def loginLoop(myDb, props):
     """ Main part of the login loop. """
     log = logging.getLogger()
     s = None
-    c = None
     onlineTime = time.time()
     successfulShutdown = False
     fastCrash = False
@@ -73,6 +92,12 @@ def loginLoop(myDb, props):
         log.info("Exiting application.")
         loginWait = -1
         successfulShutdown = True
+    except FatalError:
+        log.exception("Fatal error.")
+        etype, value, tb = sys.exc_info()
+        notifyAdmins(s, props, log, etype, value, tb)
+        del tb
+        raise
     except kol.Error.Error as inst:
         # standard error with a pyKol component
         if hasattr(inst, 'timeToWait'):
@@ -104,24 +129,8 @@ def loginLoop(myDb, props):
         log.info("Restarting process...")
     except:
         log.exception("Unknown error.")
-        
-        # kmail the administrators
         etype, value, tb = sys.exc_info()
-        if s is not None and s.isConnected and c is not None:
-            for uid in props.getAdmins('crash_notify'):
-                errorText = ''.join(traceback.format_exception(
-                                                        etype, value, tb))
-                if len(errorText) > 1800:
-                    errorText = "..." + errorText[-1800:]
-                                                        
-                alert1 = SendMessageRequest(
-                        s, {'userId': uid, 
-                            'text': "NOTICE: CWbot encountered an "
-                                    "unknown error: {}".format(errorText)})
-                try:
-                    tryRequest(alert1)
-                except Exception:
-                    log.exception("Exception sending error notice.")
+        notifyAdmins(s, props, log, etype, value, tb)
         del tb
         if props.debug:
             raise
@@ -129,7 +138,7 @@ def loginLoop(myDb, props):
         # shut down
         sys.last_traceback = None
         log.debug("Shutting down...")
-        if (not successfulShutdown and time.time() - onlineTime < 300):
+        if not successfulShutdown and time.time() - onlineTime < 300:
             # if shutdown was too fast: do an exponential back-off
             fastCrash = True
             if s is not None:
@@ -143,13 +152,13 @@ def loginLoop(myDb, props):
                                              useEmoteFormat=True)
                     except:
                         pass
-		if cman is not None:
-			try:
-				log.info("Closing chat...")
-				cman.close()
-				cman = None
-			except:
-				log.exception("Error closing chat session.")
+        if cman is not None:
+            try:
+                log.info("Closing chat...")
+                cman.close()
+                cman = None
+            except:
+                log.exception("Error closing chat session.")
         if s is not None:
             try:
                 log.info("Closing session...")

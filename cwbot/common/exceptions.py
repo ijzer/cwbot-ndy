@@ -9,3 +9,6 @@ class ManualRestartException(Exception):
 
 class RolloverException(Exception):
     pass
+
+class FatalError(Exception):
+    pass

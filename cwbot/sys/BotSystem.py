@@ -1,18 +1,35 @@
 import time
 import logging
+import copy
 import cwbot.util.DebugThreading as threading
-from configObj.configobj import ConfigObj
+from configObj.configobj import ConfigObj, ParseError, flatten_errors
 from configObj.validate import Validator
 from StringIO import StringIO
 import kol.Error
 from cwbot.sys.CommunicationDirector import CommunicationDirector
 from cwbot.common.moduleSpec import MODULE_SPEC
-from cwbot.common.exceptions import ManualRestartException, ManualException
-from cwbot.common.exceptions import RolloverException
+from cwbot.common.exceptions import ManualRestartException, ManualException, \
+                                    RolloverException, FatalError
 from cwbot.sys.eventSubsystem import EventSubsystem
 from cwbot.sys.heartbeatSubsystem import HeartbeatSubsystem
 from cwbot.common.InitData import InitData
 
+
+def _quoteConfig(cfg):
+    try:
+        for k in cfg.keys():
+            cfg[k] = _quoteConfig(cfg[k])
+        return cfg
+    except AttributeError:
+        if isinstance(cfg, str):
+            if "\"" in cfg or "'" in cfg:
+                if ((cfg.startswith('"""') and cfg.endswith('"""')) or
+                    (cfg.startswith("'''") and cfg.endswith("'''"))):
+                    return cfg
+                cfg = '"""' + cfg + '"""'
+                return cfg
+        return cfg
+    
 
 class BotSystem(EventSubsystem.EventCapable,
                           HeartbeatSubsystem.HeartbeatCapable):
@@ -30,6 +47,7 @@ class BotSystem(EventSubsystem.EventCapable,
         
         # start subsystems
         try:
+            oldTxt = None
             hbSys = HeartbeatSubsystem(5, 5, self._hbStop)
             evSys = EventSubsystem()
             
@@ -68,18 +86,28 @@ class BotSystem(EventSubsystem.EventCapable,
             raise
         finally:
             # rewrite config file (values may be modified by modules/managers)
-            self._saveConfig(configFile, oldTxt)
+            if oldTxt is not None:
+                self._saveConfig(configFile, oldTxt)
     
     
     def _loadConfig(self, configFile):
         """ Load ini file and parse some values from it """
         self._log.debug("Loading config file...")
-        c = ConfigObj(
-                configFile, configspec=StringIO(MODULE_SPEC), 
-                list_values=False, raise_errors=True, create_empty=True)
-        passed = c.validate(Validator(), copy=True)
-        if not passed:
-            raise Exception("Invalid module configuration.")
+        try:
+            c = ConfigObj(
+                    configFile, configspec=StringIO(MODULE_SPEC), 
+                    list_values=False, raise_errors=True, create_empty=True)
+            passed = c.validate(Validator(), copy=True, preserve_errors=True)
+        except ParseError as e:
+            raise FatalError("Parse error in modules.ini:{}: \"{}\""
+                             .format(e.line_number, e.line))
+        if passed != True:
+            f = flatten_errors(c, passed)
+            error1 = f[0]
+            raise FatalError("Invalid module configuration. First error "
+                             "found in section [{}], key \"{}\". Error: {}"
+                             .format('/'.join(error1[0]), 
+                                     error1[1], error1[2]))
         self._overWriteConfig = c['overwrite_config']
         self._config = c
         with open(configFile) as f:
@@ -93,13 +121,14 @@ class BotSystem(EventSubsystem.EventCapable,
     def _saveConfig(self, configFile, oldTxt):
         """ Write config to file """
         outTxt = StringIO()
-        self._config.write(outTxt)
+        fixedConfig = _quoteConfig(copy.deepcopy(self._config))
+        fixedConfig.write(outTxt)
         txt = outTxt.getvalue()
         if txt != oldTxt:
             filename = configFile + ("" if self._overWriteConfig else ".new") 
             self._log.debug("Config changed; writing to {}".format(filename))
             with open(filename, 'w') as f:
-                self._config.write(f)
+                fixedConfig.write(f)
                 self._log.debug("Wrote new configuration to {}"
                                 .format(filename))
     

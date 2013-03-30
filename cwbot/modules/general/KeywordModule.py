@@ -101,4 +101,3 @@ class KeywordModule(BaseChatModule):
                             ', '.join(item for item in self._rules.keys()
                                       if not item.startswith("__")))
         return rule
-

@@ -471,4 +471,3 @@ class FaxModule(BaseChatModule):
             return {'fax': "!fax: check the contents of the fax machine. "
                            "'!fax MONSTERNAME' shows the code to request "
                            "MONSTERNAME from FaxBot."}
-

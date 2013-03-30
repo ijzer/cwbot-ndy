@@ -307,7 +307,7 @@ Here is what happens for the first setting (Donate):
 	when handling kmails from users without that permission. The special
 	permission * matches any permission, so any user with one permission
 	may use such a module.
-- The modules's clan-only status is set to False. This setting works the
+- The module's clan-only status is set to False. This setting works the
 	same way as permission: any users who do not have a matching clan_id
 	will not be able to interact with this module.
 	
@@ -349,6 +349,10 @@ For example, the included KeywordModule can be reused because it has a
 customizable !command. In addition, the HookahKmailModule can be loaded
 multiple times, for example to allow out-of-clan users to also use it, but
 with a more expensive trade ratio. 
+
+If you need single quotes (') or double quotes (") in a configuration value,
+surround the entire value with triple quotes. For example:
+crash = """I have crashed with error '%arg%'."""
 	
 	
 2C. The Communication System
@@ -523,6 +527,12 @@ cwbot.managers.AllChannelManager - A manager that responds to chats received
 	
 
 Modules (default options in parentheses):
+
+cwbot.general.AboutModule - Shows an about message with the current version
+    and a link to the cwbot sourceforge page. Under the terms of the cwbot
+    license, you are allowed to use cwbot however you want. However, I ask
+    that you include this module in some fashion, so other users can learn
+    about cwbot.
 
 cwbot.general.AnnouncementModule - A module that announces system events in
 	chat. For example, it can announce when the bot logs off for rollover,
