@@ -52,6 +52,7 @@ def loginLoop(myDb, props):
     onlineTime = time.time()
     successfulShutdown = False
     fastCrash = False
+	cman = None
     try:
         loginWait = 60
         s = openSession(props)
