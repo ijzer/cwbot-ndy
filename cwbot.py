@@ -46,6 +46,8 @@ def createInventoryManager(s, db):
 
 def notifyAdmins(s, props, log, etype, value, tb):
     # kmail the administrators
+    if props.debug:
+        return
     if s is not None and s.isConnected:
         for uid in props.getAdmins('crash_notify'):
             errorText = ''.join(traceback.format_exception(
