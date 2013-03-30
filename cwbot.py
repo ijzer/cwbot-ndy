@@ -52,7 +52,7 @@ def loginLoop(myDb, props):
     onlineTime = time.time()
     successfulShutdown = False
     fastCrash = False
-	cman = None
+    cman = None
     try:
         loginWait = 60
         s = openSession(props)
@@ -143,15 +143,16 @@ def loginLoop(myDb, props):
                                              useEmoteFormat=True)
                     except:
                         pass
-            if cman is not None:
-                try:
-                    log.debug("Closing chat...")
-                    cman.close()
-                except:
-                    log.exception("Error closing chat session.")
+		if cman is not None:
+			try:
+				log.info("Closing chat...")
+				cman.close()
+				cman = None
+			except:
+				log.exception("Error closing chat session.")
         if s is not None:
             try:
-                log.debug("Closing session...")
+                log.info("Closing session...")
                 s.logout()
             except:
                 log.exception("Error closing KoL session.")
