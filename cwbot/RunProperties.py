@@ -39,7 +39,7 @@ class RunProperties(object):
         self.debug = debugMode
         if debugMode:
             print("Debug mode active")
-        self.version = "0.5.1"
+        self.version = "0.6.0"
         self.userName = None
         self.password = None
         self.clan = None

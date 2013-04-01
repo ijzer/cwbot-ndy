@@ -64,6 +64,8 @@ class KmailResponse(object):
     be a Kmail object. """
     def __init__(self, manager, module, message):
         self.manager = weakref.proxy(manager)
-        self.module = weakref.proxy(module)
+        self.module = None
+        if module is not None:
+            self.module = weakref.proxy(module)
         self.kmail = message
         self._info = message.toPyKol()

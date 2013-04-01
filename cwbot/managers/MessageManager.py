@@ -1,7 +1,9 @@
 from cwbot.kolextra.manager.MailboxManager import MailboxManager
 from cwbot.managers.BaseManager import BaseManager
-from cwbot.common.kmailContainer import KmailResponse
+from cwbot.common.kmailContainer import KmailResponse, Kmail
 
+
+_noPermissions = ["", "None", None]
 
 class MessageManager(BaseManager):
     """ A manager that handles Kmails only. Unlike the chat-based managers,
@@ -30,20 +32,22 @@ class MessageManager(BaseManager):
 
     
     def _processKmail(self, message):
-        """ This is the main processing funciton for Kmail objects. """
+        """ This is the main processing funciton for Kmail objects. Make
+        sure to return a LIST of KmailResponse objects. """
         responses = []
+        if message.text.lower() == "help":
+            return self._sendHelpMessage(message)
+        uid = message.uid
         for m in self._modules:
             mod = m.module
             permission = m.permission
             clanOnly = m.clanOnly
             sendMessage = None
-            if not clanOnly or self.checkClan(message.uid):
-                if (permission is None or 
-                    permission == "" or 
-                    permission == "None"):
+            if not clanOnly or self.checkClan(uid):
+                if permission in _noPermissions:
                     # no permission required
                     sendMessage = mod.extendedCall('process_message', message)
-                elif permission in self.properties.getPermissions(message):
+                elif permission in self.properties.getPermissions(uid):
                     # checked permission!
                     sendMessage = mod.extendedCall('process_message', message)
                     if sendMessage is not None:
@@ -67,6 +71,26 @@ class MessageManager(BaseManager):
                         responses.append(KmailResponse(self, mod, sendMessage))
                 break # do not continue to "lower" modules
         return responses
+    
+    
+    def _sendHelpMessage(self, message):
+        uid = message.uid
+        helptext = []
+        for m in self._modules:
+            mod = m.module
+            clanOnly = m.clanOnly
+            permission = m.permission
+            if not clanOnly or self.checkClan(uid):
+                if (permission in _noPermissions or 
+                    permission in self.properties.getPermissions(uid)):
+                    newTxt = mod.extendedCall('kmail_description')
+                    if newTxt is not None:
+                        if newTxt not in helptext:
+                            helptext.append(newTxt)
+        txt = '\n\n'.join(helptext)
+        if not helptext:
+            txt = "Sorry, I don't have any help available."
+        return [KmailResponse(self, self, Kmail(uid, txt))]
 
 
     def parseKmail(self, message):
@@ -74,3 +98,5 @@ class MessageManager(BaseManager):
         CommunicationDirector every time a Kmail is received. """
         if message.uid != self.session.userId:
             return self._processKmail(message)
+        
+    

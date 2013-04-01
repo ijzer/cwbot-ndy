@@ -20,3 +20,8 @@ class DonateModule(BaseKmailModule):
                 return self.newMessage(message.uid, 
                                        "Thank you for your donation!")
         return None
+
+
+    def _kmailDescription(self):
+        return ("If you want to donate something, include the word "
+                "\"donate\" in your kmail.")

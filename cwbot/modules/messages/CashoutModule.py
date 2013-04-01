@@ -36,3 +36,10 @@ class CashoutModule(BaseKmailModule):
             if meat > 0:
                 text += "\n{} meat".format(meat)
             return self.newMessage(message.uid, text)
+
+
+    def _kmailDescription(self):
+        return ("NOTE: If I am holding any items for you, send a kmail with "
+                "the text \"cashout\" to get your stuff back. You can send a "
+                "kmail with the text \"balance\" to get a list of what I am "
+                "holding for you.")

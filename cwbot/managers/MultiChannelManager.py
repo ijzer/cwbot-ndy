@@ -44,6 +44,7 @@ class MultiChannelManager(BaseChatManager):
         """ Override for _showCommandSummary to show a more specialized !help
         message """
         txt = []
+        pmText = " (and PM)" if self._respondToWhisper else ""
         if availableCommands is not None and len(availableCommands) > 0:
             txtChannelList = ("/{}".format(self._channelName[0]))
             if len(self._channelName) == 2:
@@ -54,12 +55,12 @@ class MultiChannelManager(BaseChatManager):
                                   .format(', /'.join(self._channelName[:-1]),
                                           self._channelName[-1]))
                 
-            txt.append("Commands available in {}: !{}."
-                       .format(txtChannelList, 
+            txt.append("Commands available in {}{}: !{}."
+                       .format(txtChannelList, pmText,
                                ', !'.join(item for item in availableCommands)))
         if availableAdmin is not None and len(availableAdmin) > 0:
-            txt.append("Admin commands available to {} in {}: !{}"
+            txt.append("Admin commands available to {} in {}{}: !{}"
                        .format(msg.get('userName', msg['userId']),
-                               txtChannelList, 
+                               txtChannelList, pmText,
                                ', !'.join(item for item in availableAdmin)))
         return txt

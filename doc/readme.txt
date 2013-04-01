@@ -360,16 +360,18 @@ crash = """I have crashed with error '%arg%'."""
 
 The Director downloads all new chats and kmails, and is responsible for
 transmitting all chats and kmails. All new communications are passed to the
-Managers, in order of decreasing priority. Each manager independently decides
+Managers, in order of decreasing priority -- but each manager processes the
+communication separately. Each manager independently decides
 whether a chat/kmail is "interesting", based on its own criteria. For example,
 the SingleChannelManager filters out chats by their channel. If a chat is 
 received on a different channel, that particular manager will not forward 
 the chat to its modules. Chat-based managers may also be configured 
 to reply to PMs. Once a manager decides to process a communication, it is
-passed to its modules in a systematic way. For example, the chat-based
-managers pass the chat to every module, collect all the replies, and transmits
-each one as a separate chat. The MessageManager passes new kmails to its
-modules in order of priority, but stops as soon as one module sends a reply. 
+passed to its modules in a systematic way. The included managers use a 
+"waterfall" principle. For example, a chat-based manager passes an incoming
+chat to modules in order of priority, but stops as soon as one module sends a
+reply. The MessageManager functions in a similar manner, but uses Kmails
+instead. 
 
 Managers also allow extended capabilities. For example, 
 the HoboChannelManager polls the clan raid logs and updates its modules 
@@ -391,21 +393,14 @@ as a "roll" command with argument "1d10+2d6". If a user has a chat effect,
 they may also use "!roll (1d10+2d6)" for the same effect; anything after the
 parentheses is ignored.
 
-As previously stated, the chat-based managers included handle chats and 
-priority differently than the MessageManager. When the MessageManager
-processes a Kmail, it first sends the kmail to its highest-priority module,
-which can choose to respond to the kmail or ignore it. If it responds, the
-MessageManager sends the reply to the director; if it ignores the kmail, it
-is passed to the next-highest priority module. This process is repeated until
-either a module replies, or every module has ignored the message (in which
-case, nothing happens). However, when a chat is received, it is passed to 
-each manager in order of priority. The MessageManager ignores chats, but
-the other managers do not. Each manager may either handle or discard the chat 
-message based on some manager-specific criteria. If the chat is handled, the 
-manager passes it to every module in order of priority, but unlike with the 
-MessageManager, every module receives the chat, even if a higher-priority
-module has also responded. In this way, multiple modules may reply to the 
-same command.
+As previously stated, the managers included handle chats and kmail in order
+of priority, stopping when a module responds. In other words, a manager first
+sends the chat or kmail to its highest-priority module, which can choose to 
+respond to the chat/kmail or ignore it. If it responds, the manager sends the
+reply to the director; if it ignores the message, it is passed to the 
+next-highest priority module. This process is repeated until either a module
+replies, or every module has ignored the message (in which case, nothing
+happens). 
 
 Note that there is a special command !help. This command is handled by
 chat-based managers directly and shows help for commands.
@@ -419,7 +414,7 @@ issue.
                                     |
 								    v
 -------------------------------------------------------------------------------
-|                                Director                                |
+|                                Director                                     |
 -------------------------------------------------------------------------------
                 |                                            |
                 | comm                ...                    | comm
@@ -453,7 +448,9 @@ Modules (default options in parentheses):
 
 cwbot.modules.DonateModule - processes a Kmail if it has the word "donate" in
 	it. If it does, the bot keeps all attached items and sends a thank-you
-	kmail.
+	kmail. This module should have higher priority than most other modules --
+	that way, the bot notices donations befroe handing the items to other
+	modules.
 	(No options)
 	
 cwbot.modules.messages.HookahKmailModule - runs the bot's hookah exchange. 
@@ -497,6 +494,17 @@ cwbot.modules.messages.CashoutModule - A module that handles balances and
 	and holds on to the items. A player can send a kmail with "balance" in
 	the text to get a list of items owed, and "cashout" to have the bot
 	send them their items. The CashoutModule handles both of these.
+	
+cwbot.modules.messages.SmoreModule - shoots marshmallows at users with a
+	s'more gun. To get smores, a user should send marshmallows to the bot.
+	Either a user needs to donate a s'more gun to the bot for this
+	functionality, or the user needs to send their own gun, in which case the
+	bot will use that gun and then send it back.
+	
+cwbot.modules.messages.ChatHelpMessage - a functionless module that adds a
+	help message about how to get help for chat commands. If you use this
+	module, you should give it lowest priority.
+
 
 
 3B. For Chat
@@ -858,7 +866,6 @@ cwbot.modules.hobopolis.TurnsModule - This module tracks the total number
 	count.
 	(No options)
 	
-
 
 
 4. Contact Info

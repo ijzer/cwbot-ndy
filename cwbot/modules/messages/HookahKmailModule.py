@@ -320,6 +320,11 @@ class HookahKmailModule(BaseHookahModule, BaseKmailModule):
     @property
     def initialState(self):
         return {'count': {}}
+    
+    
+    def _kmailDescription(self):
+        return ("Want an ittah bittah hookah? Send me a kmail with the text "
+                "\"hookah\" for details.")
 
 
 class HookahDonateKmailModule(BaseHookahModule, BaseKmailModule):

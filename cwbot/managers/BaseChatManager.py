@@ -82,6 +82,8 @@ class BaseChatManager(BaseManager):
                                               cmd, arg)
                     if txt is not None:
                         replies.extend(txt.split("\n"))
+                        # chat processed! return the replies.
+                        break
         return replies
 
     

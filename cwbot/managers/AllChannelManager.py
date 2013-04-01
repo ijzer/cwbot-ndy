@@ -17,14 +17,15 @@ class AllChannelManager(BaseChatManager):
     
     def _showCommandSummary(self, msg, availableCommands, availableAdmin):
         """ Override of _showCommandSummary to show "all channels" """
-        
         txt = []
+        pmText = " (and PM)" if self._respondToWhisper else ""
         if availableCommands is not None and len(availableCommands) > 0:
-            txt.append("Commands available on all channels: !{}."
-                       .format(', !'.join(item for item in availableCommands)))
+            txt.append("Commands available on all channels{}: !{}."
+                       .format(pmText, 
+                               ', !'.join(item for item in availableCommands)))
         if availableAdmin is not None and len(availableAdmin) > 0:
-            txt.append("Admin commands available to {} on all channels: !{}"
-                       .format(msg.get('userName', msg['userId']), 
+            txt.append("Admin commands available to {} on all channels{}: !{}"
+                       .format(msg.get('userName', msg['userId']), pmText,
                                ', !'.join(item for item in availableAdmin)))
         return txt
 

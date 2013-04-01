@@ -1,4 +1,3 @@
-import abc
 from BaseModule import BaseModule
 from cwbot.common.kmailContainer import Kmail
     
@@ -21,6 +20,7 @@ class BaseKmailModule(BaseModule):
     def __init__(self, manager, identity, config):
         super(BaseKmailModule, self).__init__(manager, identity, config)
         self._registerExtendedCall('process_message', self._processKmail)
+        self._registerExtendedCall('kmail_description', self._kmailDescription)
         self._registerExtendedCall('message_send_failed', 
                                    self._messageSendFailed)
 
@@ -37,7 +37,6 @@ class BaseKmailModule(BaseModule):
         self.parent.sendKmail(message)
 
 
-    @abc.abstractmethod
     def _processKmail(self, message):
         """
         Process a Kmail.
@@ -69,6 +68,7 @@ class BaseKmailModule(BaseModule):
         so if you need to send more than one Kmail, return a list of Kmail
         objects.
         """
+        return None
 
     
     def _messageSendFailed(self, sentMessage, exception):
@@ -78,3 +78,13 @@ class BaseKmailModule(BaseModule):
         sentMessage is the Kmail object you sent.
         """
         pass
+
+
+    def _kmailDescription(self):
+        """ Return a string from this function that describes how this
+        module behaves. If a user sends a "help" kmail, the MessageManager
+        will compile all available descriptions and return a help kmail.
+        
+        To "hide" the module, return None.
+        """
+        return None

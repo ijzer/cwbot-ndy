@@ -5,6 +5,7 @@ import logging
 from cwbot import logConfig
 import cwbot.util.DebugThreading as threading
 from cwbot.common.objectContainer import ModuleEntry
+from cwbot.common.exceptions import FatalError
 from cwbot.util.importClass import easyImportClass
 from kol.request.UserProfileRequest import UserProfileRequest
 from cwbot.util.tryRequest import tryRequest
@@ -125,7 +126,16 @@ class BaseManager(EventSubsystem.EventCapable,
                 clanOnly = v['clan_only']
                 
                 # import class
-                ModuleClass = easyImportClass(base, v['type'])
+                try:
+                    ModuleClass = easyImportClass(base, v['type'])
+                except ImportError:
+                    raise FatalError("Error importing module/class {0} "
+                                     "from base {1}. Either the module does "
+                                     "not exist, or there was an error. To "
+                                     "check for errors, use the command line "
+                                     "'python -m {1}.{0}'; the actual path "
+                                     "may vary."
+                                     .format(v['type'], base))
                 
                 self._modules.append(ModuleEntry(
                         ModuleClass, priority, perm, clanOnly, self, k, cfg))
@@ -138,7 +148,12 @@ class BaseManager(EventSubsystem.EventCapable,
             self._log.info("Creating {0.className} with priority "
                            "{0.priority}, permission {0.permission}."
                            .format(m))
-            m.createInstance()
+            try:
+                m.createInstance()
+            except TypeError as e:
+                raise FatalError("Error instantiating class {}: {}"
+                                 .format(m.className, e.args[0]))
+
         self._log.info("---- All modules created. ----")
 
 
@@ -366,12 +381,12 @@ class BaseManager(EventSubsystem.EventCapable,
         """ This function is called by the CommunicationDirector every time
         a new chat is received. The manager can choose to ignore the chat or
         to process it. To ignore the chat, just return []. To process it, pass
-        the chat to each module and return a list of all the replies that 
+        the chat to each module and return a LIST of all the replies that 
         are not None. """
         return []
     
     def parseKmail(self, msg):
-        """ Parse Kmail and return any replies in a list of MessageResponses
+        """ Parse Kmail and return any replies in a LIST of KmailResponses
         in the same fashion as the parseChat method. """
         return []
     
@@ -379,7 +394,8 @@ class BaseManager(EventSubsystem.EventCapable,
     def kmailFailed(self, module, message, exception):
         """ This is called by the CommunicationDirector if a kmail fails 
         to send for some reason. """
-        module.extendedCall('message_send_failed', message, exception)
+        if module is not None:
+            module.extendedCall('message_send_failed', message, exception)
     
     
     def _heartbeat(self):

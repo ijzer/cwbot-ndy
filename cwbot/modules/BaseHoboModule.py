@@ -74,6 +74,13 @@ class BaseHoboModule(BaseChatModule):
         
         Also, at some point in this function, self._processLog(lastEvents) 
         should be called. Probably.
+        
+        Unlike _processCommand, the HoboChatManager calls _processDungeon
+        for EVERY module it controls. This is because some dungeon
+        announcements affect more than one zone; for example, the Dugneon
+        message "X flimflammed some hobos..." affects the number of available
+        dances in the AHBG and also the popularity of the nightclub in the
+        PLD.
         """
         pass
 

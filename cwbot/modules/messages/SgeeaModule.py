@@ -32,3 +32,11 @@ class SgeeaModule(BaseKmailModule):
                                      "I'm not sure what to do with it.)")
             m.addItems(items)
             return m
+
+    
+    def _kmailDescription(self):
+        return ("Am I stuck with a chat effect? Normally, I can remove "
+                "them myself, but if I am out of soft green echo eyedrop "
+                "antidotes, please donate one.")
+        
+        

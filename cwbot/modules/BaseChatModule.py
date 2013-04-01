@@ -33,7 +33,10 @@ class BaseChatModule(BaseModule):
                                               args = "World 123"
         
         This function must return either a string, which will be printed in 
-        chat, or None.
+        chat, or None. Under the default managers, only the highest-priority
+        module that sends a reply will be processed. If you want to reply
+        but also allow the command to propagate, use the sendChatMessage() or
+        whisper() methods instead.
         """
         pass
     

@@ -465,6 +465,12 @@ O.messageSendFailed(self, sentMessage): This method is called if a kmail fails
 	actual request itself fails, it reverts to the default method of silently
 	withholding any items. Any time this happens, an administrator is notified.
 	
+O._kmailDescription(self): This method should return a string that describes
+	what the module does. When the user sends a kmail with "help" in the
+	text, the MessageManager calls _kmailDescription for all of its modules
+	that the player can access and sends a kmail with all of the descriptions.
+	To keep a module hidden, do not override this method (which returns None
+	by default).
 
 --- Summary ---
 
@@ -473,7 +479,7 @@ done for a BaseModule:
 	
 - impliment the processMessage() method.
 - (optional) impliment the messageSendFailed() method.
-- impliment the moduleDescription() method.
+- impliment the _kmailDescription() method.
 
 
 4C. BaseChatModule
@@ -727,7 +733,8 @@ _showCommandSummary method. Otherwise, the command is passed to the manager's
 modules by order of priority, skipping those for which the user does not have
 sufficient permission. If any return a string, it is sent in chat. This is
 done with the help of the _processCommand method, which sends commands to
-individual modules.
+individual modules. Only the first reply is sent in chat; lower-priority
+modules do not handle the chat.
 
 
 5D. MultiChannelManager and AllChannelManager
