@@ -2,6 +2,7 @@ import datetime
 from cwbot.modules.BaseChatModule import BaseChatModule
 import kol.Error
 from cwbot.common.kmailContainer import Kmail
+from kol.request.StatusRequest import StatusRequest
 
 
 class MaintenanceModule(BaseChatModule):
@@ -69,6 +70,11 @@ class MaintenanceModule(BaseChatModule):
                 startChar = " "
             k = Kmail(message['userId'], text)
             self.sendKmail(k)
+        elif cmd == "bot_status":
+            r = StatusRequest(self.session)
+            d = self.tryRequest(r)
+            return "\n".join("{}: {}".format(k,v) for k,v in d.items()
+                             if k not in ["pwd", "eleronkey"])
         return None
 
 
@@ -83,5 +89,7 @@ class MaintenanceModule(BaseChatModule):
                            "the main loop, and reloads all code.",
                 'spam': None,
                 'raise_event': None,
-                'kmail_test': None}
+                'kmail_test': None,
+                'bot_status': "!bot_status: Show the status information of "
+                              "the bot. Spammy."}
 
