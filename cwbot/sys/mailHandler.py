@@ -196,9 +196,12 @@ class MailHandler(ExceptionThread):
     def canReceiveItems(self):
         r = StatusRequest(self._s)
         d = tryRequest(r)
-        canReceive = (int(d.get('hardcore',"1")) == 0 or
-                      int(d.get('roninleft',"1")) == 0 or
-                      int(d.get('casual',"0")) == 1)
+        canReceive = ((int(d.get('hardcore',"1")) == 0 and
+                      int(d.get('roninleft',"1")) == 0) 
+                      or
+                      int(d.get('casual',"0")) == 1 
+                      or
+                      int(d.get('freedralph',"0")) == 1)
         return canReceive
 
 
