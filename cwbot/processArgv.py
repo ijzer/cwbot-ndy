@@ -9,17 +9,21 @@ def _createDir(name):
         os.makedirs(name)
     except OSError as exception:
         if exception.errno != errno.EEXIST:
+            if exception.errno == errno.EACCES:
+                if not os.path.exists(name):
+                    print(":(")
+                    raise
             raise
     
 
-def processArgv(argv):
+def processArgv(argv, curFolder):
     """ Process the command line arguments and return a RunProperties object.
     """
     
     log = logging.getLogger()
     cwd = os.getcwd()
     try:
-        os.chdir(argv[1])
+        os.chdir(curFolder)
     except (SystemExit, KeyboardInterrupt):
         raise
     except Exception:

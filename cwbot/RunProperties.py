@@ -39,11 +39,12 @@ class RunProperties(object):
         self.debug = debugMode
         if debugMode:
             print("Debug mode active")
-        self.version = "0.6.0"
+        self.version = "0.7.0"
         self.userName = None
         self.password = None
         self.clan = None
         self.rolloverWait = 8
+        self.connection = None
         self._admins = None
         self._groups = None
         self._adminFile = adminFile

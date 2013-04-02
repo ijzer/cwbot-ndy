@@ -6,18 +6,18 @@ CWbot uses a modified PyKol library. See https://github.com/scelis/pykol.
 ---------------------------
 
 
-      ------------
-	  | cwbot.py |
-	  ------------
-           |
-           v
+      ------------     -----------------
+	  | cwbot.py |---->| cwbot/main.py |
+	  ------------     -----------------
+                               |
+                               v
 -------------------------------------------------------------------------------
 |                             BotSystem                                       |
 |                                                                             |
 | Loads directors, setup/teardown, main program loop                          |
 -------------------------------------------------------------------------------
-
-
+                                       |
+                                       v
 -------------------------------------------------------------------------------
 |              CommunicationDirector                     | HeartbeatSubsystem |
 |                                                        |--------------------|
@@ -42,12 +42,14 @@ CWbot uses a modified PyKol library. See https://github.com/scelis/pykol.
 -----------------     ----------------- -----------------     -----------------
 
 
-Modules are the smallest units and are the easiest to create. A module 
-typically performs a single task; for example, the DiceModule responds to the 
-!roll command and returns a random result. (It also responds to the related
-!permute command.) All modules are derived from a base module -- kmail-based 
-modules derive from cwbot.modules.BaseKmailModule, and chat modules derive 
-from cwbot.modules.BaseChatModule. Modules which rely on neither can derive
+Modules are the smallest units and are the easiest to create. Note that the
+term "module" here is differs from a Python module; a cwbot module is a Python
+class that derives from BaseModule. A module typically performs a single task;
+for example, the DiceModule responds to the !roll command and returns a random
+result. (It also responds to the related !permute command.) All modules are
+derived from a base module -- kmail-based modules derive from 
+cwbot.modules.BaseKmailModule, and chat modules derive from 
+cwbot.modules.BaseChatModule. Modules which rely on neither can derive 
 directly from cwbot.modules.BaseModule. The special Hobopolis modules
 derive from cwbot.modules.BaseHoboModule, which itself derives from 
 BaseChatModule. Both BaseChatModule and BaseKmailModule in turn derive from

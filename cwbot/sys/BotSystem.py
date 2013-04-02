@@ -192,7 +192,13 @@ class BotSystem(EventSubsystem.EventCapable,
                 if time.time() - self._lastCheckedChat >= self._chatDelay:
                     self._lastCheckedChat = time.time()
                     self._dir.processNewCommunications()
+                if self._props.connection is not None:
+                    if self._props.connection.poll():
+                        svcMessage = self._props.connection.recv()
+                        if svcMessage == "stop":
+                            raise SystemExit("")
                 time.sleep(0.05)
+                
 
         except RolloverException:
             self._raiseEvent("shutdown", None)

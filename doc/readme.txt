@@ -72,10 +72,14 @@ On windows, you may need to instead type "c:\Python27\python cwbot.py ."
 (To run in debug mode, use "python cwbot.py path/to/cwbot debug")
 
 
-1A. Running CWbot as a service
+1A. Running CWbot as a service 
 ------------------------------
 
 If you want to run CWbot to run at startup, you should set it up as a service.
+
+
+1Ai. On Linux
+-------------
 
 If you are using Ubuntu Linux, an Upstart configuration file is included in 
 the doc folder. Simply copy this into your /etc/init folder and reboot, or
@@ -83,22 +87,45 @@ use "sudo service cwbot start" to start the service. If your Linux
 distribution does not include Upstart, you will have to set up your own
 init.d or systemd script.
 
-If you are using Windows, the easiest way to start CWbot as boot is using the
-Windows Task Scheduler, which can be found in 
-Control Panel > Administrative Tools > Task Scheduler
-Then create a new Task with the following settings:
-General: click "run whether user is logged in or not"
-Triggers: New..., begin at startup, uncheck "stop task if it runs longer than"
-Actions: New..., program="C:\Python27\python.exe", 
-				 arguments="c:\path\to\cwbot\cwbot.py ."
-				 start in="c:\path\to\cwbot\"
-Settings: Uncheck "stop the task if it runs longer than"
-		  check "if the running task does not end, force it to stop"
-		  set "if the task is already running..." to "stop existing instance"
-Then click OK, select task in task scheduler library, right click -> run
-This doesn't work quite as well as with Linux, because if you stop your
-computer the bot won't say goodbye. In a future version this might be
-improved.
+If you're using Linux, you can delete the w32service.py file.
+
+
+1Aii. On Windows
+----------------
+
+NOTE: Old versions suggested to use the Task Scheduler. This method is
+inferior to the new service-based configuration.
+
+If you are using Windows, you should install CWbot as a service. Do the
+following steps:
+
+1. Download and install pywin32 at https://sourceforge.net/projects/pywin32/.
+   You need the version that matches your Python distribution. This is most
+   likely pywin32-218.win32-py2.7.exe. As of this writing, the download is at
+   https://sourceforge.net/projects/pywin32/files/pywin32/Build%20218/. Note
+   that this needs to be run as an administrator, but for some reason it's
+   not specified in the executable, so you will have to right-click it and
+   select Run as administrator. If no distribution shows up in setup, try the
+   64-bit version.
+
+2. Find the install_service.bat file in the doc/windows folder of the cwbot
+   distribution. Right click it and select Run as administrator to install the
+   service.
+   
+3. Open the services panel, which can be accessed in  
+   Control Panel > Administrative Tools > Services.
+   
+4. Find the cwbot service in the list and double-click it to open the service
+   properties. 
+   
+5. Change the startup drop-down to Automatic. Then click the Start button and
+   then click OK when the service starts.
+   
+To remove the service, right-click the remove_service.bat file and click
+Run as administrator. If you want to move the cwbot files to a different
+folder, make sure to remove the service first.
+
+
 
 If you have a Mac, there must be some way to do this.
 
