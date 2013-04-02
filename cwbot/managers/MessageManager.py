@@ -69,6 +69,8 @@ class MessageManager(BaseManager):
                     except TypeError:
                         # looks like it was just a single message
                         responses.append(KmailResponse(self, mod, sendMessage))
+                self._log.debug("Module {} responded to kmail."
+                                .format(mod.identity))
                 break # do not continue to "lower" modules
         self._syncState(True) # force a sync here
         return responses
@@ -99,5 +101,6 @@ class MessageManager(BaseManager):
         CommunicationDirector every time a Kmail is received. """
         if message.uid != self.session.userId:
             return self._processKmail(message)
+        return []
         
     
