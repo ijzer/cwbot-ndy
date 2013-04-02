@@ -126,14 +126,16 @@ Run as administrator. If you want to move the cwbot files to a different
 folder, make sure to remove the service first.
 
 
+1Aiii. On OSX
+-------------
 
-If you have a Mac, there must be some way to do this.
+I have no idea how to do this, but it's probably not that hard.
 
 
 2. Setting up CWbot with modules
 --------------------------------
 
-CWbot is designed with a Director > Manager > Module heirarchy that
+CWbot is designed with a Director > Manager > Module hierarchy that
 is configured from modules.ini. There is a single Director, which sends and
 receives chat and kmail communications. The Director loads several managers, 
 which extract "interesting" communications and ignore others. In turn, 

@@ -2,6 +2,23 @@ CWbot development guide
 Note: please read readme.txt before reading this document.
 CWbot uses a modified PyKol library. See https://github.com/scelis/pykol.
 
+
+0. Folder Structure
+-------------------
+
+cwbot.py          main executable
+w32service.py     windows service executable
+configObj/        folder for configObj. Using this from pip is messy
+kol/              pyKol distribution (some files modified)
+cwbot/            actual cwbot core distribution
+    common/       things common to many objects. mostly collections
+    kolextra/     reimplimentation/extension of pyKol stuff
+    managers/     included managers
+    modules/      included modules
+    sys/          main cwbot system and subsystem files
+    util/         utility stuff
+
+
 1. CWbot Internal Structure
 ---------------------------
 
