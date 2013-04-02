@@ -70,7 +70,7 @@ class MessageManager(BaseManager):
                         # looks like it was just a single message
                         responses.append(KmailResponse(self, mod, sendMessage))
                 self._log.debug("Module {} responded to kmail."
-                                .format(mod.identity))
+                                .format(mod.id))
                 break # do not continue to "lower" modules
         self._syncState(True) # force a sync here
         return responses
