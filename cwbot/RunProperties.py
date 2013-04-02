@@ -15,7 +15,6 @@ class RunProperties(object):
     login_spec = """# login details should be entered below
     username = string(default=my_username)
     password = string(default=my_password)
-    clan_id = integer(min=0,default=0)
     rollover_wait = integer(min=60,default=480)
     """
     
@@ -34,13 +33,14 @@ class RunProperties(object):
     """
 
 
+    version = "0.7.1"
     def __init__(self, debugMode, loginFile, adminFile, 
-                 originalDir=os.getcwd()):
+                 originalDir=os.getcwd(), altLogin=None):
         self.debug = debugMode
         if debugMode:
             print("Debug mode active")
-        self.version = "0.7.0"
         self.userName = None
+        self.userId = None
         self.password = None
         self.clan = None
         self.rolloverWait = 8
@@ -49,7 +49,7 @@ class RunProperties(object):
         self._groups = None
         self._adminFile = adminFile
         self._loginFile = loginFile
-        self._loadUserNamePassword()
+        self._loadUserNamePassword(altLogin)
         self._loadAdmins()
         self.__originalDir = originalDir
 
@@ -78,7 +78,7 @@ class RunProperties(object):
         self._loadUserNamePassword()
         
 
-    def _loadUserNamePassword(self):
+    def _loadUserNamePassword(self, altLogin):
         """ Load login.ini """
         c = ConfigObj(self._loginFile, configspec=StringIO(self.login_spec), 
                       interpolation=False, create_empty=True, 
@@ -95,10 +95,11 @@ class RunProperties(object):
         
         self.userName = c['username']
         self.password = c['password']
-        self.clan = c['clan_id']
+        if altLogin is not None:
+            self.userName, self.password = altLogin
         self.rolloverWait = c['rollover_wait']
-        print("Loaded logon information {}/{}/{}"
-              .format(self.userName, "*" * len(self.password), self.clan))
+        print("Loaded logon information {}/{}"
+              .format(self.userName, "*" * len(self.password)))
 
         
     def _loadAdmins(self):

@@ -1,8 +1,27 @@
 import os
 import logging
 import errno
+import argparse
 from cwbot.RunProperties import RunProperties
 from cwbot import logConfig
+
+
+def _parse():
+    p = argparse.ArgumentParser(
+                        add_help=False, 
+                        formatter_class=argparse.RawDescriptionHelpFormatter,
+                        epilog=' ')
+    p.add_argument('--help', '-h', '-?', action='help', 
+                   help="show this message", )
+    p.add_argument('--debug', action='store_true', help="Run in debug mode")
+    p.add_argument('--login', nargs=2, help="use an alternate account",
+                   metavar=('USER', 'PASS'))
+    p.add_argument('path', default=None, nargs='?',
+                   help="run path (default: same path as cwbot.py)")
+    p.add_argument('-v', '--version', action='version', 
+                   version=RunProperties.version)
+    return p.parse_args()
+
 
 def _createDir(name):
     try:
@@ -11,7 +30,6 @@ def _createDir(name):
         if exception.errno != errno.EEXIST:
             if exception.errno == errno.EACCES:
                 if not os.path.exists(name):
-                    print(":(")
                     raise
             raise
     
@@ -21,27 +39,23 @@ def processArgv(argv, curFolder):
     """
     
     log = logging.getLogger()
+    parsed = _parse()
+    if parsed.path:
+        curFolder = parsed.path
     cwd = os.getcwd()
-    try:
-        os.chdir(curFolder)
-    except (SystemExit, KeyboardInterrupt):
-        raise
-    except Exception:
-        try:
-            os.chdir(os.getenv("HOME"))
-        except:
-            pass
+    os.chdir(curFolder)
         
     _createDir("data")
     _createDir("log")
     
     loginFile = 'login.ini'
     adminFile = 'admin.ini'
+    altLogin = parsed.login
+    debug = parsed.debug
     
-    debug = any(arg for arg in argv if "debug" in arg.lower())
     logConfig.logConfig(debug)
     
     log.info("-------- Startup --------")
     log.info("Using working directory {}".format(os.getcwd()))
 
-    return RunProperties(debug, loginFile, adminFile, cwd)
+    return RunProperties(debug, loginFile, adminFile, cwd, altLogin=altLogin)

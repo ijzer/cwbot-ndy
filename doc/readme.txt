@@ -59,17 +59,14 @@ admin.ini, which has the following format (ignore lines in <> angle braces):
 <Beginning of file admin.ini>
 username = (account username)
 password = (account password)
-clan_id = (the clan ID of your clan. For example, Noblesse Oblige = 4242)
 rollover_wait = (number of seconds to wait at rollover; default = 480)
 <End of file admin.ini>
 
 To start the bot - at the command line type:
-"python cwbot.py path/to/cwbot" (without the quotes).
-
-If in the correct folder already, use "python cwbot.py ." instead.
-On windows, you may need to instead type "c:\Python27\python cwbot.py ."
-
-(To run in debug mode, use "python cwbot.py path/to/cwbot debug")
+"python cwbot.py" (without the quotes). You can get help by typing
+"python cwbot.py --help"; this shows extra arguments like loading from
+a different folder.
+On windows, you may need to instead type "c:\Python27\python cwbot.py"
 
 
 1A. Running CWbot as a service 
@@ -83,11 +80,13 @@ If you want to run CWbot to run at startup, you should set it up as a service.
 
 If you are using Ubuntu Linux, an Upstart configuration file is included in 
 the doc folder. Simply copy this into your /etc/init folder and reboot, or
-use "sudo service cwbot start" to start the service. If your Linux
-distribution does not include Upstart, you will have to set up your own
-init.d or systemd script.
+use "sudo service cwbot start" to start the service. You will need to edit
+the path to the cwbot.py file in a text editor. If your Linux distribution 
+does not include Upstart, you will have to set up your own init.d or systemd
+script.
 
-If you're using Linux, you can delete the w32service.py file.
+If you're using Linux, you can also delete the w32service.py file, which is
+only used for Windows.
 
 
 1Aii. On Windows
@@ -124,6 +123,9 @@ following steps:
 To remove the service, right-click the remove_service.bat file and click
 Run as administrator. If you want to move the cwbot files to a different
 folder, make sure to remove the service first.
+
+If you want multiple instances of cwbot running as a service, you will need
+to install a separate copy of the code into each folder.
 
 
 1Aiii. On OSX

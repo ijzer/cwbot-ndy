@@ -13,6 +13,9 @@ from cwbot.common.exceptions import ManualRestartException, ManualException, \
 from cwbot.sys.eventSubsystem import EventSubsystem
 from cwbot.sys.heartbeatSubsystem import HeartbeatSubsystem
 from cwbot.common.InitData import InitData
+from kol.request.StatusRequest import StatusRequest
+from kol.request.UserProfileRequest import UserProfileRequest
+from cwbot.util.tryRequest import tryRequest
 
 
 def _quoteConfig(cfg):
@@ -63,6 +66,20 @@ class BotSystem(EventSubsystem.EventCapable,
             self._inv = inv
             self._db = db
             self._log = logging.getLogger()
+
+            # initialize some RunProperties data now that we are logged on
+            self._log.debug("Getting my userId...")
+            r1 = StatusRequest(self._s)
+            d1 = tryRequest(r1)
+            self._props.userId = int(d1['playerid'])
+            self._log.info("Getting my clan...")
+            r2 = UserProfileRequest(self._s, self._props.userId)
+            d2 = tryRequest(r2)
+            self._props.clan = d2.get('clanId', -1)
+            self._log.info("I am a member of clan #{} [{}]!"
+                           .format(self._props.clan, 
+                                   d2.get('clanName', "Not in any clan")))
+
             
             # config file stuff
             self._config = None
