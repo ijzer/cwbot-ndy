@@ -726,6 +726,9 @@ class MailHandler(ExceptionThread):
             c = con.cursor()
             messages = self._m.getAllMessages("Inbox", True, True)
             for message in messages:
+                # delete the date, it's not JSON serializable
+                del message['date']
+                
                 c.execute("INSERT INTO {0}(kmailId, state, userId, data) "
                           "SELECT ?,?,?,? "
                           "WHERE NOT EXISTS (SELECT 1 FROM {0} "
