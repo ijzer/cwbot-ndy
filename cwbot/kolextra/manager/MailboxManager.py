@@ -11,7 +11,7 @@ class MailboxManager(object):
     GetMessagesRequest to provide additional functionality above and beyond 
     just getting a listing of whatever is in the user's mailbox.
     
-    Modifications: Uses the KmailLock
+    Modifications: Uses the KmailLock and tryRequest
     """
 
     __messagesPerPage = None

@@ -234,7 +234,7 @@ class MailHandler(ExceptionThread):
                     if getItems:
                         msgAccepted = True # accept all messages
                     else:
-                        message = decode(msg)
+                        message = decode(msg['data'])
                         # message accepted only if it does not have items
                         msgAccepted = not message.get('items', {})
                             
@@ -695,13 +695,8 @@ class MailHandler(ExceptionThread):
         try:
             result = tryRequest(r)
             self._log.info("Deleted message.".format(result))
-        except Exception as e:
-            try:
-                self._log.info("Failed to delete message ({}). Trying to save "
-                               "it instead...".format(e))
-                self._saveKmail(message, **kwargs)
-            except MessageError:
-                pass
+        except MessageError:
+            pass
 
 
     def _saveKmail(self, message, **kwargs):
