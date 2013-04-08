@@ -251,7 +251,10 @@ class BotSystem(EventSubsystem.EventCapable,
         # shut down director
         try:
             if self._dir is not None:
+                self._log.info("Cleaning up director...")
                 self._dir.cleanup()
+            else:
+                self._log.warn("No director to clean up!")
             self._dir = None
         except Exception:
             self._log.exception("Error shutting down Heartbeat Subsystem.")

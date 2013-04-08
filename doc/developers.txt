@@ -335,6 +335,11 @@ O.initialize(self, lastKnownState, initData): this method should not be called
 	be called when O.reset() is called, so you should reset everything to a
 	valid state and not assume that any "good" values are already set. That
 	is, don't set any initial values in the constructor -- put them here.
+    
+    IMPORTANT: state dictionaries are stored as JSON objects; therefore, all
+    keys (but not values) are converted to strings. So, if your state
+    dictionary uses integers as keys, be sure to properly preprocess the
+    lastKnownState variable.
 	
 @property
 O.state(self): this method returns the persistent state of the module, in a 
