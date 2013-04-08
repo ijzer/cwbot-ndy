@@ -22,6 +22,7 @@ class GetDisplayCaseRequest(GenericRequest):
         m = re.search(r'Take:.*?</select>', self.responseText, re.MULTILINE | re.DOTALL)
         if m is None:
             self.responseData['items'] = {}
+            return
         txt = m.group(0)
         items = []
         for it in re.finditer(r'''<option value='(\d+)'.*?\((\d+)\)</option>''', txt, re.MULTILINE | re.DOTALL):

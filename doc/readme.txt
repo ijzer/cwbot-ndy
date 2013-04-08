@@ -1,4 +1,4 @@
-User's manual for CWbot
+User's manual for cwbot
 -----------------------
 
 
@@ -6,8 +6,8 @@ User's manual for CWbot
 ---------------
 
 If you don't have Python, you can install it from http://www.python.org/ or
-by using your package manager if you run Linux. CWbot requires the latest
-version of Python 2. As of this time, this is Python version 2.7. CWbot
+by using your package manager if you run Linux. cwbot requires the latest
+version of Python 2. As of this time, this is Python version 2.7. cwbot
 is not compatible with Python 3.
 
 
@@ -39,17 +39,17 @@ Scripts\pip install -U -r C:\path\to\cwbot\requirements.txt
 The steps on OSX are probably similar.
 
 
-1. Setting up CWbot for logon
+1. Setting up cwbot for logon
 -----------------------------
 
-CWbot requires a dedicated KoL account to run. You must know the username and
+cwbot requires a dedicated KoL account to run. You must know the username and
 password of the account. 
 
 IMPORTANT: The account's timezone must be set to US/Arizona. Please go into
 options > account settings and select US/Arizona as the time zone.
 
 ALSO IMPORTANT: The account must not have broken its magical mystical hippy
-stone. Many of CWbot's inventory features work from main inventory. The bot
+stone. Many of cwbot's inventory features work from main inventory. The bot
 will inevitably crash when an item gets stolen in PVP. If you want a PVP bot,
 you'll have to write your own.
 
@@ -69,13 +69,19 @@ a different folder.
 On windows, you may need to instead type "c:\Python27\python cwbot.py"
 
 
-1A. Running CWbot as a service 
+1A. Upgrading from previous
+---------------------------
+
+To upgrade from a previous version, just install the new version over the old
+one.
+
+1B. Running cwbot as a service 
 ------------------------------
 
-If you want to run CWbot to run at startup, you should set it up as a service.
+If you want to run cwbot to run at startup, you should set it up as a service.
 
 
-1Ai. On Linux
+1Bi. On Linux
 -------------
 
 If you are using Ubuntu Linux, an Upstart configuration file is included in 
@@ -89,13 +95,13 @@ If you're using Linux, you can also delete the w32service.py file, which is
 only used for Windows.
 
 
-1Aii. On Windows
+1Bii. On Windows
 ----------------
 
 NOTE: Old versions suggested to use the Task Scheduler. This method is
 inferior to the new service-based configuration.
 
-If you are using Windows, you should install CWbot as a service. Do the
+If you are using Windows, you should install cwbot as a service. Do the
 following steps:
 
 1. Download and install pywin32 at https://sourceforge.net/projects/pywin32/.
@@ -128,16 +134,16 @@ If you want multiple instances of cwbot running as a service, you will need
 to install a separate copy of the code into each folder.
 
 
-1Aiii. On OSX
+1Biii. On OSX
 -------------
 
 I have no idea how to do this, but it's probably not that hard.
 
 
-2. Setting up CWbot with modules
+2. Setting up cwbot with modules
 --------------------------------
 
-CWbot is designed with a Director > Manager > Module hierarchy that
+cwbot is designed with a Director > Manager > Module hierarchy that
 is configured from modules.ini. There is a single Director, which sends and
 receives chat and kmail communications. The Director loads several managers, 
 which extract "interesting" communications and ignore others. In turn, 
@@ -305,7 +311,7 @@ A summary of what this specifies:
 	(The full type name of the first manager is 
 	cwbot.managers.MessageManager.MessageManager. This is defined by the 
 	MessageManager class in cwbot/managers/MessageManager.py.
-	Note that CWbot automatically loads the class that matches the filename.) 
+	Note that cwbot automatically loads the class that matches the filename.) 
 	The internal name for this manager is kmail_manager, but any unique text
 	string may be specified. The identifier is used for logging and other
 	internal purposes. Note that the director can have multiple managers 
@@ -411,7 +417,7 @@ HoboChannelManager, but modules designed to work with the HoboChannelManager
 will not work when loaded by a chat manager without that capability.
 
 Chats are handled differently than Kmails. Most chats in a chatroom are
-not directed at CWbot, but are general chat. CWbot interprets any
+not directed at cwbot, but are general chat. cwbot interprets any
 chat starting with a ! symbol as a command directed at the bot. Most 
 chat-based modules respond to various !commands. For example, sending a 
 chat "!fax" in the appropriate channel will be interpreted by the bot as a 
@@ -568,10 +574,21 @@ cwbot.managers.AllChannelManager - A manager that responds to chats received
 Modules (default options in parentheses):
 
 cwbot.general.AboutModule - Shows an about message with the current version
-    and a link to the cwbot sourceforge page. Under the terms of the cwbot
-    license, you are allowed to use cwbot however you want. However, I ask
-    that you include this module in some fashion, so other users can learn
-    about cwbot.
+    and a link to the cwbot sourceforge page. It also checks for new updates
+    of the cwbot software and will display a public message and also PM and
+    kmail anyone with the update_notify permission, once per week if there
+    is a new update.
+    
+    Options: chat_interval: number of seconds between public notification of
+                            new version (86000)
+             channel: default channel to show message (DEFAULT)
+             notify_on: show message for what kind of updates: choose from
+                        "bugfix", "minor", "major" (bugfix)
+
+    NOTE: Under the terms of the cwbot license, you are allowed to use cwbot
+    however you want. However, I ask that you include this module in some 
+    fashion, so other users can learn about cwbot and you can have the most
+    up-to-date version.
 
 cwbot.general.AnnouncementModule - A module that announces system events in
 	chat. For example, it can announce when the bot logs off for rollover,

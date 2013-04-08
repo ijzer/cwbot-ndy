@@ -65,6 +65,7 @@ _withholdItemErrors = [None,
 #                  |
 #                  |---> Save to DB
 #                  |     state=INBOX_DOWNLOADED
+#                  |     possibly: notify user that I am in HC/ronin
 #                  v
 #        delete kmail from server
 #                  |                                           
@@ -192,6 +193,18 @@ class MailHandler(ExceptionThread):
         super(MailHandler, self).__init__(name="MailHandler")
 
 
+    def canReceiveItems(self):
+        r = StatusRequest(self._s)
+        d = tryRequest(r)
+        canReceive = ((int(d.get('hardcore',"1")) == 0 and
+                      int(d.get('roninleft',"1")) == 0) 
+                      or
+                      int(d.get('casual',"0")) == 1 
+                      or
+                      int(d.get('freedralph',"0")) == 1)
+        return canReceive
+
+
     def notify(self):
         self._event.set()
 
@@ -203,16 +216,28 @@ class MailHandler(ExceptionThread):
         """
         if not self._online():
             return None
+        getItems = self.canReceiveItems()
         con = self._db.getDbConnection(isolation_level="IMMEDIATE")
         try:
             with con:
                 c = con.cursor()
                 c.execute("SELECT * FROM {} WHERE state=? ORDER BY id ASC "
-                          "LIMIT 2".format(self._name), 
-                          (self.INBOX_READY,))
-                msg = c.fetchone()
-                if msg is None:
-                    return None
+                          .format(self._name), (self.INBOX_READY,))
+                msgAccepted = False
+                while not msgAccepted:
+                    # loop until we get an "acceptable" message
+                    # messages are only unacceptable if they have items while
+                    # we are in HC/Ronin
+                    msg = c.fetchone()
+                    if msg is None:
+                        return None # no new messages
+                    if getItems:
+                        msgAccepted = True # accept all messages
+                    else:
+                        message = decode(msg['data'])
+                        # message accepted only if it does not have items
+                        msgAccepted = not message.get('items', {})
+                            
                 c.execute("UPDATE {} SET state=? WHERE id=?"
                           .format(self._name),
                           (self.INBOX_RESPONDING, msg['id']))
@@ -670,13 +695,8 @@ class MailHandler(ExceptionThread):
         try:
             result = tryRequest(r)
             self._log.info("Deleted message.".format(result))
-        except Exception as e:
-            try:
-                self._log.info("Failed to delete message ({}). Trying to save "
-                               "it instead...".format(e))
-                self._saveKmail(message, **kwargs)
-            except MessageError:
-                pass
+        except MessageError:
+            pass
 
 
     def _saveKmail(self, message, **kwargs):
@@ -696,11 +716,14 @@ class MailHandler(ExceptionThread):
             
     
     def _downloadNewKmails(self, con):
+        getItems = self.canReceiveItems()
         with con:
             c = con.cursor()
             messages = self._m.getAllMessages("Inbox", True, True)
             for message in messages:
+                # delete the date, it's not JSON serializable
                 del message['date']
+                
                 c.execute("INSERT INTO {0}(kmailId, state, userId, data) "
                           "SELECT ?,?,?,? "
                           "WHERE NOT EXISTS (SELECT 1 FROM {0} "
@@ -708,8 +731,23 @@ class MailHandler(ExceptionThread):
                           .format(self._name), 
                           (message['id'], self.INBOX_DOWNLOADED, 
                           message['userId'], encode(message), message['id']))
+                mid = c.lastrowid
                 self._log.info("Downloaded new message {}: {}"
-                               .format(c.lastrowid, message))
+                               .format(mid, message))
+                if not getItems:
+                    if message.get('items', {}):
+                        # send warning!
+                        self._insertSplitKmail(
+                                c, self.OUTBOX_SENDING, 
+                                {'userId': message['userId'],
+                                 'text': ("NOTICE: I am currently in Hardcore "
+                                         "or Ronin and can't access the items "
+                                         "you sent me. Your mail will be "
+                                         "processed when I am able to open "
+                                         "it.")}, 
+                                reserveItems=False)
+                        self._log.info("Unable to respond to message {} due "
+                                       "to Ronin/HC".format(mid))
 
         
     def _deleteDownloadedKmails(self, con):
