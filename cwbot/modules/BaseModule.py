@@ -61,7 +61,7 @@ class BaseModule(EventSubsystem.EventCapable,
         reqCapabilities = type(self).requiredCapabilities
         for errCap in (item for item in reqCapabilities 
                        if item not in manager.capabilities):
-            raise ProcessorException("Processor {} requires capability {}."
+            raise ProcessorException("Module {} requires capability {}."
                                      .format(type(self), errCap))
 
 

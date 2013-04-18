@@ -19,8 +19,9 @@ from kol.Session import Session
 import kol.Error
 from cwbot.sys.database import Database
 
-
+exitEvent = threading.Event()
 databaseName = 'data/cwbot.db'
+
 
 def openSession(props):
     """ Log in to the KoL servers. """
@@ -70,6 +71,7 @@ def notifyAdmins(s, props, log, etype, value, tb):
 
 def loginLoop(myDb, props):
     """ Main part of the login loop. """
+    global exitEvent
     log = logging.getLogger()
     s = None
     onlineTime = time.time()
@@ -81,7 +83,7 @@ def loginLoop(myDb, props):
         s = openSession(props)
         inv = createInventoryManager(s, myDb)
         cman = createChatManager(s)
-        bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb)
+        bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb, exitEvent)
         
         # run the bot main loop. If this function returns, then we are logging
         # out for rollover. If it throws an exception, then we are either
@@ -175,7 +177,12 @@ def loginLoop(myDb, props):
 
     
 def signalHandler(signum, stackFrame):
-    sys.exit()
+    global exitEvent
+    print("\n"
+          "******************************************\n"
+          "* Preparing to shut down, please wait... *\n"
+          "******************************************\n")
+    exitEvent.set()
 
 
 def main(curFolder=None, connection=None):

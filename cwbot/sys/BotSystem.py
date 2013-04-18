@@ -1,6 +1,7 @@
 import time
 import logging
 import copy
+import sys
 import cwbot.util.DebugThreading as threading
 from configObj.configobj import ConfigObj, ParseError, flatten_errors
 from configObj.validate import Validator
@@ -40,8 +41,10 @@ class BotSystem(EventSubsystem.EventCapable,
     created and destroyed, and the configuration file is processed. 
     The method loop() is the main loop of the program.
     """
-    def __init__(self, s, c, props, inv, configFile, db):
+    def __init__(self, s, c, props, inv, configFile, db, exitEvent):
         """ Initialize the BotSystem """
+
+        self._exitEvent = exitEvent
 
         self._initialized = False
         
@@ -58,7 +61,10 @@ class BotSystem(EventSubsystem.EventCapable,
             super(BotSystem, self).__init__(
                     name="sys.system", identity="system", 
                     evSys=evSys, hbSys=hbSys)
-            
+
+            if exitEvent.is_set():
+                sys.exit()
+
             # copy arguments
             self._s = s
             self._c = c
@@ -200,22 +206,30 @@ class BotSystem(EventSubsystem.EventCapable,
             
             # this is the main loop. The only way out is to raise an exception.
             while True:
+                # handle exit signals
+                if self._exitEvent.is_set():
+                    self._log.info("User interrupt detected, exiting...")
+                    sys.exit()
+                if self._props.connection is not None:
+                    if self._props.connection.poll():
+                        svcMessage = self._props.connection.recv()
+                        if svcMessage == "stop":
+                            self._log.info("Received stop signal from Win32 "
+                                           "service manager, exiting...")
+                            sys.exit()
                 if not self._s.isConnected:
                     raise kol.Error.Error("Session unexpectedly closed.", 
                                           kol.Error.NOT_LOGGED_IN)
                 if self.heartbeatSubsystem.exception:
                     self._log.error("Exception in heartbeat subsystem.")
                     self.heartbeatSubsystem.raiseException()
+
+                # do work
                 if time.time() - self._lastCheckedChat >= self._chatDelay:
                     self._lastCheckedChat = time.time()
                     self._dir.processNewCommunications()
-                if self._props.connection is not None:
-                    if self._props.connection.poll():
-                        svcMessage = self._props.connection.recv()
-                        if svcMessage == "stop":
-                            raise SystemExit("")
+                    
                 time.sleep(0.05)
-                
 
         except RolloverException:
             self._raiseEvent("shutdown", None)
@@ -225,9 +239,10 @@ class BotSystem(EventSubsystem.EventCapable,
             self._raiseEvent("manual_restart", None)
             self._log.info("Manual restart invoked.")
             raise
-        except (SystemExit, KeyboardInterrupt, ManualException):
+        except (SystemExit, KeyboardInterrupt, ManualException) as e:
             self._raiseEvent("manual_stop", None)
-            self._log.info("Encountered stop signal.")
+            self._log.info("Encountered stop signal: {}."
+                           .format(e.__class__.__name__))
             raise SystemExit
         except Exception as e:
             self._raiseEvent("crash", None, {'args': e.__class__.__name__})

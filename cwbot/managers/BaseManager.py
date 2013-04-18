@@ -151,6 +151,7 @@ class BaseManager(EventSubsystem.EventCapable,
             try:
                 m.createInstance()
             except TypeError as e:
+                self._log.exception("Error!")
                 raise FatalError("Error instantiating class {}: {}"
                                  .format(m.className, e.args[0]))
 
