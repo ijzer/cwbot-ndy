@@ -13,9 +13,11 @@ import kol.Error
 from cwbot.common.exceptions import FatalError
 from cwbot.kolextra.request.GalaktikRequest import GalaktikRequest
 from cwbot.kolextra.request.GalaktikBuyRequest import GalaktikBuyRequest
+from cwbot.kolextra.functions.buyFromMall import buyFromMall
 from cwbot.modules.BaseModule import BaseModule
 from cwbot.locks import InventoryLock 
 from cwbot.util.tryRequest import tryRequest
+from cwbot.util.textProcessing import stringToBool
 
 
 
@@ -59,6 +61,7 @@ class _Healer(object):
     
     
 class _ItemHealer(_Healer):
+    """ Heal using an item """
     def __init__(self, parent, args):
         self._itemMaxHealPoints = None
         self._seen = 0
@@ -73,7 +76,7 @@ class _ItemHealer(_Healer):
         self.buyFrom = toTypeOrNone(args.setdefault('buy_from', "none"), str)
         
     def __str__(self):
-        return ("Item {}; buy={}; min={}"
+        return ("<Item {}; buy={}; min={}>"
                 .format(self.id, self.buyFrom, self.minHeal))
         
     def heal(self, hint, args, status):
@@ -93,11 +96,21 @@ class _ItemHealer(_Healer):
                     return
             if qtyInInventory < n:
                 if self.buyFrom is not None:
-                    r1 = StoreRequest(self.parent.session, 
-                                      self.buyFrom, 
-                                      self.id,
-                                      quantity=(n-qtyInInventory))
-                    tryRequest(r1, nothrow=True, numTries=1)
+                    if self.buyFrom.lower() == "mall":
+                        try:
+                            buyFromMall(self.parent.session,
+                                        self.id,
+                                        n-qtyInInventory,
+                                        0,
+                                        self.parent.log)
+                        except kol.Error.Error:
+                            pass
+                    else:
+                        r1 = StoreRequest(self.parent.session, 
+                                          self.buyFrom, 
+                                          self.id,
+                                          quantity=(n-qtyInInventory))
+                        tryRequest(r1, nothrow=True, numTries=1)
                     invMan.refreshInventory()
                     inv = invMan.inventory()
                     qtyInInventory = inv.get(self.id, 0) 
@@ -128,6 +141,7 @@ class _ItemHealer(_Healer):
             
 
 class _RestHealer(_Healer):
+    """ Rest at your campground """
     def __init__(self, parent, args):
         super(_RestHealer, self).__init__(parent, args)
         self._restMaxHealPoints = None
@@ -162,10 +176,11 @@ class _RestHealer(_Healer):
             self.parent.log("Failed to rest")
         
     def __str__(self):
-        return "Rest; min={}".format(self.minHeal)
+        return "<Rest; min={}>".format(self.minHeal)
         
         
 class _SkillHealer(_Healer):
+    """ Heal using a skill """
     def __init__(self, parent, args):
         self._skillMaxHealPoints = None
         self._seen = 0
@@ -230,11 +245,12 @@ class _SkillHealer(_Healer):
             self.parent.log("Error using {}: {}".format(self, e[0]))
         
     def __str__(self):
-        return ("Skill {}; mp={}; minHP={}"
+        return ("<Skill {}; mp={}; minHP={}>"
                 .format(self.id, self.minMp, self.minHeal))  
     
     
 class _LuciferHealer(_Healer):
+    """ Heal MP using a Dr. Lucifer """
     def __init__(self, parent, args):
         super(_LuciferHealer, self).__init__(parent, args)
         self.extHealer = toTypeOrNone(
@@ -245,9 +261,11 @@ class _LuciferHealer(_Healer):
         except ValueError:
             raise FatalError("Invalid max_full value for Lucifer: {}"
                              .format(args['max_full']))
+        self.buyFromMall = stringToBool(args.setdefault('use_mall', 'true'))
+        
         
     def __str__(self):
-        return ("Lucifer; external={}; maxfull={}, min={}"
+        return ("<Lucifer; external={}; maxfull={}, min={}>"
                 .format(self.extHealer, self.maxFull, self.minHeal))
         
     def heal(self, hint, args, status):
@@ -259,8 +277,17 @@ class _LuciferHealer(_Healer):
             invMan.refreshInventory()
             inv = invMan.inventory()
             if inv.get(571, 0) == 0:
-                self.parent.log("Out of Lucifers.")
-                return
+                qty = 0
+                if self.buyFromMall:
+                    try:
+                        qty = buyFromMall(self.parent.session,
+                                          571,
+                                          logFunc=self.parent.log)
+                    except kol.Error.Error:
+                        pass
+                if qty == 0:
+                    self.parent.log("Out of Lucifers.")
+                    return
             r1 = StatusRequest(self.parent.session)
             d1 = tryRequest(r1)
             if self.maxFull is not None and int(d1['full']) >= self.maxFull:
@@ -299,6 +326,7 @@ class _LuciferHealer(_Healer):
 
 
 class _GalaktikHealer(_Healer):
+    """ Heal with Dr. Galaktik """
     def __init__(self, parent, args):
         super(_GalaktikHealer, self).__init__(parent, args)
         self.type = args.setdefault('method', "UNKNOWN")
@@ -307,7 +335,7 @@ class _GalaktikHealer(_Healer):
                            "of ointment, tonic, nostrum".format(self.type))
         
     def __str__(self):
-        return "Galaktik {}; min={}".format(self.type, self.minHeal)
+        return "<Galaktik {}; min={}>".format(self.type, self.minHeal)
     
     def heal(self, hint, args, status):
         if self.type == 'tonic':
@@ -406,10 +434,11 @@ class HealingModule(BaseModule):
                 # dr. lucifer
                 type = lucifer
                 external_healer = none
+                use_mall = true # buy from mall if out
                 # NOTE: healing is done before using Dr. Lucifer. It's
                 # possible to use a HealingModule with a different identity
                 # using external_healer.
-                max_full = 99 # use this to reserve any fullness for bot
+                max_full = none # use this to reserve any fullness for bot
                 only_heal_over = 100
             [[[[[3]]]]]
                 # MMJ (from grocery)
@@ -427,9 +456,14 @@ class HealingModule(BaseModule):
                 buy_from = k
                 id = 344
             [[[[[6]]]]]
+                # black cherry soda (from mall)
+                type = item
+                buy_from = mall
+                id = 2639
+            [[[[[7]]]]]
                 type = galaktik
                 method = tonic
-            [[[[[7]]]]]
+            [[[[[8]]]]]
                 type = rest
     """
     requiredCapabilities = ['inventory']
@@ -540,7 +574,6 @@ class HealingModule(BaseModule):
                           .format(healType, curPoints))
             if healerList:
                 myHealer = healerList[0]
-                self.debugLog("Trying healer {}".format(myHealer))
                 pointsToGo = healTo - curPoints
                 if pointsToGo >= myHealer.minHeal:
                     self.log("Healing with {}...".format(myHealer))
