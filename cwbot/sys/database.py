@@ -48,6 +48,7 @@ class Database(object):
             con = sql.connect(self._filename, timeout=10, 
                               isolation_level="EXCLUSIVE")
             c = con.cursor()
+            c.execute("VACUUM")
             c.execute("PRAGMA integrity_check")
             result = c.fetchall()
             if result != [(u'ok',)]:

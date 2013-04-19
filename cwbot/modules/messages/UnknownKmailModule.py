@@ -28,8 +28,16 @@ class UnknownKmailModule(BaseKmailModule):
         self._returned[message.uid].append(time.time())
         inLastHour = _returnedInLast(self._returned[message.uid], 3600)
         sinceStartup = _returnedInLast(self._returned[message.uid], 86400)
+        txt = message.text
+        if len(txt) > 1400:
+            txt = txt[:1400] + "..."
+        elif txt.strip() == "":
+            txt = "(no message text)"
         newMsg = self.newMessage(message.uid, 
-                                 "I don't understand your request.",
+                                 "I don't understand your request: "
+                                 "\n\n-----\n{}\n-----\n\nNeed help? Send "
+                                 "me a kmail with the text \"help\"."
+                                 .format(txt),
                                  message.meat).addItems(message.items)
                                  
         # if too many messages are being sent, stop output. This stops a

@@ -323,8 +323,8 @@ class HookahKmailModule(BaseHookahModule, BaseKmailModule):
     
     
     def _kmailDescription(self):
-        return ("Want an ittah bittah hookah? Send me a kmail with the text "
-                "\"hookah\" for details.")
+        return ("HOOKAH EXCHANGE: Want an ittah bittah hookah? Send me a "
+                "kmail with the text \"hookah\" for details.")
 
 
 class HookahDonateKmailModule(BaseHookahModule, BaseKmailModule):

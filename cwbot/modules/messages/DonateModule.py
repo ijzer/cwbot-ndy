@@ -23,5 +23,5 @@ class DonateModule(BaseKmailModule):
 
 
     def _kmailDescription(self):
-        return ("If you want to donate something, include the word "
+        return ("DONATIONS: If you want to donate something, include the word "
                 "\"donate\" in your kmail.")

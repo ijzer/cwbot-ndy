@@ -34,6 +34,7 @@ class HeapModule(BaseHoboModule):
         self._heapLastNotify = None
         self._open = False
         self._heapDone = False
+        self._initStench = None
         super(HeapModule, self).__init__(manager, identity, config)
 
         
@@ -52,6 +53,7 @@ class HeapModule(BaseHoboModule):
                   - sum(f['turns'] for f in eventFilter(
                             events, "some flowers to The Heap", 
                             "batch of compost")))
+        self._initStench = self._totalStench
         self.log("OldDives: {}, NewDives: {}"
                  .format(state['dives'], self._numDives))
         self.log("Detected {} trashcanos".format(self._totalStench - 4))
@@ -111,6 +113,14 @@ class HeapModule(BaseHoboModule):
         for trashevent in eventFilter(events, "trashcano eruption"):
             self._killed += 5 * trashevent['turns']
             
+        self._totalStench = (
+                4 + sum(t['turns'] for t in eventFilter(
+                            events, "trashcano eruption", 
+                            "some trash to The Heap"))
+                  - sum(f['turns'] for f in eventFilter(
+                            events, "some flowers to The Heap", 
+                            "batch of compost")))
+            
         # if Oscus is dead, set the heap to finished
         self._heapDone = any(eventFilter(events, r'defeated +Oscus'))
                 
@@ -126,14 +136,23 @@ class HeapModule(BaseHoboModule):
         if "went treasure-hunting in The Heap" in txt:
             self._numDives += 1
             self._stench = 0
+            self.debugLog("New heap level = {}".format(self._stench))
             if self._heapLastNotify != 0:
                 self._heapLastNotify = 0
                 return "{} Stench level reset (0/8).".format(self.getTag())
         elif ("caused a trashcano eruption in the Heap" in txt or 
               "moved some trash out of the Purple Light District" in txt):
+            if (self._totalStench == self._initStench and 
+                    self._initStench is not None):
+                # no change from startup
+                return None
+            else:
+                self._initStench = -999999
+                
             if self._stench is not None and self._stench >= -1000:
                 self._stench += 1
                 self._totalStench += 1
+                self.debugLog("New heap level = {}".format(self._stench))
                 if self._heapLastNotify != self._stench:
                     self._heapLastNotify = self._stench
                     if self._stench < 8:
@@ -152,6 +171,7 @@ class HeapModule(BaseHoboModule):
             if self._stench is not None and self._stench >= -1000:
                 self._stench -= 1
                 self._totalStench -= 1
+                self.debugLog("New heap level = {}".format(self._stench))
                 if self._heapLastNotify != self._stench:
                     self._heapLastNotify = self._stench
                     if self._stench < 8:

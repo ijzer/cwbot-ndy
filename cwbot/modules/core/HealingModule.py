@@ -17,16 +17,7 @@ from cwbot.kolextra.functions.buyFromMall import buyFromMall
 from cwbot.modules.BaseModule import BaseModule
 from cwbot.locks import InventoryLock 
 from cwbot.util.tryRequest import tryRequest
-from cwbot.util.textProcessing import stringToBool
-
-
-
-def toTypeOrNone(val, type_):
-    if val is None:
-        return None
-    if str(val).lower() in ["''", '""', "none", ""]:
-        return None
-    return type_(val)
+from cwbot.util.textProcessing import stringToBool, toTypeOrNone
 
 
 class _Healer(object):
@@ -83,7 +74,8 @@ class _ItemHealer(_Healer):
         currentVal = status[args['type']]
         n = 1
         if self._seen > 10:
-            maxPotential = self._itemMaxHealPoints * 1.1
+            self.parent.debugLog("Using estimate for multi-use")
+            maxPotential = self._itemMaxHealPoints
             n = int(max(1, math.floor(hint/maxPotential)))
         with InventoryLock.lock:
             invMan = self.parent.inventoryManager
@@ -151,7 +143,8 @@ class _RestHealer(_Healer):
         currentVal = status[args['type']]
         n = 1
         if self._seen > 10:
-            maxPotential = self._restMaxHealPoints * 1.1
+            self.parent.debugLog("Using estimate for multi-use")
+            maxPotential = self._restMaxHealPoints
             n = int(max(1, math.floor(hint/maxPotential)))
         r1 = CampgroundRestRequest(self.parent.session)
         try:
@@ -221,9 +214,11 @@ class _SkillHealer(_Healer):
         currentVal = status[args['type']]
         n = 1
         if self._seen > 10:
-            maxPotential = self._skillMaxHealPoints * 1.1
-            n = int(max(1, math.floor(hint/maxPotential)))
-            n = min(n, int(math.floor(status['mp']/float(self._mpCost))))
+            self.parent.debugLog("Using estimate for multi-use")
+            maxPotential = self._skillMaxHealPoints
+            idealNumUses = hint/float(maxPotential)
+            possibleNumUses = status['mp']/float(self._mpCost)
+            n = max(1, int(math.floor(min(idealNumUses, possibleNumUses))))
         r1 = UseSkillRequest(self.parent.session, str(self.id), numTimes=n)
         try:
             tryRequest(r1, numTries=1)
@@ -302,16 +297,14 @@ class _LuciferHealer(_Healer):
                 self.parent.log("Healing for Lucifer...")
                 if self.extHealer is None:
                     reply = self.parent._heal({'type': 'hp', 
-                                               'amount': hpNeeded, 
-                                               'unit': 'points',
+                                               'points': hpNeeded, 
                                                '__lucifer__': True})
                     curHp = reply['hp']
                 else:
                     replies = self.parent._raiseEvent(
                                 "heal", "__" + self.extHealer + "__", 
                                 {'type': 'hp', 
-                                 'amount': hpNeeded, 
-                                 'unit': 'points',
+                                 'points': hpNeeded, 
                                  '__lucifer__': True})
                     curHp = replies[-1]['hp']
                 if curHp < hpNeeded:
@@ -367,14 +360,22 @@ class HealingModule(BaseModule):
     """ 
     An internal module that allows other modules to use healing.
     To heal: raise an event with the subject "heal" and the following data
-    dictionary:
+    dictionary format:
     
-    {'type': 'mp', 'amount': 90, 'unit': 'points'}
-    type should be 'hp' or 'mp'
-    amount should be an integer
-    unit specifies how 'amount' in interpreted; either 'percent' or 'points'
+    {'type': 'mp', 'points': 90}
+        or
+    {'type': 'mp', 'percent': 50}
+        or
+    {'type': 'mp', 'points': 90, 'percent': 50, 'pick': 'higher'}
+    
+    
+    type should be 'hp' or 'mp' and points/percent should be an integer.
+    You may supply both points and percent; in this case the 'pick' argument
+    decides which to select. Pick defaults to 'higher' but you can specify
+    'lower' instead.
     Note that these units are ABSOLUTE: the above data means that the
-    HealingModule should restore the bot to at least 90 MP. If you want to
+    HealingModule should restore the bot to at least 90 MP (or in the case
+    of the second, to at least 50% of max MP). If you want to
     heal 90 MP more than you currently have, do a StatusRequest to get your
     current MP, then add 90. The same works for percent specifications.
     The module will reply with the data 
@@ -382,10 +383,9 @@ class HealingModule(BaseModule):
     module will not throw if it fails to heal, so be sure to actually check
     that healing has worked! You should use the code structure:
     
-    replies = self._raiseEvent('heal', {'type': 'hp', 
-                                        'amount': '50',
-                                        'unit': 'points'}) # your command here
-    curHp = replies[-1]['hp']
+    # your command below
+    replies = self._raiseEvent('heal', healerId, {'type': 'hp', 'points': 90}) 
+    curHp = replies[-1].data['hp']
     
     to check HP/MP.
 
@@ -552,23 +552,26 @@ class HealingModule(BaseModule):
             healerList = copy.copy(self._mpMethods)
         else:
             raise KeyError("Invalid healing type: {}".format(healType))
-        healUnit = healData['unit']
-        healTo = None
         status = self.hpMpStatus()
         maxval = status['max' + healType]
-        if healUnit == 'points' or healUnit == 'point':
-            healTo = min(maxval, int(healData['amount']))
-        elif healUnit == 'percent':
-            percent = min(int(healData['amount']), 100)
-            healTo = int(math.floor(percent / 100.0 * maxval))
-        else:
-            raise KeyError("Invalid healing unit: {}".format(healUnit))
+        pick = healData.get('pick', 'higher').lower().strip()
+        if pick not in ['higher', 'lower']:
+            raise KeyError("Bad pick value: {}".format(pick))
+
+        healToVal1 = int(healData.get('points', 0))
+        percent = min(int(healData.get('percent', 0)), 100)
+        healToVal2 = int(math.floor(percent / 100.0 * maxval))
+        pickFunc = {'higher': max, 'lower': min}[pick]
+        healTo = min(max(pickFunc(healToVal1, healToVal2), 0), maxval)
         
         curPoints = status[healType]
         self.log("--- Requested healing to {0} {1}, current {1} = {2} ---"
                   .format(healTo, healType, curPoints))
-        self.debugLog("Healing with the following: {}"
-                      .format(", then ".join(map(str, healerList))))
+        if curPoints < healTo:
+            self.debugLog("Healing with the following: {}"
+                          .format(", then ".join(map(str, healerList))))
+        else:
+            self.log("No healing required.")
         while curPoints < healTo:
             self.debugLog("Current {} = {}; continuing to heal."
                           .format(healType, curPoints))
@@ -583,8 +586,7 @@ class HealingModule(BaseModule):
                         newData = copy.deepcopy(healData)
                         newData.update(
                             {'type': 'mp', 
-                             'amount': myHealer.minMp,
-                             'unit': 'points'})
+                             'points': myHealer.minMp})
                         reply = None
                         if self._extMp is None:
                             reply = self._heal(newData)

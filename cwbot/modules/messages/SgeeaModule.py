@@ -35,8 +35,8 @@ class SgeeaModule(BaseKmailModule):
 
     
     def _kmailDescription(self):
-        return ("Am I stuck with a chat effect? Normally, I can remove "
-                "them myself, but if I am out of soft green echo eyedrop "
-                "antidotes, please donate one.")
+        return ("UNEFFECT: Am I stuck with a chat effect? Normally, I can "
+                "remove them myself, but if I am out of soft green echo "
+                "eyedrop antidotes, please donate one.")
         
         

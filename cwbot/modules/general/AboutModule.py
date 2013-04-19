@@ -2,6 +2,7 @@ import time
 import random
 import re
 import urllib2
+import socket
 from cwbot.modules.BaseChatModule import BaseChatModule
 from cwbot.common.kmailContainer import Kmail
 
@@ -168,7 +169,7 @@ class AboutModule(BaseChatModule):
             else:
                 self.log("Could not check for new version...")
             self._lastCheck = time.time()
-        except (HTTPError, URLError, socket.timeout) as e:
+        except (urllib2.URLError, socket.timeout):
             self.log("Error loading site for update")
             self._lastAvailableVersion = None
             

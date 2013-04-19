@@ -76,6 +76,6 @@ class SmoreModule(BaseKmailModule):
 
 
     def _kmailDescription(self):
-        return ("If you send me marshmallows, I will shoot them back with "
-                "my s'more gun so you can enjoy some ooey-gooey s'mores!")
+        return ("SMORES: If you send me marshmallows, I will shoot them back "
+                "with my s'more gun so you can enjoy some ooey-gooey s'mores!")
         

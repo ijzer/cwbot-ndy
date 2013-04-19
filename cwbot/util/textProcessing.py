@@ -1,3 +1,4 @@
+
 def stringToBool(txt):
     """ 
     Converts a string to boolean using the following (case-insensitive) rules:
@@ -19,3 +20,10 @@ def stringToList(txt):
 def listToString(txt):
     return ', '.join(txt) 
     
+    
+def toTypeOrNone(val, type_=str):
+    if val is None:
+        return None
+    if str(val).lower() in ["''", '""', "none", ""]:
+        return None
+    return type_(val)

@@ -1008,9 +1008,10 @@ class MailHandler(ExceptionThread):
                                     "administrator: {}".format(message))
                     
                 # mark as withheld if any items are there
+                newState = self.ERROR
+                errorCode = msg['error']
+                newError = None
                 if message['items']:
-                    errorCode = msg['error']
-                    newError = None
                     newState = self.OUTBOX_WITHHELD
                     if errorCode not in _withholdItemErrors:
                         # unreserve items. There's no use holding on to them; 
@@ -1023,16 +1024,15 @@ class MailHandler(ExceptionThread):
                         self._log.warning("Error trying to send kmail {}; "
                                           "giving up and releasing items."
                                           .format(message))
-                    c2.execute(
-                        "UPDATE {} SET state=?, error=? WHERE id=?"
-                        .format(self._name), (newState, newError, mid))
-
-                # also copy message as ERROR
-                c2.execute("INSERT INTO {0}"
-                                "(state, userId, data, error, kmailId) "
-                           "SELECT ?, userId, data, error, id FROM {0} "
-                           "WHERE id=?".format(self._name),
-                           (self.ERROR, mid))
+                    # also copy message as ERROR
+                    c2.execute("INSERT INTO {0}"
+                                    "(state, userId, data, error, kmailId) "
+                               "SELECT ?, userId, data, error, id FROM {0} "
+                               "WHERE id=?".format(self._name),
+                               (self.ERROR, mid))
+                c2.execute(
+                    "UPDATE {} SET state=?, error=? WHERE id=?"
+                    .format(self._name), (newState, newError, mid))
                         
         
     def _checkItems(self, message):

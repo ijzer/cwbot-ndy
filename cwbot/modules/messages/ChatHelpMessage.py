@@ -10,7 +10,7 @@ class ChatHelpMessage(BaseKmailModule):
     _name = "chat_help_msg"
     
     def _kmailDescription(self):
-        return ("If you want a list of chat commands, send me a PM with the "
-                "text '!help' for all available commands. You can also use "
-                "!help COMMAND_NAME to get detailed information on a "
-                "specific command.")
+        return ("CHAT HELP: If you want a list of chat commands, send me a PM "
+                "with the text '!help' for all available commands. You can "
+                "also use '!help COMMAND_NAME' to get detailed information on "
+                "a specific command.")
