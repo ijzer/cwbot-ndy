@@ -207,7 +207,7 @@ def main(curFolder=None, connection=None):
         pass
     
     try:
-        while loginWait >= 0:
+        while loginWait >= 0 and not exitEvent.is_set():
             ### LOGIN LOOP ###
             if loginWait > 0:
                 log.info("Sleeping for {} seconds.".format(loginWait))
@@ -220,9 +220,11 @@ def main(curFolder=None, connection=None):
                 # fast crash: perform exponential back-off
                 crashWait = min(2*60*60, crashWait*2)
                 loginWait = crashWait
+                log.info("New crash wait: {}".format(crashWait))
             else:
                 # reset exponential back-off
                 crashWait = 60
+                loginWait = crashWait
     except:
         raise
     finally:

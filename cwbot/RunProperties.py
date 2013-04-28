@@ -33,7 +33,7 @@ class RunProperties(object):
     """
 
 
-    version = "0.8.0"
+    version = "0.8.1"
     def __init__(self, debugMode, loginFile, adminFile, 
                  originalDir=os.getcwd(), altLogin=None):
         self.debug = debugMode
@@ -75,7 +75,7 @@ class RunProperties(object):
     def refresh(self):
         """ Reload information from login.ini and admin.ini. """
         self._loadAdmins()
-        self._loadUserNamePassword()
+        self._loadUserNamePassword(None)
         
 
     def _loadUserNamePassword(self, altLogin):

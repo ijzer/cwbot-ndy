@@ -215,7 +215,14 @@ class EventSubsystem(object):
                     o = eventObj.obj()
                     if o is not None:
                         # may modify self._replies
-                        eventObj.callback(e)
+                        reply = eventObj.callback(e)
+                        if reply is not None:
+                            self._log.warning("Object {} returned a value "
+                                              "from its event callback. The "
+                                              "_eventReply method should be "
+                                              "used to communicate with the "
+                                              "calling object."
+                                              .format(o))
             replies = self._replyStack.pop()
             self._eventStack.pop()
             return replies
