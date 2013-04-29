@@ -344,11 +344,12 @@ class HoboChatMonitorModule(BaseHoboModule):
             else:
                 self._eventReply(self.state)
         elif s == "shutdown" and eData.fromIdentity == "__system__":
-            with self._lock:
-                self._lastDispatch = datetime.datetime.now(utc)
-                nDispatch = self.dispatch()
-                if nDispatch > 0:
-                    self._violations.clear()
+            if not self.properties.debug:
+                with self._lock:
+                    self._lastDispatch = datetime.datetime.now(utc)
+                    nDispatch = self.dispatch()
+                    if nDispatch > 0:
+                        self._violations.clear()
     
     
     def _availableCommands(self):

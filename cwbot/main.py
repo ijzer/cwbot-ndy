@@ -215,6 +215,8 @@ def main(curFolder=None, connection=None):
                 props.refresh()
             
             # main section of login loop
+            if exitEvent.is_set():
+                break
             (loginWait, fastCrash) = loginLoop(myDb, props)
             if fastCrash:
                 # fast crash: perform exponential back-off
@@ -224,7 +226,6 @@ def main(curFolder=None, connection=None):
             else:
                 # reset exponential back-off
                 crashWait = 60
-                loginWait = crashWait
     except:
         raise
     finally:

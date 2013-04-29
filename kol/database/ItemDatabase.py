@@ -62,11 +62,7 @@ def getItemFromId(itemId):
         raise Error.Error("Item ID %s is unknown." % itemId, Error.ITEM_NOT_FOUND)
 
 def getOrDiscoverItemFromId(itemId, session):
-    try:
-        return getItemFromId(itemId)
-    except Error.Error:
-        discoverMissingItems(session)
-        return getItemFromId(itemId)
+    return _try3(getItemFromId, session, itemId)
 
 def getItemFromDescId(descId):
     "Returns information about an item given its description ID."
@@ -79,11 +75,7 @@ def getItemFromDescId(descId):
         raise Error.Error("Item with description ID %s is unknown." % descId, Error.ITEM_NOT_FOUND)
 
 def getOrDiscoverItemFromDescId(descId, session):
-    try:
-        return getItemFromDescId(descId)
-    except Error.Error:
-        discoverMissingItems(session)
-        return getItemFromDescId(descId)
+    return _try3(getItemFromDescId, session, descId)
 
 def getItemFromName(itemName):
     "Returns information about an item given its name."
@@ -96,11 +88,7 @@ def getItemFromName(itemName):
         raise Error.Error("The item '%s' is unknown." % itemName, Error.ITEM_NOT_FOUND)
 
 def getOrDiscoverItemFromName(itemName, session):
-    try:
-        return getItemFromName(itemName)
-    except Error.Error:
-        discoverMissingItems(session)
-        return getItemFromName(itemName)
+    return _try3(getItemFromName, session, itemName)
 
 def discoverMissingItems(session):
     loadItemsFromFile()
@@ -158,3 +146,22 @@ def saveItemsToFile():
         except:
             pass
         
+def reset():
+    __isInitialized = False
+    __itemsById = {}
+    __itemsByDescId = {}
+    __itemsByName = {}
+    __discoveryDate = None
+    init()
+
+def _try3(func, session, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except Error.Error:
+        discoverMissingItems(session)
+        try:
+            return func(*args, **kwargs)
+        except Error.Error:
+            reset()
+            discoverMissingItems(session)
+            return func(*args, **kwargs)

@@ -33,7 +33,7 @@ class RunProperties(object):
     """
 
 
-    version = "0.8.1"
+    version = "0.8.2"
     def __init__(self, debugMode, loginFile, adminFile, 
                  originalDir=os.getcwd(), altLogin=None):
         self.debug = debugMode
