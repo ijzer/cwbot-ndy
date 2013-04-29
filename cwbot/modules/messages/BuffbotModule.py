@@ -5,11 +5,15 @@ from cwbot.util.textProcessing import toTypeOrNone
 from cwbot.util.tryRequest import tryRequest
 from cwbot.kolextra.functions.equipCustomOutfitByName \
                        import equipCustomOutfitByName
+from cwbot.kolextra.functions.getUniqueDateString import getUniqueDateString
 from kol.database.SkillDatabase import getSkillFromId
 from kol.request.EquipRequest import EquipRequest
 from kol.request.StatusRequest import StatusRequest
 from kol.request.UseSkillRequest import UseSkillRequest
 import kol.Error
+
+BUFF_SUCCESS = 0
+BUFF_HIT_LIMIT = 1
 
 
 def _integerize(map_, keyname, defaultval, desc):
@@ -51,16 +55,14 @@ class BuffbotModule(BaseKmailModule):
     _name = "buffbot"
 
     def __init__(self, manager, identity, config):
-        self._buffs = {}
-        self._used = {}
-        self._mpMax = None
-        self._healer = None
+        self._buffs = self._used = self._mpMax = self._healer = \
+            self._date = None
         super(BuffbotModule, self).__init__(manager, identity, config)
 
         
     def _configure(self, config):
         self._buffs = {}
-        self._outfits = {}
+        self._used = {}
         healer = toTypeOrNone(config.setdefault('healer', "none"), str)
         if healer is not None:
             healer = "__" + healer + "__"
@@ -101,17 +103,12 @@ class BuffbotModule(BaseKmailModule):
             
             
     def initialize(self, state, initData):
+        self._date = getUniqueDateString(self.session)
         self._used = {}
-        if state['date'] == self._currentKolDate():
+        if state['date'] == self._date:
             self._used = dict((int(k), v) for k,v in state['used'].items())
             
             
-    def _currentKolDate(self):
-        r = StatusRequest(self.session)
-        d = tryRequest(r)
-        return int(d['daysthisrun'])
-
-
     def _sendBuffKmail(self, message):
         txt = "The following buffs are available:\n"
         spellList = set(v['id'] for v in self._buffs.values())
@@ -172,44 +169,20 @@ class BuffbotModule(BaseKmailModule):
         equipCustomOutfitByName(self.session, outfitName)
             
             
-    def _doBuff(self, uid, buff):
-        self._equipForBuff(buff)
-        return self._buff(uid, buff)
-        
-        
-    def _processKmail(self, message):
-        items = message.items
-        uid = message.uid
-        meat = message.meat
-        text = message.text
-        if message.items:
-            return None
-        if message.text.strip() != "":
-            return None
-        if meat == 0:
-            if text.lower() == "buffs":
-                return self._sendBuffKmail(message)
-            return None
-        priceList = [v['cost'] for v in self._buffs.values()]
-        if meat not in priceList:
-            return None
-            
-        selectedBuff = [v for v in self._buffs.values() 
-                        if v['cost'] == meat][0]
-        
-        # check for use limit
-        usesDict = self._used.get(uid, {})
-        numUses = usesDict.get(meat, 0)
+    def _doBuff(self, uid, buffName, useLimit):
+        selectedBuff = self._buffs[buffName]
         limit = selectedBuff['daily_limit']
-        if numUses >= limit and limit > 0:
-            return self.newMessage(
-                    uid, "Sorry, you have used your daily limit for "
-                         "that spell today.", meat)
+        usesDict = self._used.get(uid, {})
+        numUses = usesDict.get(buffName, 0)
+
+        if numUses >= limit and limit > 0 and useLimit:
+            return BUFF_HIT_LIMIT
         
         with InventoryLock.lock:
             # prepare for buff
             try:
-                spent = self._doBuff(uid, selectedBuff)
+                self._equipForBuff(selectedBuff)
+                spent = self._buff(uid, selectedBuff)
                 if spent == 0:
                     raise kol.Error.Error(
                         "Could not cast buff for some reason", 
@@ -217,15 +190,49 @@ class BuffbotModule(BaseKmailModule):
             except kol.Error.Error as e:
                 for uid in self.properties.getAdmins("buffbot_admin"):
                     self.sendKmail(uid, "Buffbot error for {}: {}"
-                                        .format(selectedBuff, e.msg))
+                                        .format(buffName, e.msg))
                 self.log("Problem with buff: {}".format(e.msg))
-                return self.newMessage(uid, 
-                                       "Sorry, there was an error casting "
-                                       "your buff ({}).".format(e.msg),
-                                       meat)
-            usesDict[meat] = numUses + 1
+                raise
+        if useLimit:
+            usesDict[buffName] = numUses + 1
             self._used[uid] = usesDict
-            return self.newMessage(-1)
+        return BUFF_SUCCESS
+        
+        
+    def _processKmail(self, message):
+        items = message.items
+        uid = message.uid
+        meat = message.meat
+        text = message.text
+        if items:
+            return None
+        if text.strip() != "":
+            return None
+        if meat == 0:
+            if text.lower() == "buffs":
+                return self._sendBuffKmail(message)
+            return None
+        buffName = next((k for k,v in self._buffs.items() 
+                        if v['cost'] == meat), None)
+        if buffName is None:
+            return None
+        
+        # check for use limit
+        try:
+            result = self._doBuff(uid, buffName, useLimit=True)
+            if result == BUFF_HIT_LIMIT:
+                return self.newMessage(
+                        uid, "Sorry, you have used your daily limit for "
+                             "that buff today.", meat)
+            elif result == BUFF_SUCCESS:
+                return self.newMessage(-1)
+            else:
+                raise ValueError("Invalid response from _doBuff")        
+        except kol.Error.Error as e:
+            return self.newMessage(uid, 
+                                   "Sorry, there was an error casting "
+                                   "your buff ({}).".format(e.msg),
+                                   meat)
     
     
     def _kmailDescription(self):
@@ -237,15 +244,34 @@ class BuffbotModule(BaseKmailModule):
         
     @property
     def initialState(self):
-        return {'used': {}, 'date': self._currentKolDate()}
+        return {'used': {}, 'date': self._date}
         
         
     @property
     def state(self):
-        return {'used': self._used, 'date': self._currentKolDate()}
+        return {'used': self._used, 'date': self._date}
         
         
     def _eventCallback(self, eData):
         if eData.subject == "state":
-            self._eventReply(self.state)    
-        
+            self._eventReply(self.state) 
+        elif eData.subject == "buff":
+            reply = {'success': False, 'uses_remaining': -1}
+            try:
+                buffName = eData.data['name']
+                uid = int(eData.data['userId'])
+            except (KeyError, ValueError, TypeError):   
+                raise KeyError("buff message data must have format: "
+                               "{'name': BUFF_NAME, 'userId': ID_NUMBER"
+                               "[, 'use_limit': TRUE_OR_FALSE]}")
+            if buffName not in self._buffs:
+                raise KeyError("Invalid buff: {}".format(buffName))
+            useLimit = eData.data.get('use_limit', False)
+            result = self._doBuff(uid, buffName, useLimit)
+            reply['success'] = (result == BUFF_SUCCESS)
+            if useLimit:
+                uses = self._used.get(uid, {}).get(buffName, 0)
+                limit = self._buffs[buffName]['daily_limit']
+                reply['uses_remaining'] = limit - uses
+            self._eventReply(reply)
+
