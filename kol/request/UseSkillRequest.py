@@ -24,6 +24,7 @@ class UseSkillRequest(GenericRequest):
 
     def parseResponse(self):
         resultsPattern = PatternManager.getOrCompilePattern('results')
+        print(self.responseText)
         match = resultsPattern.search(self.responseText)
         if match:
             results = match.group(1)

@@ -206,8 +206,43 @@ and modules to load are placed. Here is an example setting:
     channels = clan,hobopolis,slimetube
 [director]
 	base = cwbot.managers
+    [[core]]
+        type = BaseManager
+        base = cwbot.modules.core
+        priority = 0
+        [[[Announce]]]
+            type = AnnouncementModule
+            priority = 0
+            permission = None
+            clan_only = False
+            [[[[clan]]]]
+                startup = All systems online.
+                shutdown = Happy rollover!
+                crash = Oh my, I seem to have crashed. (%arg%)
+                manual_stop = I am going offline for some maintenance. See you soon!
+                manual_restart = Restarting bot...
+            [[[[hobopolis]]]]
+                startup = Hobo-detection engaged.
+                shutdown = Happy rollover!
+                crash = Oh my, I seem to have crashed. (%arg%)
+                manual_stop = I am going offline for some maintenance. See you soon!
+                manual_restart = Restarting bot...
+        [[[Breakfast]]]
+            type = BreakfastModule
+            priority = 100
+            permission = None
+            clan_only = False
+            vip = True
+            clovers = True
+        [[[Shutdown]]]
+            type = ShutdownModule
+            priority = 10
+            permission = None
+            clan_only = False
+            shutdown_time = 3
    	[[kmail_manager]]
 		type = MessageManager
+        priority = 1
         base = cwbot.modules.messages
         sync_interval = 300
         channel = clan
@@ -236,83 +271,54 @@ and modules to load are placed. Here is an example setting:
     [[all_channel]]
         type = AllChannelManager
         priority = 110
-        base = cwbot.modules
+        base = cwbot.modules.general
         sync_interval = 300
         accept_private_messages = True
         [[[Dice]]]
-            type = general.DiceModule
+            type = DiceModule
             priority = 100
             permission = None
             clan_only = False
         [[[Maintenance]]]
-            type = general.MaintenanceModule
+            type = MaintenanceModule
             permission = admin_command
             priority = 100
             clan_only = False
-        [[[Announce]]]
-            type = general.AnnouncementModule
-            priority = 0
-            permission = None
-            clan_only = False
-            [[[[clan]]]]
-                startup = All systems online.
-                shutdown = Happy rollover!
-                crash = Oh my, I seem to have crashed. (%arg%)
-                manual_stop = I am going offline for some maintenance. See you soon!
-                manual_restart = Restarting bot...
-            [[[[hobopolis]]]]
-                startup = Hobo-detection engaged.
-                shutdown = Happy rollover!
-                crash = Oh my, I seem to have crashed. (%arg%)
-                manual_stop = I am going offline for some maintenance. See you soon!
-                manual_restart = Restarting bot...
-        [[[Breakfast]]]
-            type = general.BreakfastModule
-            priority = 100
-            permission = None
-            clan_only = False
-            vip = True
-            clovers = True
-        [[[Shutdown]]]
-            type = general.ShutdownModule
-            priority = 10
-            permission = None
-            clan_only = False
-            shutdown_time = 3
     [[hobopolis]]
         type = HoboChannelManager
         priority = 106
         channel = hobopolis
-        base = cwbot.modules
+        base = cwbot.modules.hobopolis
         log_check_interval = 15
         sync_interval = 300
         accept_private_messages = True
         [[[Cage]]]
-            type = hobopolis.CageModule
+            type = CageModule
             permission = None
             priority = 100
             clan_only = True
         [[[Sewer]]]
-            type = hobopolis.SewerModule
+            type = SewerModule
             priority = 100
             permission = None
             clan_only = True
         [[[Turns]]]
-            type = hobopolis.TurnsModule
+            type = TurnsModule
             priority = 101
             permission = None
             clan_only = True
 
 			
 A summary of what this specifies:
-- The Director loads three managers: a MessageManager named ,
-	an AllChannelManager named all_channel, and a HoboChannelManager named
-	hobopolis.
+- The Director loads four managers: a BaseManager named core, 
+    a MessageManager named kmail_manager, 
+    an AllChannelManager named all_channel, 
+    and a HoboChannelManager named hobopolis.
 	(The full type name of the first manager is 
-	cwbot.managers.MessageManager.MessageManager. This is defined by the 
-	MessageManager class in cwbot/managers/MessageManager.py.
+	cwbot.managers.BaseManager.BaseManager. This is defined by the 
+	BaseManager class in cwbot/managers/BaseManager.py.
 	Note that cwbot automatically loads the class that matches the filename.) 
-	The internal name for this manager is kmail_manager, but any unique text
+	The internal name for this manager is core, but any unique text
 	string may be specified. The identifier is used for logging and other
 	internal purposes. Note that the director can have multiple managers 
 	loaded by placing other manager entries, one after another.
@@ -324,19 +330,26 @@ A summary of what this specifies:
 - The 'sync_interval' option sets how often module state is written to disk,
 	in seconds. The module settings will be synchronized every 300 seconds,
 	which is the default setting.
-- The 'channel' option sets what channel is the default channel for
-	announcements. Even though this is a kmail-based manager, modules still 
-	have the capability to send chat messages.
-
-Under the MessageManager options is the list of modules to be loaded.
-Here is what happens for the first setting (Donate):
-- The module to be loaded is cwbot.modules.messages.DonateModule. This module
-	will be assigned the internal identity "Donate".
+    
+Under the "core" BaseManager is its options, and then a list of modules to be
+loaded. Here is what happens for the first entry (Announce):
+- The module to be loaded is cwbot.modules.core.AnnounceModule. This module
+	will be assigned the internal identity "Announce".
+- The Announce module does the following: when certain events are triggered,
+    the bot announces them in chat. These events are configured in the
+    module options. Modules in the core package are modules that do not
+    directly interact with players.
+- The module is loaded with priority 0. For core modules, the priority setting
+    is mostly unimportant. However, it has a big effect on chat- and kmail-
+    based modules, because it determines the order in which those 
+    communications are processed.
+    
+Let's look at a different module: The "Donate" module under the kmail_manager:
 - The Donate module does the following: If a Kmail contains the word "donate",
 	the bot keeps any items attached and replies with a thank you message.
 	Otherwise, it does nothing, and the next-lowest priority module handles
 	the kmail.
-- The module is loaded with priority 111. This is higher than the other
+- The module is loaded with priority 111 .This is higher than the other
 	modules in the list, so all kmails will be handled by this module first.
 - The module's permission is set to None. Some modules can be configured to
 	require a permission. Permissions are set through the admin.ini file.
@@ -353,27 +366,24 @@ the save_last and message_channel settings. These settings vary by module,
 but are either documented in the doc files or in their own file.
 
 The chat portion of the configuration does the following:
-- The ChatDirector listens to three chat channels: clan, hobopolis, and
-	slimetube. The first channel (clan) is the "main" chat channel.
-- The ChatDirector loads two managers: a cwbot.managers.AllChannelManager
+- At the top, under [system], it is specified that the bot listens to three 
+    chat channels: clan, hobopolis, and slimetube. The first channel (clan)
+    is the "main" chat channel.
+- Two chat-based managers are loaded: a cwbot.managers.AllChannelManager
 	with identity name "all_channel", and a cwbotlmanagers.HoboChannelManager
-	with identity name "hobopolis". Note that the 'base' config option
-	is not allowed for the KmailDirector, but is allowed for the ChatDirector.	
+	with identity name "hobopolis". 
 - In addition to the settings already outlined in the Kmail section, both
 	managers are configured to accept private messages and have a priority
 	value. Chats are passed to managers in order of priority, and the
-	managers in turn pass chats to their modules in order of priority.
-- The AllChannelManager loads five modules. The DiceModule has no interesting
-	configuration options. The BreakfastModule and ShutdownModule have
-	their own options, but are otherwise uninteresting as well.
-- The AllChannelManager loads the MaintenanceModule with a permission
+	managers in turn pass chats to their modules in order of priority, just
+    like the KmailManager.
+- The AllChannelManager loads two modules. The DiceModule has no interesting
+	configuration options. The MaintenanceModule has a permission
 	setting. Only a user in admin.ini with the admin_command permission
 	may interact with the MaintenanceModule; its commands will not show
 	up in !help to other users, and the manager will return an access
 	denied message if an unpriviliged user attempts to use a command
 	from the module.
-- The AllChannelManager loads AnnouncementModule. This module has many
-	options in its configuration, in two subsections.
 - The HoboChannelManager is configured to respond only to messages on 
 	/hobopolis. It is also configured to poll the raid logs every 15 seconds.
 - All of the modules under the HoboChannelManager are configured to be
@@ -470,8 +480,151 @@ issue.
 3. Available Managers and Modules
 ---------------------------------
 
-3A. For Kmails
+3A. Core Modules
+----------------
+
+Core modules are special modules that do not interact directly with players,
+but have important functions required for other modules or the bot itself.
+Core modules can function under ANY manager, but it is best practice to
+have a dedicated manager just for core functions. I suggest a BaseManager.
+
+Modules:
+
+cwbot.core.AnnouncementModule - A module that announces system events in
+	chat. For example, it can announce when the bot logs off for rollover,
+	when it comes online, or when it crashes. The configuration format is as
+	follows:
+	
+	[[[Announce]]]
+		type = AnnouncementModule
+		[[[[channelname-1]]]]
+			event1 = message1
+			event2 = message2
+		[[[[channelname-2]]]]
+			event1 = message1
+			event2 = message2
+	
+	Here channelname-N is a chat channel like "clan" or "hobopolis". The
+	possible events are currently: startup (when bot comes online),
+	shutdown (when bot shuts down for rollover), crash (when bot has an 
+	error), manual_stop (when bot is killed on its server), manual_restart 
+	(when bot is restarting due to administrator command). The message text 
+	can include some special substitutions: %arg% is replaced with any
+	arguments to the event (though, the only one with any arguments right now
+	is the crash event). You should not use more than one of these.
+	
+cwbot.modules.core.BreakfastModule - A module that grabs meat and items from
+    the clan lounge and buys clovers when the bot first logs on. You
+	should only have one in your configuration.
+    
+	Options: clovers: if true, buy clovers from hermit (true)
+	         vip: if true, try to get items from VIP lounge (true)
+             
+cwbot.modules.core.ShutdownModule - This module catches messages from
+	KoL about rollover, and shuts down the bot when rollover gets close.
+	(The bot will attempt to log on after the number of seconds specified
+	in login.ini, and every minute thereafter, until it comes back online.) 
+	If a ShutdownModule is not loaded, the bot will just stay online until 
+	rollover, and then crash. This isn't terrible, and the bot will come 
+	back online, but it's much messier and some persistent state may be lost.
+	Don't set shutdown_time to more time than specified in login.ini, or the 
+	bot may come online right before rollover and then crash. You should
+	only load one of these.
+	Options: shutdown_time: amount of time, in MINUTES, before rollover 
+							that the bot should shut down (3)
+
+cwbot.modules.core.HealingModule - This module allows the bot to heal
+    its HP and MP using items, skills, or a few other things. You may
+    create multiple HealingModules, each with different healing methods,
+    if the bot needs to heal in different ways for different tasks.
+    Configuration is as follows:
+    
+        [[[heal-1]]]
+            type = HealingModule
+            priority = 100
+            permission = None
+            clan_only = False
+            [[[[hp]]]]
+                # this option allows specification of a different HealingModule
+                # to restore the bot's MP in order to use skills to heal HP. If
+                # set to "none", the module will use its own MP-restoring
+                # settings if it needs to cast a healing spell.
+                external_mp_healer = none
+                
+                # below is a priority-based list of ways to restore HP. The
+                # module will first try to use the lowest-valued entry to
+                # restore HP. If it fails, it will move to the next entry,
+                # until one succeeds or all of them fail.
+                [[[[[1]]]]]
+                    # the only_heal_over option allows the user to specify that
+                    # this healing method should only be used to restore more
+                    # than X HP.
+                    only_heal_over = 116
+                    # the type must be specified here
+                    type = skill
+                    id = 3012 # skill id = 3012 (Cannelloni Cocoon)
+                    required_mp = 20 # cost of ONE CASTING
+                    typical_number_casts = 1 # hint as to how many casts to try
+                [[[[[2]]]]]
+                    type = skill
+                    id = 3009 # Lasagna Bandages
+                    only_heal_over = 0
+                    required_mp = 6
+                    typical_number_casts = 1 # crummy hint, but whatever
+                [[[[[3]]]]]
+                    type = galaktik # heal with doc galaktik
+                    method = ointment # valid settings: ointment,nostrum,tonic
+                    only_heal_over = 0
+                [[[[[4]]]]]
+                    type = rest # rest in campground
+                    only_heal_over = 0
+                    
+            # below is the list of MP restorers. These work exactly like the
+            # HP restorers, but some of the settings are different
+            [[[[mp]]]]
+                [[[[[1]]]]]
+                    type = item # use an item
+                    only_heal_over = 100
+                    id = 1687 # Platinum Yendorian Express Card
+                    buy_from = none # this can be set to buy from NPCs or Mall
+                [[[[[2]]]]]
+                    type = lucifer # Jumbo Dr. Lucifer
+                    # external_healer works like the external_mp_healer setting
+                    # for the [hp] section. If set to none, the HP settings are
+                    # used to restore HP to use the Lucifer.
+                    external_healer = none 
+                    use_mall = true # buy from mall?
+                    only_heal_over = 100
+                    max_full = none # set a cap on how much fullness to use up
+                [[[[[3]]]]]
+                    type = item # use an item
+                    id = 518 # magical mystery juice
+                    buy_from = 2 # buy from the grocery if none in inventory
+                    only_heal_over = 0
+                [[[[[4]]]]]
+                    type = item
+                    id = 2639 # black cherry soda
+                    buy_from = l # from black market if out
+                    only_heal_over = 0
+                [[[[[5]]]]]
+                    type = item
+                    id = 344 # Knob Goblin seltzer
+                    buy_from = k # knob dispensary
+                    only_heal_over = 0
+                [[[[[6]]]]]
+                    type = item
+                    id = 2639 # black cherry soda
+                    buy_from = mall # buy from mall if out
+                    only_heal_over = 0
+                [[[[[7]]]]]
+                    type = galaktik
+                    method = tonic # expensive :(
+                    only_heal_over = 0
+
+3B. For Kmails
 --------------
+
+The following managers/modules handle Kmails.
 
 Managers: 
 
@@ -538,11 +691,66 @@ cwbot.modules.messages.SmoreModule - shoots marshmallows at users with a
 	functionality, or the user needs to send their own gun, in which case the
 	bot will use that gun and then send it back.
 	
-cwbot.modules.messages.ChatHelpMessage - a functionless module that adds a
-	help message about how to get help for chat commands. If you use this
-	module, you should give it lowest priority.
+cwbot.modules.messages.BuffbotModule - A buffbot module. Users can send a
+    specified amount of meat to receive various buffs. An example 
+    configuration is as follows:
 
-
+    [[[Buffbot]]]
+        type = BuffbotModule
+        priority = 140
+        permission = None
+        clan_only = False
+        # set a HealingModule identity as its designated healer. If set to
+        # "none", it will try all of them until one works. So if you wanted
+        # to use the HealingModule configured above, you would use heal-1
+        # as the value
+        healer = none
+        # percent of max MP to restore to when the bot has insufficient
+        # MP to cast a spell.
+        restore_mp_to_percent = 80
+        [[[[buffs]]]]
+            # below is a list of spells. The name in brackets is each buff's
+            # unique ID.
+            [[[[[Magical Mojomuscular Melody-300]]]]]
+                casts = 12 # number of times to cast spell
+                cost = 100 # amount of meat that must be sent by player
+                id = 6007 # spell ID
+                # name of custom outfit to wear ("none" for any outfit)
+                outfit = at_buff 
+                description = 300 turns of The Magical Mojomuscular Melody
+                # cost of ONE CASTING of spell. If you have items that reduce
+                # this cost, you should factor that in below.
+                mp_cost = 2 
+                # max num. of times a player can request per day. 0 = infinity
+                daily_limit = 1 
+            [[[[[Magical Mojomuscular Melody-2000]]]]]
+                casts = 80 # number of times to cast spell
+                cost = 1200 # amount of meat that must be sent by player
+                id = 6007 # spell ID
+                outfit = at_buff # name of custom outfit to wear
+                description = 2000 turns of The Magical Mojomuscular Melody
+                mp_cost = 2 
+                daily_limit = 0 # infinite requests
+            [[[[[Moxious Madrigal-300]]]]]
+                casts = 12
+                cost = 99
+                id = 6004
+                outfit = at_buff
+                description = 300 turns of The Moxious Madrigal
+                mp_cost = 1
+                daily_limit = 1
+            [[[[[Moxious Madrigal-2000]]]]]
+                casts = 80
+                cost = 1199
+                id = 6004
+                outfit = at_buff
+                description = 2000 turns of The Moxious Madrigal
+                mp_cost = 1
+                daily_limit = 0
+                
+    You can specify buffs with a negative cost to "hide" them -- they can
+    still be accessed by the ChatBuffInterfaceModule.
+    
 
 3B. For Chat
 ------------
@@ -590,36 +798,6 @@ cwbot.general.AboutModule - Shows an about message with the current version
     fashion, so other users can learn about cwbot and you can have the most
     up-to-date version.
 
-cwbot.general.AnnouncementModule - A module that announces system events in
-	chat. For example, it can announce when the bot logs off for rollover,
-	when it comes online, or when it crashes. The configuration format is as
-	follows:
-	
-	[[[Announce]]]
-		type = general.AnnouncementModule
-		[[[[channelname-1]]]]
-			event1 = message1
-			event2 = message2
-		[[[[channelname-2]]]]
-			event1 = message1
-			event2 = message2
-	
-	Here channelname-N is a chat channel like "clan" or "hobopolis". The
-	possible events are currently: startup (when bot comes online),
-	shutdown (when bot shuts down for rollover), crash (when bot has an 
-	error), manual_stop (when bot is killed on its server), manual_restart 
-	(when bot is restarting due to administrator command). The message text 
-	can include some special substitutions: %arg% is replaced with any
-	arguments to the event (though, the only one with any arguments right now
-	is the crash event). This module does not pay attention to chat at all
-	and can be placed under any Manager, but you don't need more than one.
-	
-cwbot.modules.general.BreakfastModule - A module that doesn't process chats, 
-	but grabs meat and items from the clan lounge and buys clovers when
-	the bot first logs on. It can be placed under any manager, and you
-	should only have one.
-	Options: clovers: if true, buy clovers from hermit (true)
-	         vip: if true, try to get items from VIP lounge (true)
 			 
 cwbot.modules.general.ChatLogModule - A module that keeps a running log of 
 	all chats. Users can send a "!chatlog" chat to request the last few lines
@@ -750,19 +928,6 @@ cwbot.modules.general.PermissionsModule - Shows a user's permissions with
 	users, set it with a permission setting of *.
 	(No options)
 
-cwbot.modules.general.ShutdownModule - This module catches messages from
-	KoL about rollover, and shuts down the bot when rollover gets close.
-	(The bot will attempt to log on after the number of seconds specified
-	in login.ini, and every minute thereafter, until it comes back online.) 
-	If a ShutdownModule is not loaded, the bot will just stay online until 
-	rollover, and 	then crash. This isn't terrible, and the bot will come 
-	back online, but it's much messier and some persistent state may be lost.
-	Don't set shutdown_time to more time than specified in login.ini, or the 
-	bot may come online right before rollover and then crash. You should
-	only load one of these.
-	Options: shutdown_time: amount of time, in MINUTES, before rollover 
-							that the bot should shut down (3)
-							
 cwbot.modules.general.StateModule - A maintenance module for inspecting
 	persistent state of other modules. It's recommended that this
 	module be protected by permissions, as it can be a bit spammy.
@@ -782,9 +947,36 @@ cwbot.modules.general.UneffectModule - A module that can be used to
 	be wise to make this module clan-only.
 	Options: auto_remove: comma-separated list of effect ids to be
 						  autoremoved (697)
+                          
+cwbot.modules.general.ChatBuffInterfaceModule - A module that users
+    can use to interact with the BuffbotModule in chat to get
+    buffs (for free). Buffs must be configured in the options as
+    follows:
+    
+    [[[Chat-Buff]]]
+        type = general.ChatBuffInterfaceModule
+        clan_only = True
+        priority = 100
+        permission = None
+        # name of the BuffbotModule to use. If you have more than one
+        # BuffbotModule, this MUST be configured. Otherwise you can
+        # leave it as none.
+        buff_module = none
+        [[[[buffs]]]]
+            mojo = Magical Mojomuscular Melody-300
+            madrigal = Moxious Madrigal-300
+            
+    This configuration would allow a player to send the chat
+    "!buff mojo" to get 300 turns of the Magical Mojomuscular Melody or
+    "!buff madrigal" to get the Moxious Madrigal. Though the buffs will be
+    free, all daily limits in the BuffbotModule are respected. Note that
+    the names on the left side of the "=" are the chat command, and the
+    names on the right are the identification name of the buff under the
+    BuffbotModule.
 	
 
 Hobopolis modules (all require the HoboChannelManager):
+
 NOTE: All of these modules should not be loaded more than once.
 
 cwbot.modules.hobopolis.AhbgModule - Tracks progress in the Ancient

@@ -90,9 +90,14 @@ class MessageManager(BaseManager):
                     if newTxt is not None:
                         if newTxt not in helptext:
                             helptext.append(newTxt)
-        txt = '\n\n'.join(helptext)
         if not helptext:
             txt = "Sorry, I don't have any help available."
+        helptext.append("CHAT HELP: If you want a list of chat commands, "
+                        "send me a PM with the text '!help' for all "
+                        "available commands. You can also use "
+                        "'!help COMMAND_NAME' to get detailed information on "
+                        "a specific command.")
+        txt = '\n\n'.join(helptext)
         return [KmailResponse(self, self, Kmail(uid, txt))]
 
 

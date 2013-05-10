@@ -29,17 +29,17 @@ class OutfitEquipRequest(GenericRequest):
             return self.responseData
         elif self._cantEquip.search(self.responseText) is not None:
             raise Error.Error("Stats are not high enough to equip outfit {}"
-                              .format(self.requestData['whichOutfit']),
+                              .format(self.requestData['whichoutfit']),
                               Error.USER_IS_LOW_LEVEL)
         elif self._missingItems.search(self.responseText) is not None:
             raise Error.Error("Missing items from outfit {}"
-                              .format(self.requestData['whichOutfit']),
+                              .format(self.requestData['whichoutfit']),
                               Error.ITEM_NOT_FOUND)
         elif self._badNumber.search(self.responseText) is not None:
             raise Error.Error("Invalid outfit number: {}"
-                              .format(self.requestData['whichOutfit']),
+                              .format(self.requestData['whichoutfit']),
                               Error.INVALID_ACTION)
         else:
             raise Error.Error("An unknown error occurred equipping outfit {}"
-                              .format(self.requestData['whichOutfit']),
+                              .format(self.requestData['whichoutfit']),
                               Error.REQUEST_GENERIC)

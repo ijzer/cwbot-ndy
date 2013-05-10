@@ -54,7 +54,7 @@ class BaseManager(EventSubsystem.EventCapable,
     """
     
     __metaclass__ = ManagerMetaClass
-    capabilities = []
+    capabilities = ['inventory', 'chat']
     
     __clanMembers = set([])
     __clanNonMembers = {}

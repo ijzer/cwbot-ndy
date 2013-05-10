@@ -9,12 +9,12 @@ from cwbot.kolextra.functions.getUniqueDateString import getUniqueDateString
 from kol.database.SkillDatabase import getSkillFromId
 from kol.request.EquipRequest import EquipRequest
 from kol.request.StatusRequest import StatusRequest
-from kol.request.UseSkillRequest import UseSkillRequest
+from cwbot.kolextra.request.UseSkillRequest import UseSkillRequest
 import kol.Error
 
 BUFF_SUCCESS = 0
 BUFF_HIT_LIMIT = 1
-
+BUFF_FAIL = 2
 
 def _integerize(map_, keyname, defaultval, desc):
     try:
@@ -188,9 +188,6 @@ class BuffbotModule(BaseKmailModule):
                         "Could not cast buff for some reason", 
                         kol.Error.REQUEST_GENERIC)
             except kol.Error.Error as e:
-                for uid in self.properties.getAdmins("buffbot_admin"):
-                    self.sendKmail(uid, "Buffbot error for {}: {}"
-                                        .format(buffName, e.msg))
                 self.log("Problem with buff: {}".format(e.msg))
                 raise
         if useLimit:
@@ -255,23 +252,28 @@ class BuffbotModule(BaseKmailModule):
     def _eventCallback(self, eData):
         if eData.subject == "state":
             self._eventReply(self.state) 
-        elif eData.subject == "buff":
+        elif eData.subject == "buff" or eData.subject == "buff_info":
             reply = {'success': False, 'uses_remaining': -1}
             try:
                 buffName = eData.data['name']
-                uid = int(eData.data['userId'])
+                uid = int(eData.data['userId'])                
             except (KeyError, ValueError, TypeError):   
                 raise KeyError("buff message data must have format: "
-                               "{'name': BUFF_NAME, 'userId': ID_NUMBER"
-                               "[, 'use_limit': TRUE_OR_FALSE]}")
+                               "{{'name': BUFF_NAME, 'userId': ID_NUMBER"
+                               "[, 'use_limit': TRUE_OR_FALSE]}}, but "
+                               "I received the following message: {}"
+                               .format(eData))
             if buffName not in self._buffs:
                 raise KeyError("Invalid buff: {}".format(buffName))
-            useLimit = eData.data.get('use_limit', False)
-            result = self._doBuff(uid, buffName, useLimit)
-            reply['success'] = (result == BUFF_SUCCESS)
+            useLimit = eData.data.get('use_limit', True)
+            if eData.subject == "buff":
+                try:
+                    result = self._doBuff(uid, buffName, useLimit)
+                    reply['success'] = (result == BUFF_SUCCESS)
+                except kol.Error.Error as e:
+                    reply['error'] = e
             if useLimit:
                 uses = self._used.get(uid, {}).get(buffName, 0)
                 limit = self._buffs[buffName]['daily_limit']
-                reply['uses_remaining'] = limit - uses
+                reply['uses_remaining'] = limit - uses if limit > 0 else -1
             self._eventReply(reply)
-

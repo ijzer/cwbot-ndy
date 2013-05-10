@@ -84,7 +84,7 @@ class BaseChatManager(BaseManager):
                         replies.extend(txt.split("\n"))
                         # chat processed! return the replies.
                         break
-        return replies
+        return [r for r in replies if r != ""]
 
     
     def _processCommand(self, module, permission, clanOnly, msg, cmd, arg):
