@@ -32,7 +32,6 @@ class UseSkillRequest(GenericRequest):
 
     def parseResponse(self):
         resultsPattern = PatternManager.getOrCompilePattern('results')
-        print(self.responseText)
 
         if self._hc_ronin.search(self.responseText) is not None:
             raise Error.Error("Unable to cast spell. "
