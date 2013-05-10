@@ -827,7 +827,10 @@ cwbot.modules.general.DiceModule - A module that has several functions related
 cwbot.modules.general.FaxModule - A module that handles faxing. Users can
 	send "!fax" to check what is in the fax machine and how long it has
 	been there. The module has two modes of operation: announce mode and
-	silent mode. 
+	silent mode. NOTE: The FaxModule uses a fair amount of bandwidth. At
+    the default setting of 15 seconds per refresh, it will download about
+    2.6 MB per minute. If you are not using a dedicated server, it is
+    recommended that you DO NOT USE the FaxModule at this time.
 	
 	Announce mode: When a new fax is received, the bot will announce it
 		in chat. Also, if a user does not know the code for a monster
