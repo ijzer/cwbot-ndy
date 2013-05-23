@@ -4,6 +4,7 @@ import abc
 import logging
 from cwbot import logConfig
 import cwbot.util.DebugThreading as threading
+from cwbot.util.textProcessing import toTypeOrNone
 from cwbot.common.objectContainer import ModuleEntry
 from cwbot.common.exceptions import FatalError
 from cwbot.util.importClass import easyImportClass
@@ -121,7 +122,7 @@ class BaseManager(EventSubsystem.EventCapable,
         for k,v in config.items():
             if isinstance(v, dict):
                 cfg = v
-                perm = v['permission']
+                perm = toTypeOrNone(v['permission'], str)
                 priority = v['priority']
                 clanOnly = v['clan_only']
                 
@@ -259,30 +260,18 @@ class BaseManager(EventSubsystem.EventCapable,
                     
                     
     def checkClan(self, uid):
-        """ Check if a user is in the same clan as the bot. If the user is
-        detected as in-clan, it is not checked again until rollover. If a user
-        is not detected as in-clan, they are periodically re-checked, since
-        they may have whitelisted or have been in Valhalla. 
-        A user can be overridden as in-clan by giving them the clan permission
-        in admin.ini. """
-        if uid in self.__clanMembers or uid <= 0:
-            return True
-        if (time.time() - self.__clanNonMembers.get(uid, 0)) < 120:
-            return False
-        if "clan" in self.properties.getPermissions(uid):
-            self.__clanMembers.add(uid)
-            return True
-        r = UserProfileRequest(self.session, uid)
-        result = tryRequest(r)
-        inClan = result.get('clanId', -1) == self.properties.clan
-        if inClan:
-            self._log.debug("User {} detected as in-clan.".format(uid))
-            self.__clanMembers.add(uid)
-        else:
-            self._log.debug("User {} detected as out-of-clan.".format(uid))
-            self.__clanNonMembers[uid] = time.time()
-        return inClan
-            
+        """ Check if a user is in the same clan as the bot or if they are on
+        the whitelist. Returns {} if user is not in clan. Otherwise returns
+        the user record, a dict with keys 'userId', 'userName', 'karma', 
+        'rankName', 'whitelist', and 'inClan'. Note that 'karma' will be zero
+        if the user is whitelisted and outside the clan (which will be
+        indicated by the 'inClan' field equal to False). """
+        if uid <= 0:
+            return {'inClan': True, 'userId': uid, 'rankName': 'SPECIAL',
+                    'userName': str(uid), 'karma': 1, 'whitelist': False}
+        info = self.director.clanMemberInfo(uid)
+        return info
+
 
     def cleanup(self):
         """ run cleanup operations before bot shutdown. This MUST be called

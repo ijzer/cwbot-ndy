@@ -358,8 +358,8 @@ Let's look at a different module: The "Donate" module under the kmail_manager:
 	permission * matches any permission, so any user with one permission
 	may use such a module.
 - The module's clan-only status is set to False. This setting works the
-	same way as permission: any users who do not have a matching clan_id
-	will not be able to interact with this module.
+	same way as permission: any users who are not in the clan (or have 
+    a whitelist) cannot interact with this module.
 	
 Some modules have other settings: for example, the HookahKmailModule has
 the save_last and message_channel settings. These settings vary by module,
@@ -433,7 +433,7 @@ chat-based modules respond to various !commands. For example, sending a
 chat "!fax" in the appropriate channel will be interpreted by the bot as a 
 the command "fax", a command which is ignored by all modules except the 
 FaxModule. Chats without an ! symbol are interpreted as non-commands. Modules 
-may* still process these, but in general they are ignored.
+may still process these, but in general they are ignored.
 
 Some commands may have arguments. For example, "!roll 1d10+2d6" is interpreted
 as a "roll" command with argument "1d10+2d6". If a user has a chat effect,
@@ -451,10 +451,6 @@ happens).
 
 Note that there is a special command !help. This command is handled by
 chat-based managers directly and shows help for commands.
-
-*Modules set to clan-only will only process !commands that match their
-built-in available commands, not non-commands. In most cases this is not an
-issue.
 
 
                                  New comm.
@@ -826,45 +822,50 @@ cwbot.modules.general.DiceModule - A module that has several functions related
 	
 cwbot.modules.general.FaxModule - A module that handles faxing. Users can
 	send "!fax" to check what is in the fax machine and how long it has
-	been there. The module has two modes of operation: announce mode and
-	silent mode. NOTE: The FaxModule uses a fair amount of bandwidth. At
-    the default setting of 15 seconds per refresh, it will download about
-    2.6 MB per minute. If you are not using a dedicated server, it is
-    recommended that you DO NOT USE the FaxModule at this time.
-	
-	Announce mode: When a new fax is received, the bot will announce it
-		in chat. Also, if a user does not know the code for a monster
-		they want to fax, they can send, in chat, the message
-		"!fax MONSTERNAME" and the FaxModule will use fuzzy matching to
-		determine what monster they want and automatically request it
-		from Faxbot, then announce when the fax has arrived.
-		IMPORTANT: To use announce mode, Faxbot must be added as an
-				   admin in admin.ini and have permission "clan" if
-				   you limit this module to clan-only. That is, add the line:
-				   2194132 = clan
-				   to your admin.ini file.
-	
-	Silent mode: The bot will not announce new faxes in chat. Users can
-		use "!fax MONSTERNAME" to get the monster code for a Faxbot
-		request, but the bot will not automatically request it.
+	been there. There are two main options for the FaxModule, each affecting
+    the bandwidth usage of the bot:
+    
+    Announce mode: If this mode is active, when a new fax is received, 
+        the bot will announce it in chat. This uses a lot of bandwidth,
+        since the bot polls the clan log and downloads a lot of data
+        every time it does (larger amounts for more busy clans; for 
+        example in our clan it is ~750 KB). It is recommended that you
+        set this OFF unless cwbot is running on a dedicated server
+        (i.e., not from your house unless you have a very fast unlimited
+        connection). If this mode is off, the bot will not announce new
+        faxes.
+    
+    Request mode: if this mode is active, users can request faxes by
+        using the command "!fax MONSTERNAME". cwbot will automatically
+        figure out what monster to fax, even if MONSTERNAME does not
+        match the actual name of the monster; for example, any of
+        "!fax pervert", "!fax smut orc", "!fax smut_orc_perv" will
+        correctly fax the Smut Orc Pervert. If this mode is off, the
+        bot will not actually request the fax, and instead return Faxbot's
+        monster code.
 		
 	Note that Faxbot only allows 20 requests per day, so after that,
-	the module will not automatically request faxes in announce mode
-	until the next day. Since announce mode needs to read private
-	messages from FaxBot, it will not work if the FaxModule's parent
-	manager has disabled private messages.
-	You should only use one of these, and it's recommended you place it
-	in a MultiChannelManager that is limited to /clan if you are using
-	announce mode. This will necessarily limit fax requests to clannies.
+	the module will not automatically request faxes in request mode
+	until the next day.
+    
+    Users can also use the "!fax" command to check what's in the fax machine.
+    If the bot is not in announce mode, it will download the clan log at this
+    time (as previously stated, this file can be 750 KB or more) and display
+    the most recent fax.
+    
+	You should only use one of these modules, and it's recommended you
+    place it in a MultiChannelManager that is limited to /clan if you are 
+    using request mode. This will necessarily limit fax requests to clannies.
 	Otherwise, be sure to set "clan_only = true" in its configuration, as 
-	well. If you are using silent mode, this is not necessary, since it will
-	not actually request faxes.
+	well. If you are not using request mode, this is not necessary, since it 
+    will not actually request faxes.
 	Options: fax_check_interval: how often, in seconds, to check fax log (15)
              faxbot_timeout: how long to wait for a fax request (90)
              url_timeout: how many seconds to try to load fax list (15)
              faxbot_id_number: userID for faxbot (2194132)
              fax_list_url: kolspading fax list (http://goo.gl/Q352Q)
-             announce: true for announce mode, false for silent mode (true)
+             announce: true for announce mode (false)
+             allow_requests: true for request mode (true)
 	
 cwbot.modules.general.HookahInfoModule - A module that reports on how
 	many hookahs are available using the "!hookah" command. Detailed

@@ -2,6 +2,8 @@ import time
 import re
 import logging
 import random
+import threading
+from collections import defaultdict
 from cwbot.common.objectContainer import ManagerEntry
 from cwbot.util.importClass import easyImportClass
 from cwbot.common.InitData import InitData
@@ -12,6 +14,10 @@ from cwbot.common.kmailContainer import Kmail
 from cwbot.util.tryRequest import tryRequest
 from cwbot.kolextra.request.GetEventMessageRequest \
                      import GetEventMessageRequest
+from kol.request.ClanWhitelistRequest import ClanWhitelistRequest
+from cwbot.kolextra.request.ClanDetailedMemberRequest \
+                     import ClanDetailedMemberRequest
+
 
 class CommunicationDirector(EventSubsystem.EventCapable,
                             HeartbeatSubsystem.HeartbeatCapable):
@@ -60,8 +66,8 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         except:
             self._mailHandler.stop()
             raise
-        self._log.info("******** Communications Online ********")
         self._mailDelay = config['mail_check_interval']
+        self._clanMembers = defaultdict(dict)
 
         # add random times to refreshes to prevent server hammering
         self._lastChatRefresh = time.time() + random.randint(0, 300)
@@ -69,6 +75,15 @@ class CommunicationDirector(EventSubsystem.EventCapable,
                                                               self._mailDelay)
         self._lastEventRefresh = time.time() + random.randint(0, 15)
         self._lastGreenEventAzTime = None
+
+        self._clanMemberCheckInterval = 3600
+        self._clanMemberLock = threading.Lock()
+        self._refreshClanMembers()
+        self._lastClanMemberRefresh = (
+            time.time() + random.randint(-self._clanMemberCheckInterval/2, 
+                                          self._clanMemberCheckInterval/4))
+
+        self._log.info("******** Communications Online ********")
         self._initialized = True
         
         
@@ -183,6 +198,13 @@ class CommunicationDirector(EventSubsystem.EventCapable,
             elif 'channel' not in x or x.get('type', "") == "private":
                 x['channel'] = x['type']
                 whisper = True
+            
+            # check if this is a clan message from a new member
+            if x['channel'] == "clan":
+                if x['userId'] not in self._clanMembers:
+                    self._log.debug("New clan member detected: {}"
+                                    .format(x['userId']))
+                    self._refreshClanMembers()
             
             # actually handle message
             if not ignoreMessage:
@@ -304,10 +326,65 @@ class CommunicationDirector(EventSubsystem.EventCapable,
             self._mailHandler.notify()
             
             
+    def _refreshClanMembers(self):
+        n = len(self._clanMembers)
+        self._log.debug("Updating clan member list...")
+        
+        r1 = ClanWhitelistRequest(self._s)
+        d1 = tryRequest(r1)
+        r2 = ClanDetailedMemberRequest(self._s)
+        d2 = tryRequest(r2)
+        self._log.debug("{} members on whitelist".format(len(d1['members'])))
+        self._log.debug("{} members in clan".format(len(d2['members'])))
+        with self._clanMemberLock:
+            self._clanMembers = defaultdict(dict)
+            for record in d1['members']:
+                uid = int(record['userId'])
+                entry = {'userId': uid,
+                         'userName': record['userName'],
+                         'rankName': record['rankName'],
+                         'whitelist': True}
+                self._clanMembers[uid] = entry
+            for record in d2['members']:
+                uid = int(record['userId'])
+                entry = {'userId': uid,
+                         'userName': record['userName'],
+                         'rankName': record['rankName'],
+                         'inClan': True,
+                         'karma': record['karma']}
+                self._clanMembers[uid].update(entry)
+            for uid, record in self._clanMembers.items():
+                if 'karma' not in record:
+                    record['karma'] = 0
+                    record['inClan'] = False
+                if 'whitelist' not in record:
+                    record['whitelist'] = False
+            self._lastClanMemberRefresh = time.time()
+            n2 = len(self._clanMembers)
+            self._log.debug("There are {} clan members (previous count: {})"
+                            .format(n2, n))
+            self._raiseEvent("new_member_list", None)
+        
+        
+    def clanMemberInfo(self, uid):
+        with self._clanMemberLock:
+            if uid not in self._clanMembers:
+                return {}
+            return self._clanMembers[uid]
+            
+        
     def _eventCallback(self, eData):
         if (eData.subject in ["crash", "manual_stop", "manual_restart"] and
             eData.fromIdentity == "__system__"):
             if self._mailHandler is not None:
                 # stop the mail handler early, for quicker shutdown
                 self._mailHandler.stop()
+            
+            
+    def _heartbeat(self):
+        if not self._initialized:
+            return
+        if (time.time() - self._lastClanMemberRefresh 
+                >= self._clanMemberCheckInterval):
+            self._refreshClanMembers()
             

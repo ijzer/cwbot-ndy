@@ -65,6 +65,8 @@ class FaxModule(BaseChatModule):
     machine.
     
     Configuration options:
+    announce - set to true to use announcements (uses lots of bandwidth!)
+    allow_requests - allows !fax MONSTERNAME
     fax_check_interval - frequency of checking if a new fax arrived [def. = 15]
     faxbot_timeout - time to wait until giving up on a fax request [def. = 90]
     url_timeout - time to try to load forum page before timing out [def. = 15]
@@ -94,6 +96,7 @@ class FaxModule(BaseChatModule):
     def __init__(self, manager, identity, config):
         self._initialized = False
         self._announce = False
+        self._allowRequests = True
         self._downloadedFaxList = False
         self._faxList = {}
         self._alias = None
@@ -120,7 +123,9 @@ class FaxModule(BaseChatModule):
             self.fax_list_url = config.setdefault('fax_list_url', 
                                                   "http://goo.gl/Q352Q")
             self._announce = stringToBool(config.setdefault('announce', 
-                                                            'true'))
+                                                            'false'))
+            self._lite = stringToBool(config.setdefault('allow_requests',
+                                                        'true'))
         except ValueError:
             raise Exception("Fax Module config error: "
                             "fax_check_interval, faxbot_timeout, "
@@ -256,7 +261,7 @@ class FaxModule(BaseChatModule):
         if isPM:
             return ("After asking in chat, you can manually request a {} "
                     "with /w FaxBot {}".format(monstername, monstercode))
-        elif not self._announce:
+        elif not self._allowRequests:
             return ("Code to request a {}: "
                     "/w FaxBot {}".format(monstername, monstercode))
         with self.__lock:
@@ -409,6 +414,8 @@ class FaxModule(BaseChatModule):
                 self._lastRequest = None
                 self._lastRequestTime = None
                 self._lastFaxBotTime = utcTime()
+                # suppress output from checkForNewFax since we are returning
+                # the text, to be output later
                 return self.checkForNewFax(False)
             self._lastRequest = None
             self._lastRequestTime = None
@@ -417,6 +424,9 @@ class FaxModule(BaseChatModule):
         
     def printLastFax(self):
         """ Get the chat text to represent what's in the Fax machine. """
+        if self._lite:
+            if utcTime() - self._lastFaxCheck >= self._checkFrequency:
+                self.checkForNewFax(False)
         if self._lastFax is None:
             return "I can't tell what's in the fax machine."
         elapsed = utcTime() - self._lastFaxTime
@@ -437,7 +447,6 @@ class FaxModule(BaseChatModule):
             self.log("Received FaxBot PM: {}".format(message['text']))
             msg = self.processFaxbotMessage(message['text'])
             if msg is not None:
-                print(msg)
                 self.chat(msg)
             return None
         
@@ -448,7 +457,8 @@ class FaxModule(BaseChatModule):
                 self.initializeFaxList()
                 self._downloadedFaxList = True
         if utcTime() - self._lastFaxCheck >= self._checkFrequency:
-            self.checkForNewFax(self._announce)
+            if self._announce:
+                self.checkForNewFax(True)
         
 
     def _eventCallback(self, eData):
@@ -464,7 +474,7 @@ class FaxModule(BaseChatModule):
             
     
     def _availableCommands(self):
-        if self._announce:
+        if self._allowRequests:
             return {'fax': "!fax: check the contents of the fax machine. "
                            "'!fax MONSTERNAME' requests a fax from FaxBot."}
         else:

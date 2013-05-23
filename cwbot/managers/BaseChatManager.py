@@ -103,15 +103,8 @@ class BaseChatManager(BaseManager):
         
         # first, perform in-clan check
         if clanOnly:
-            if cmdAvailable:
-                # command is verified as a command of the selected module.
-                # proceed with clan verification
-                if not self.checkClan(uid):
-                    return None
-            else:
-                # command is not in the selected module's commands. Skip
-                # verification and assume that the user is not in-clan to
-                # improve responsiveness.
+            # proceed with clan verification
+            if not self.checkClan(uid):
                 return None
         
         # now, check permissions
@@ -122,6 +115,8 @@ class BaseChatManager(BaseManager):
         elif permission in self.properties.getPermissions(uid):
             # the user has permission to execute the command
             if cmdAvailable:
+                # do not log this event if the module does not explicitly
+                # have this command -- it will probably be ignored!
                 self._log.info("Administrator {} ({}) has used permission "
                                "{} to execute command '!{}({})'."
                                .format(msg['userId'], 
@@ -131,12 +126,14 @@ class BaseChatManager(BaseManager):
         else:
             # user does not have required permissions
             if cmdAvailable:
+                # return a permissions denied message
                 self._log.info("User {} ({}) does not have required "
                                "permission {} to execute command '!{}({})'."
                                .format(uid, msg.get('userName', ""), 
                                        permission, cmd, arg))
                 return "You do not have permission to use that command."
             else:
+                # just skip this module
                 return None
 
     

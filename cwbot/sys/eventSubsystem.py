@@ -5,12 +5,12 @@ from cwbot.util.emptyObject import EmptyObject
 
 
 class EventData(object):
-    def __init__(self, fromType, fromIdentity, to, subject, data={}, **kwargs):
+    def __init__(self, fromType, fromIdentity, to, subject, data=None, **kwargs):
         self.fromName = fromType
         self.fromIdentity = fromIdentity
         self.to = to
         self.subject = subject
-        self.data = data
+        self.data = data if data is not None else {}
     
     def __repr__(self):
         return ("<{0.fromIdentity} ({0.fromName}) "
@@ -125,7 +125,9 @@ class EventSubsystem(object):
                         pass
             
             
-        def _raiseEvent(self, subject, receiver=None, data={}, **kwargs):
+        def _raiseEvent(self, subject, receiver=None, data=None, **kwargs):
+            if data is None:
+                data = {}
             if self.__ev is None:
                 raise EventSubsystem.EventException(
                     "Object {} ({}) has no event subsystem."
@@ -134,7 +136,9 @@ class EventSubsystem(object):
                     self.__type, self.__id, receiver, subject, data)
         
         
-        def _eventReply(self, data={}, **kwargs):
+        def _eventReply(self, data=None, **kwargs):
+            if data is None:
+                data = {}
             if self.__ev is None:
                 raise EventSubsystem.EventException(
                         "Object {} ({}) has no event subsystem."

@@ -521,10 +521,8 @@ O._availableCommands(self): return a dict of string -> string pairs,
 	Note that this information does not have to reflect the actual behavior
 	of the module, but if a user chats "!help ahbg", the text above will
 	be shown. To add a "hidden" command, set its description to None, e.g.,
-	{'ahbg': None}. Commands not in this dictionary will be "hidden" to users,
-	but still function IF the module is not clan-only. (This condition is
-	necessary; without it, the bot needs to check every user to see if they
-	are in-clan the first time it sees a chat from them.)
+	{'ahbg': None}. Note that commands not in this dictionary will be 
+    "hidden" to users, but still function normally.
 	
 O._processCommand(self, message, commandText, commandArgs): this is the chat
 	analogue of BaseKmailManager's processMessage() method. The message

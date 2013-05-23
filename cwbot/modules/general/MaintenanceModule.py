@@ -75,6 +75,11 @@ class MaintenanceModule(BaseChatModule):
             d = self.tryRequest(r)
             return "\n".join("{}: {}".format(k,v) for k,v in d.items()
                              if k not in ["pwd", "eleronkey"])
+        elif cmd == "inclan":
+            tf = self.parent.checkClan(int(args))
+            return str(tf)
+        elif cmd == "plist":
+            return str(self.properties.getPermissions(int(args)))
         return None
 
 
@@ -90,6 +95,8 @@ class MaintenanceModule(BaseChatModule):
                 'spam': None,
                 'raise_event': None,
                 'kmail_test': None,
+                'inclan': None,
+                'plist': None,
                 'bot_status': "!bot_status: Show the status information of "
                               "the bot. Spammy."}
 
