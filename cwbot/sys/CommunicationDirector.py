@@ -200,8 +200,8 @@ class CommunicationDirector(EventSubsystem.EventCapable,
                 whisper = True
             
             # check if this is a clan message from a new member
-            if x['channel'] == "clan":
-                if x['userId'] not in self._clanMembers:
+            if not ignoreMessage and x.get('channel', "") == "clan":
+                if 'userId' in x and x['userId'] not in self._clanMembers:
                     self._log.debug("New clan member detected: {}"
                                     .format(x['userId']))
                     self._refreshClanMembers()
