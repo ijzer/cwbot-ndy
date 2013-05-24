@@ -9,7 +9,9 @@ from collections import defaultdict
 from fuzzywuzzy import fuzz #@UnresolvedImport
 from cwbot.modules.BaseChatModule import BaseChatModule
 import kol.util.Report
-from kol.request.ClanLogRequest import ClanLogRequest, CLAN_LOG_FAX
+#from kol.request.ClanLogRequest import ClanLogRequest, CLAN_LOG_FAX
+from cwbot.kolextra.request.ClanLogPartialRequest import \
+                            ClanLogPartialRequest, CLAN_LOG_FAX
 import cwbot.util.DebugThreading as threading
 from cwbot.util.textProcessing import stringToBool
 
@@ -95,7 +97,7 @@ class FaxModule(BaseChatModule):
 
     def __init__(self, manager, identity, config):
         self._initialized = False
-        self._announce = False
+        self._announce = True
         self._allowRequests = True
         self._downloadedFaxList = False
         self._faxList = {}
@@ -365,7 +367,7 @@ class FaxModule(BaseChatModule):
             # suppress annoying output from pyKol
             kol.util.Report.removeOutputSection("*")
             try:
-                r = ClanLogRequest(self.session)
+                r = ClanLogPartialRequest(self.session)
                 log = self.tryRequest(r, numTries=5, initialDelay=0.25, 
                                       scaleFactor=1.5)
             finally:

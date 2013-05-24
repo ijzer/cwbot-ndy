@@ -827,13 +827,11 @@ cwbot.modules.general.FaxModule - A module that handles faxing. Users can
     
     Announce mode: If this mode is active, when a new fax is received, 
         the bot will announce it in chat. This uses a lot of bandwidth,
-        since the bot polls the clan log and downloads a lot of data
-        every time it does (larger amounts for more busy clans; for 
-        example in our clan it is ~750 KB). It is recommended that you
-        set this OFF unless cwbot is running on a dedicated server
-        (i.e., not from your house unless you have a very fast unlimited
-        connection). If this mode is off, the bot will not announce new
-        faxes.
+        since the bot polls the clan log and downloads a some data
+        every time it does. The module should only load a small amount of
+        the clan log, but if you find it is using too much bandwidth, it 
+        is recommended that you set this OFF.
+        If this mode is off, the bot will not announce new faxes.
     
     Request mode: if this mode is active, users can request faxes by
         using the command "!fax MONSTERNAME". cwbot will automatically
@@ -850,7 +848,8 @@ cwbot.modules.general.FaxModule - A module that handles faxing. Users can
     
     Users can also use the "!fax" command to check what's in the fax machine.
     If the bot is not in announce mode, it will download the clan log at this
-    time (as previously stated, this file can be 750 KB or more) and display
+    time (as previously stated, the bot SHOULD NOT download the entire file, as
+    it can be 750 KB or more. Be sure that your OS supports this by check) and display
     the most recent fax.
     
 	You should only use one of these modules, and it's recommended you
