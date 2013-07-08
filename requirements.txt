@@ -1,3 +1,4 @@
 Pygments
 pytz
 fuzzywuzzy==0.1
+unidecode

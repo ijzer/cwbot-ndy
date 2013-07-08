@@ -2,6 +2,7 @@ import cwbot.util.DebugThreading as threading
 import re
 import logging
 import urllib2
+from unidecode import unidecode
 from cwbot import logConfig
 from collections import defaultdict
 from cwbot.locks import InventoryLock
@@ -645,6 +646,9 @@ class MailHandler(ExceptionThread):
             else:
                 message['text'] += _couldNotSendItemsText + "\n"
         message['text'] += "(mail-Id: {})".format(idCode)
+        
+        # remove any unicode characters
+        message['text'] = unidecode(message['text'])
         with InventoryLock.lock:
             self._invMan.refreshInventory()
             inv = self._invMan.completeInventory()
