@@ -196,7 +196,7 @@ class MailHandler(ExceptionThread):
 
     def canReceiveItems(self):
         r = StatusRequest(self._s)
-        d = tryRequest(r)
+        d = tryRequest(r, numTries=6, initialDelay=3, scaleFactor=1.25)
         canReceive = ((int(d.get('hardcore',"1")) == 0 and
                       int(d.get('roninleft',"1")) == 0) 
                       or
@@ -543,7 +543,7 @@ class MailHandler(ExceptionThread):
             self._invMan.refreshInventory()
             inv = self._invMan.completeInventory()
             r = StatusRequest(self._s)
-            d = tryRequest(r)
+            d = tryRequest(r, numTries=6, initialDelay=3, scaleFactor=1.25)
             meat = int(d['meat'])
             itemsOwed = {}
             meatOwed = 0
@@ -630,7 +630,8 @@ class MailHandler(ExceptionThread):
     
     def _online(self):
         try:
-            tryRequest(StatusRequest(self._s))
+            tryRequest(StatusRequest(self._s), nothrow=False, numTries=6,
+                       initialDelay=10, scaleFactor=1)
             return True
         except (kol.Error.Error, urllib2.HTTPError):
             pass
