@@ -450,7 +450,7 @@ class MailHandler(ExceptionThread):
 
     def _getEncodedId(self, message):
         txt = message.get('text', "")
-        matches = re.findall(r'\(mail-Id: (\d+)\)', txt, re.MULTILINE)
+        matches = re.findall(r'\(mail-[Ii]d: (\d+)\)', txt, re.MULTILINE)
         if not matches:
             return None
 #            raise Exception("Invalid sent Kmail: {}. If this message was "
@@ -639,14 +639,14 @@ class MailHandler(ExceptionThread):
         
 
     def _sendKmail(self, idCode, message, sendItemWarning=False):
-        # append idCode to bottom: \n\n(mail-Id: NUMBER)
+        # append idCode to bottom: \n\n(mail-id: NUMBER)
         message['text'] += "\n\n"
         if sendItemWarning:
             if message.get('out_of_stock', False):
                 message['text'] += _outOfStockText + "\n"
             else:
                 message['text'] += _couldNotSendItemsText + "\n"
-        message['text'] += "(mail-Id: {})".format(idCode)
+        message['text'] += "(mail-id: {})".format(idCode)
         
         # remove any unicode characters
         message['text'] = unidecode(message['text'])

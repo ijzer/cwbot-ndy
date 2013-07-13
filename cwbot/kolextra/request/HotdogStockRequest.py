@@ -8,7 +8,6 @@ class HotdogStockRequest(GenericRequest):
     success = re.compile(r"You have put some hot dog making supplies")
     badId = re.compile(r"That's not a real hot dog")
 
-
     def __init__(self, session, hotdogId, quantity=1):
         super(HotdogStockRequest, self).__init__(session)
         self.session = session
@@ -27,4 +26,5 @@ class HotdogStockRequest(GenericRequest):
         if self.success.search(self.responseText):
             self.responseData["success"] = True
             return
-        raise Error.Error("Unknown error. No success message detected.", Error.REQUEST_FATAL)
+        
+        raise Error.Error("Unknown error. (Is that hotdog unlocked?)", Error.REQUEST_FATAL)

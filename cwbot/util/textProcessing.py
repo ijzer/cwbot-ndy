@@ -27,3 +27,9 @@ def toTypeOrNone(val, type_=str):
     if str(val).lower() in ["''", '""', "none", ""]:
         return None
     return type_(val)
+
+
+def intOrFloatToString(val, numDecimal=2):
+    if int(val) == float(val):
+        return str(int(val))
+    return "{0:.{1}f}".format(val, numDecimal)

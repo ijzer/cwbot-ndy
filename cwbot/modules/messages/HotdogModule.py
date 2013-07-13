@@ -2,8 +2,9 @@ from cwbot.modules.BaseKmailModule import BaseKmailModule
 from cwbot.locks import InventoryLock
 from cwbot.kolextra.request.HotdogStockRequest import HotdogStockRequest
 from cwbot.util.tryRequest import tryRequest
+from cwbot.util.textProcessing import intOrFloatToString
 import kol.Error
-
+from copy import deepcopy
 
 class HotdogModule(BaseKmailModule):
     """ 
@@ -62,11 +63,11 @@ class HotdogModule(BaseKmailModule):
         for v in self._hotdogs:
             n = storedItems.get(v['item'], 0)
             if n > 0:
-                displayItems[v['name']] = n / v['quantity']
+                displayItems[v['name']] = float(n) / v['quantity']
         if not displayItems:
             return "You have no hotdogs available.\n\n" + self._instructionText
         return ("You have the following hotdogs available: \n\n"
-                + '\n'.join("{}x {}".format(v,k)
+                + '\n'.join("{}x {}".format(intOrFloatToString(v),k)
                   for k,v in displayItems.items())
                 + "\n\n" + self._instructionText)
         
@@ -77,6 +78,8 @@ class HotdogModule(BaseKmailModule):
         storedItems = self._stored.get(message.uid, {})
         for k,v in newItems.items():
             storedItems[k] = storedItems.get(k, 0) + v
+        self.log("Deposit from {}. New totals: {}"
+                 .format(message.uid, storedItems))
         self._stored[message.uid] = storedItems
         return (self.newMessage(message.uid,
                                 "I have saved your items for later use.\n\n"
@@ -86,23 +89,13 @@ class HotdogModule(BaseKmailModule):
     
     def _processKmail(self, message):
         newItems = {}
-        itemsInKmail = False
         uid = message.uid
         for v in self._hotdogs:
             iid = v['item']
             qtyInKmail = message.items.get(v['item'], 0)
-            if qtyInKmail > 0:
-                itemsInKmail = True
-            newItems[iid] = qtyInKmail - (qtyInKmail % v['quantity'])
+            newItems[iid] = qtyInKmail
         if any(n > 0 for n in newItems.values()):
             return self._storeItems(message, newItems)
-        elif itemsInKmail:
-            return (self.newMessage(uid,
-                                    "You didn't include enough items for a "
-                                    "hotdog. I do not accept partial hotdog "
-                                    "payments.\n\n"
-                                    + self._getDisplayItemText(uid), 
-                                    message.meat).addItems(message.items))
         elif message.text[:6].lower() == "hotdog":
             afterText = message.text[7:].strip().lower()
             if afterText == "":
@@ -127,6 +120,11 @@ class HotdogModule(BaseKmailModule):
                 
 
     def _sendHotdog(self, message, afterText):
+        createMsg = lambda s: (self.newMessage(
+                                   uid, 
+                                   s + "\n\n" + self._getDisplayItemText(uid), 
+                                   message.meat)
+                               .addItems(message.items))
         words = afterText.lower().split()
         hotdogs = []
         uid = message.uid
@@ -134,50 +132,39 @@ class HotdogModule(BaseKmailModule):
             if all(w in h['name'] for w in words):
                 hotdogs.append(h)
         if len(hotdogs) > 1:
-            return (self.newMessage(uid,
-                                    "'{}' matched more than one hotdog.\n\n"
-                                        .format(afterText)
-                                    + self._getDisplayItemText(uid), 
-                                    message.meat).addItems(message.items))
+            return createMsg("'{}' matched more than one hotdog."
+                             .format(afterText))
         if not hotdogs:
-            return (self.newMessage(uid,
-                                    "'{}' matched no hotdogs.\n\n"
-                                        .format(afterText)
-                                    + self._getDisplayItemText(uid), 
-                                    message.meat).addItems(message.items))                                    
+            return createMsg("'{}' matched no hotdogs.".format(afterText))
         h = hotdogs[0]
         if self._stored.get(message.uid, {}).get(h['item'], 0) < h['quantity']:
-            return (self.newMessage(uid,
-                                    "You don't have items deposited for the "
-                                    "{}.\n\n".format(h['name'])
-                                    + self._getDisplayItemText(uid), 
-                                    message.meat).addItems(message.items))
+            return createMsg("You don't have enough items deposited "
+                             "for the {}.".format(h['name']))
         with InventoryLock.lock:
             self.inventoryManager.refreshInventory()
             inv = self.inventoryManager.inventory()
             n = inv.get(h['item'], 0)
             if n < h['quantity']:
-                return (self.newMessage(uid,
-                                        "ERROR: I am out of items! Please "
-                                        "notify an administrator.", 
-                                        message.meat).addItems(message.items))
+                return createMsg("ERROR: I am out of items! Please "
+                                 "notify an administrator.")
             r = HotdogStockRequest(self.session, h['id'], h['quantity'])
             try:
                 tryRequest(r, numTries=1)
             except kol.Error.Error as e:
-                return (self.newMessage(uid,
-                                        "An error occurred: {}".format(e.msg), 
-                                        message.meat).addItems(message.items))                
-            self._stored[uid][h['item']] -= h['quantity']
-            self._stored[uid] = dict((k,v) for k,v in self._stored[uid].items()
+                return createMsg("An error occurred: {}".format(e.msg))
+           
+            storedItems = deepcopy(self._stored[uid]) 
+            storedItems[h['item']] -= h['quantity']
+            self.log("Cashing out {} for hotdog {}, new totals {}"
+                     .format(uid, h['id'], storedItems))
+            storedItems = dict((k,v) for k,v in storedItems.items()
                                            if v != 0)
-            if not self._stored[uid]:
+            if storedItems:
+                self._stored[uid] = storedItems
+            elif self._stored[uid]:
                 del self._stored[uid]
-            return (self.newMessage(uid,
-                                    "One {} has been prepared for you.\n\n"
-                                    .format(h['name'])
-                                    + self._getDisplayItemText(uid), 
-                                    message.meat).addItems(message.items))
+            return createMsg("One {} has been prepared for you."
+                             .format(h['name']))
     
 
     def _kmailDescription(self):
