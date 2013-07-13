@@ -24,6 +24,7 @@ class HotdogModule(BaseKmailModule):
         {'id': -99, 'name': "junkyard dog", 'item': 1454, 'quantity': 25},
         {'id': -100, 'name': "wet dog", 'item': 1455, 'quantity': 25},
         {'id': -101, 'name': "sleeping dog", 'item': 2638, 'quantity': 10},
+        {'id': -102, 'name': "optimal dog", 'item': 1959, 'quantity': 25},
         {'id': -103, 'name': "video games hot dog", 'item': 6174, 'quantity': 3}]
         
     _instructionText = ("Hotdogs require a VIP key.\nTo store hotdog items, "
