@@ -114,6 +114,7 @@ class HotdogModule(BaseKmailModule):
                         del self._stored[message.uid]
                     except KeyError:
                         pass
+                    self.log("User {} has reclaimed all hotdog items.".format(uid))
                     return msg
             return self._sendHotdog(message, afterText)
         return None
