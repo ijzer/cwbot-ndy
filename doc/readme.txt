@@ -219,13 +219,13 @@ and modules to load are placed. Here is an example setting:
                 startup = All systems online.
                 shutdown = Happy rollover!
                 crash = Oh my, I seem to have crashed. (%arg%)
-                manual_stop = I am going offline for some maintenance. See you soon!
+                manual_stop = I am going offline for some maintenance. Bye!
                 manual_restart = Restarting bot...
             [[[[hobopolis]]]]
                 startup = Hobo-detection engaged.
                 shutdown = Happy rollover!
                 crash = Oh my, I seem to have crashed. (%arg%)
-                manual_stop = I am going offline for some maintenance. See you soon!
+                manual_stop = I am going offline for some maintenance. Bye!
                 manual_restart = Restarting bot...
         [[[Breakfast]]]
             type = BreakfastModule
@@ -316,8 +316,8 @@ A summary of what this specifies:
     and a HoboChannelManager named hobopolis.
 	(The full type name of the first manager is 
 	cwbot.managers.BaseManager.BaseManager. This is defined by the 
-	BaseManager class in cwbot/managers/BaseManager.py.
-	Note that cwbot automatically loads the class that matches the filename.) 
+	BaseManager class in cwbot/managers/BaseManager.py. Note that cwbot 
+	automatically loads the class that matches the filename.) 
 	The internal name for this manager is core, but any unique text
 	string may be specified. The identifier is used for logging and other
 	internal purposes. Note that the director can have multiple managers 
@@ -370,13 +370,13 @@ The chat portion of the configuration does the following:
     chat channels: clan, hobopolis, and slimetube. The first channel (clan)
     is the "main" chat channel.
 - Two chat-based managers are loaded: a cwbot.managers.AllChannelManager
-	with identity name "all_channel", and a cwbotlmanagers.HoboChannelManager
-	with identity name "hobopolis". 
+	with identity name "all_channel", and a 
+	cwbotlmanagers.HoboChannelManager with identity name "hobopolis". 
 - In addition to the settings already outlined in the Kmail section, both
 	managers are configured to accept private messages and have a priority
 	value. Chats are passed to managers in order of priority, and the
-	managers in turn pass chats to their modules in order of priority, just
-    like the KmailManager.
+	managers in turn pass chats to their modules in order of priority, 
+	just like the KmailManager.
 - The AllChannelManager loads two modules. The DiceModule has no interesting
 	configuration options. The MaintenanceModule has a permission
 	setting. Only a user in admin.ini with the admin_command permission
@@ -385,7 +385,8 @@ The chat portion of the configuration does the following:
 	denied message if an unpriviliged user attempts to use a command
 	from the module.
 - The HoboChannelManager is configured to respond only to messages on 
-	/hobopolis. It is also configured to poll the raid logs every 15 seconds.
+	/hobopolis. It is also configured to poll the raid logs every 15 
+	seconds.
 - All of the modules under the HoboChannelManager are configured to be
 	clan-only, so if someone outside the clan sends a PM to try to get
 	Hobopolis state information, their request will be denied.
@@ -506,8 +507,8 @@ cwbot.core.AnnouncementModule - A module that announces system events in
 	error), manual_stop (when bot is killed on its server), manual_restart 
 	(when bot is restarting due to administrator command). The message text 
 	can include some special substitutions: %arg% is replaced with any
-	arguments to the event (though, the only one with any arguments right now
-	is the crash event). You should not use more than one of these.
+	arguments to the event (though, the only one with any arguments right 
+	now is the crash event). You should not use more than one of these.
 	
 cwbot.modules.core.BreakfastModule - A module that grabs meat and items from
     the clan lounge and buys clovers when the bot first logs on. You
@@ -522,12 +523,12 @@ cwbot.modules.core.ShutdownModule - This module catches messages from
 	in login.ini, and every minute thereafter, until it comes back online.) 
 	If a ShutdownModule is not loaded, the bot will just stay online until 
 	rollover, and then crash. This isn't terrible, and the bot will come 
-	back online, but it's much messier and some persistent state may be lost.
-	Don't set shutdown_time to more time than specified in login.ini, or the 
-	bot may come online right before rollover and then crash. You should
-	only load one of these.
+	back online, but it's much messier and some persistent state may be 
+	lost. Don't set shutdown_time to more time than specified in login.ini,
+	or the bot may come online right before rollover and then crash. You 
+	should only load one of these.
 	Options: shutdown_time: amount of time, in MINUTES, before rollover 
-							that the bot should shut down (3)
+		that the bot should shut down (3)
 
 cwbot.modules.core.HealingModule - This module allows the bot to heal
     its HP and MP using items, skills, or a few other things. You may
@@ -634,34 +635,34 @@ Modules (default options in parentheses):
 
 cwbot.modules.DonateModule - processes a Kmail if it has the word "donate" in
 	it. If it does, the bot keeps all attached items and sends a thank-you
-	kmail. This module should have higher priority than most other modules --
-	that way, the bot notices donations befroe handing the items to other
+	kmail. This module should have higher priority than most other modules 
+	-- that way, the bot notices donations before handing the items to other
 	modules.
 	(No options)
 	
 cwbot.modules.messages.HookahKmailModule - runs the bot's hookah exchange. 
-	Users may send in a user-defined number of hookah parts in exchange for one
-    of each (e.g., send in 6 walrus ice creams to get one of all 6 hookah 
-	parts).
+	Users may send in a user-defined number of hookah parts in exchange for
+	one of each (e.g., send in 6 walrus ice creams to get one of all 6
+	hookah parts).
 	Options: save_last: how many hookah sets to keep in reserve (1)
 	         message_channel: if not "none", announce a congratulatory
-							  message on the specified chat channel (clan)
-			 n: total number of items required for a trade (6)
-			 resends: number of EXTRA times a player is allowed to
-			 			trade for a hookah (0)
+				message on the specified chat channel (clan)
+		 n: total number of items required for a trade (6)
+		 resends: number of EXTRA times a player is allowed to
+	 			trade for a hookah (0)
 			 
 cwbot.modules.messages.HookahKmailModule.HookahDonateKmailModule - special 
-	donation module for the hookah exchange. If someone sends a message with 
-	"donate" in the text, and it has hookah parts, the bot will send a special 
-	thank-you message and announce the hookah donation in the specified chat 
-	channel. Make sure this has a higher priority than DonateModule, or it will
-	never be triggered.
+	donation module for the hookah exchange. If someone sends a message 
+	with "donate" in the text, and it has hookah parts, the bot will send a
+	special thank-you message and announce the hookah donation in the
+	specified chat channel. Make sure this has a higher priority than
+	DonateModule, or it will never be triggered.
 	Options: message_channel: same function as HookahKmailModule (clan)
 	
 cwbot.modules.messages.NotInClanModule - A module that checks if a Kmail is
-	from someone not in the same clan. If the player is not in the same clan,
-	it sends a message back that informs them so. Any modules with lower
-	priority than this module can't be accessed by non-clan members if
+	from someone not in the same clan. If the player is not in the same
+	clan, it sends a message back that informs them so. Any modules with
+	lower priority than this module can't be accessed by non-clan members if
 	you are using the MessageManager (since this module will always process
 	their kmail)
 	
@@ -684,8 +685,13 @@ cwbot.modules.messages.CashoutModule - A module that handles balances and
 cwbot.modules.messages.SmoreModule - shoots marshmallows at users with a
 	s'more gun. To get smores, a user should send marshmallows to the bot.
 	Either a user needs to donate a s'more gun to the bot for this
-	functionality, or the user needs to send their own gun, in which case the
-	bot will use that gun and then send it back.
+	functionality, or the user needs to send their own gun, in which case
+	the bot will use that gun and then send it back.
+
+cwbot.modules.messages.HotdogModule - A hotdog storing module. Users can send
+	hotdog items to the bot and then send a special message to have the
+	bot place them in the hot dog stand. The bot requires a VIP key for
+	this module to work.
 	
 cwbot.modules.messages.BuffbotModule - A buffbot module. Users can send a
     specified amount of meat to receive various buffs. An example 
@@ -761,12 +767,13 @@ cwbot.managers.MultiChannelManager - A manager that only responds to chats
 	and /games, specify "channel = clan, games"
 	
 cwbot.managers.HoboChannelManager - A special MultiChannelManager that 
-	interacts with the clan raid log. The modules in cwbot.modules.hobopolis 
-	require this functionality to run properly. It must still be configured
-	with a 'channel' option. It's HIGHLY recommended you only have one of
-	these. No man knows the horrors that await a bot with multiple
-	HoboChannelManagers. Also, you should make hobopolis the default channel
-	by making it the first on the channel list, if you use multiple channels.
+	interacts with the clan raid log. The modules in
+	cwbot.modules.hobopolis require this functionality to run properly. It
+	must still be configured with a 'channel' option. It's HIGHLY
+	recommended you only have one of these. No man knows the horrors that
+	await a bot with multiple HoboChannelManagers. Also, you should make
+	hobopolis the default channel by making it the first on the channel
+	list, if you use multiple channels.
 	
 cwbot.managers.AllChannelManager - A manager that responds to chats received
 	on any channel (assuming the bot is listening to that channel). The
@@ -796,10 +803,10 @@ cwbot.general.AboutModule - Shows an about message with the current version
 
 			 
 cwbot.modules.general.ChatLogModule - A module that keeps a running log of 
-	all chats. Users can send a "!chatlog" chat to request the last few lines
-	of chat sent in their channel, or "!chatlog CHANNELNAME" to see chats
-	from another channel. This module also logs chats to text files in
-	the log/ director.
+	all chats. Users can send a "!chatlog" chat to request the last few
+	lines of chat sent in their channel, or "!chatlog CHANNELNAME" to see
+	chats from another channel. This module also logs chats to text files in
+	the log/ directory.
 	Because of the way that chats work, this module should have the highest
 	priority of any module, or replies from higher-priority modules will
 	show up above their commands. This means that the ChatLogModule needs
@@ -822,8 +829,8 @@ cwbot.modules.general.DiceModule - A module that has several functions related
 	
 cwbot.modules.general.FaxModule - A module that handles faxing. Users can
 	send "!fax" to check what is in the fax machine and how long it has
-	been there. There are two main options for the FaxModule, each affecting
-    the bandwidth usage of the bot:
+	been there. There are two main options for the FaxModule, each
+	affecting the bandwidth usage of the bot:
     
     Announce mode: If this mode is active, when a new fax is received, 
         the bot will announce it in chat. This uses a lot of bandwidth,
@@ -849,16 +856,16 @@ cwbot.modules.general.FaxModule - A module that handles faxing. Users can
     Users can also use the "!fax" command to check what's in the fax machine.
     If the bot is not in announce mode, it will download the clan log at this
     time (as previously stated, the bot SHOULD NOT download the entire file, as
-    it can be 750 KB or more. Be sure that your OS supports this by check) and display
-    the most recent fax.
+    it can be 750 KB or more. Be sure that your OS supports this by check) and
+    display the most recent fax.
     
 	You should only use one of these modules, and it's recommended you
     place it in a MultiChannelManager that is limited to /clan if you are 
     using request mode. This will necessarily limit fax requests to clannies.
 	Otherwise, be sure to set "clan_only = true" in its configuration, as 
-	well. If you are not using request mode, this is not necessary, since it 
-    will not actually request faxes.
-	Options: fax_check_interval: how often, in seconds, to check fax log (15)
+	well. If you are not using request mode, this is not necessary, since
+	it will not actually request faxes.
+	Options: fax_check_interval: how often, in secs., to check fax log (15)
              faxbot_timeout: how long to wait for a fax request (90)
              url_timeout: how many seconds to try to load fax list (15)
              faxbot_id_number: userID for faxbot (2194132)
@@ -895,27 +902,28 @@ cwbot.modules.general.KeywordModule - A module that displays
             keyword1 = Text1
 			keyword2 = Text2
 			
-	Users can query this module with "!COMMANDNAME KEYWORD", where COMMANDNAME
-	is the option shows in the config. If KEYWORD matches one of the keywords
-	uniquely, that text will be shown. If no keyword is supplied, the
-	__default__ text is shown instead. HELPTEXT is shown if the user sends
-	"!help COMMANDNAME".
+	Users can query this module with "!COMMANDNAME KEYWORD", where 
+	COMMANDNAME is the option shows in the config. If KEYWORD matches one
+	of the keywords uniquely, that text will be shown. If no keyword is
+	supplied, the __default__ text is shown instead. HELPTEXT is shown if
+	the user sends "!help COMMANDNAME".
 			
 	Some special variables may be used in the text: %arg% is replaced with
-	the argument to the command. %keywords% is replaced with a comma-separated
-	list of available keywords. %num% is used only in __unique__, and is
-	replaced with the number of matches.
+	the argument to the command. %keywords% is replaced with a 
+	comma-separated	list of available keywords. %num% is used only in
+	__unique__, and is replaced with the number of matches.
 	
 	Since this module has a variable command name, it is possible to use
 	multiple copies to do different things; for example one might show
 	rules about Hobopolis and another might show helpful clan links.
 	
 cwbot.modules.general.MaintenanceModule - Holds maintenance commands. It's
-	highly recommended this is protected with permissions. Available commands
-	are "!die N" to raise an exception and log out for N minutes; "!restart"
-	to restart the bot (this is different from !die; the codebase is 
-	reloaded); "!simulate MESSAGE" to simulate system messages and dungeon
-	messages; and "!raise_event EVENT" to debug the event subsystem.
+	highly recommended this is protected with permissions. Available
+	commands are "!die N" to raise an exception and log out for N minutes;
+	"!restart" to restart the bot (this is different from !die; the
+	codebase is reloaded); "!simulate MESSAGE" to simulate system messages
+	and dungeon messages; and "!raise_event EVENT" to debug the event
+	subsystem.
 	(No options)
 	
 cwbot.modules.general.MiscClanModule - Misc. functions for /clan. Right
@@ -1035,22 +1043,22 @@ cwbot.modules.hobopolis.HoboChatMonitorModule - This is an admin
     but ONLY if at least one kmail was successfuly sent.
 	Users with appropriate permissions can also use the "!chatmonitor" 
 	command to see who received a violation, and "!chatmonitor dispatch" 
-	to receive a kmail with violators, and "!chatmonitor clear" to clear the 
-	list of violators.
+	to receive a kmail with violators, and "!chatmonitor clear" to clear
+	the list of violators.
 	Note that it's possible to use a different permission than hobo_chat_mon
 	for this module. If that is the case, then anyone with hobo_chat_mon
 	permissions will get the daily kmail, and anyone with the permission
 	for this module can use !chatmonitor commands. This is useful
 	if someone is an administrator but does not want daily kmails.
 	Options: num_warnings: number of warnings a player can receive before
-				           being in violation (4)
+		being in violation (4)
              monitor_interval: how often to check for users in chat,
 							   in seconds (55)
 	
 cwbot.modules.hobopolis.PldModule - Tracks the progress in the
 	Purple Light District. Specifically, this module tracks the state of the
-	club (i.e., whether it is opened or closed). Users can use "!pld" to check
-	the status of the club.
+	club (i.e., whether it is opened or closed). Users can use "!pld" to 
+	check the status of the club.
 	(No options)
 	
 cwbot.modules.hobopolis.SewerModule - Tracks the progress in the Sewers. 
@@ -1060,11 +1068,11 @@ cwbot.modules.hobopolis.SewerModule - Tracks the progress in the Sewers.
 	
 cwbot.modules.hobopolis.TownModule - The heart of Hobopolis monitoring.
 	The town module has three responsibilities: it tracks the progress of
-	the town square, it announces when new side areas or the tent have opened,
-	and it coordinates data from other Hobopolis modules to get the overall
-	status of the Hobopolis instance. As such, this module depends on
-	several other modules - the following modules must be loaded and have
-	a HIGHER priority than the TownModule: SewerModule, CageModule,
+	the town square, it announces when new side areas or the tent have
+	opened, and it coordinates data from other Hobopolis modules to get
+	the overall status of the Hobopolis instance. As such, this module
+	depends on several other modules - the following modules must be loaded
+	and have a HIGHER priority than the TownModule: SewerModule, CageModule,
 	BurnbarrelModule, ExposureModule, HeapModule, PldModule, AhbgModule,
 	TownScarehoboModule, TownStageModule. If these modules are not loaded
 	before the TownModule, the module will not function properly and
