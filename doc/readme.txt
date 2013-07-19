@@ -73,7 +73,10 @@ On windows, you may need to instead type "c:\Python27\python cwbot.py"
 ---------------------------
 
 To upgrade from a previous version, just install the new version over the old
-one.
+one. Special upgrade instructions for specific versions:
+
+If upgrading from before 0.10.0, you will have to re-run pip with the 
+new requirements.txt file.
 
 1B. Running cwbot as a service 
 ------------------------------
