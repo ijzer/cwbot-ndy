@@ -1,7 +1,7 @@
 from cwbot.kolextra.manager.MailboxManager import MailboxManager
 from cwbot.managers.BaseManager import BaseManager
 from cwbot.common.kmailContainer import KmailResponse, Kmail
-
+from cwbot.util.textProcessing import stringToBool
 
 _noPermissions = ["", "None", None]
 
@@ -14,6 +14,7 @@ class MessageManager(BaseManager):
     def __init__(self, parent, name, iData, config):
         """ Initialize the MessageManager """
         self._channelName = None
+        self._showChatHelpMessage = None
         super(MessageManager, self).__init__(parent, name, iData, config)
         self._mail = MailboxManager(self._s)
         self._chatChannel = None
@@ -25,6 +26,8 @@ class MessageManager(BaseManager):
         # set to channel in config
         self._channelName = config.setdefault(
                 'channel', self.chatManager.currentChannel) 
+        self._showChatHelpMessage = stringToBool(config.setdefault(
+                'show_chat_help_message', "True"))
 
 
     def defaultChannel(self):
@@ -92,7 +95,8 @@ class MessageManager(BaseManager):
                             helptext.append(newTxt)
         if not helptext:
             txt = "Sorry, I don't have any help available."
-        helptext.append("CHAT HELP: If you want a list of chat commands, "
+        if self._showChatHelpMessage:
+            helptext.append("CHAT HELP: If you want a list of chat commands, "
                         "send me a PM with the text '!help' for all "
                         "available commands. You can also use "
                         "'!help COMMAND_NAME' to get detailed information on "
