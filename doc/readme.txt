@@ -206,7 +206,7 @@ Manager settings perform most of the "hard work" and are where managers
 and modules to load are placed. Here is an example setting:
 
 [system]
-    channels = clan,hobopolis,slimetube
+    channels = clan,hobopolis,slimetube,dread
 [director]
 	base = cwbot.managers
     [[core]]

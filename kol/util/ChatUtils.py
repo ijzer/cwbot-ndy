@@ -5,6 +5,7 @@ from kol.util import StringUtils
 CHAT_CHANNELS = [
     "clan",
     "dev",
+    "dread",
     "foodcourt",
     "games",
     "haiku",

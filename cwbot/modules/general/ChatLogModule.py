@@ -23,7 +23,7 @@ class ChatLogModule(BaseChatModule):
     Configuration options:
     clan_only_channels - takes a comma-separated list of chat channels
                          for which only clan memebers can get logs 
-                         [default = clan, hobopolis, slimetube]
+                         [default = clan, hobopolis, slimetube, dread]
     """
     
     requiredCapabilities = ['chat']
@@ -73,7 +73,9 @@ class ChatLogModule(BaseChatModule):
 
     def _configure(self, config):
         self._clanOnly = map(
-                str.lower, stringToList(config.get('clan_only_channels', "")))
+                str.lower, stringToList(config.get('clan_only_channels', 
+                                                   "clan,hobopolis,"
+                                                   "slimetube,dread")))
         self.log("Chat log clan only channels: {}"
                  .format(', '.join(self._clanOnly)))
         config['clan_only_channels'] = listToString(self._clanOnly)
