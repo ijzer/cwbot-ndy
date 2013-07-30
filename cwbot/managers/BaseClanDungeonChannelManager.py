@@ -30,7 +30,6 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     
     def __init__(self, parent, identity, iData, config):
         """ Initialize the BaseClanDungeonChannelManager """
-        self.delay = None
         super(BaseClanDungeonChannelManager, self).__init__(parent, 
                                                             identity, 
                                                             iData, 
@@ -43,10 +42,12 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
                 self.__eventsInitialized.set()
         super(BaseClanDungeonChannelManager, self)._initialize()
 
+
     def _configure(self, config):
         """ Additional configuration for the log_check_interval option """
         super(BaseClanDungeonChannelManager, self)._configure(config)
         try:
+            
             self.delay = min(self.delay, 
                              int(config.setdefault('log_check_interval', 15)))
         except ValueError:
@@ -177,3 +178,4 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     def _handleNewRaidlog(self, raidlog):
         """ This function is called when new raidlogs are downloaded. """
         pass
+    
