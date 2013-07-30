@@ -32,12 +32,13 @@ class HoboChannelManager(MultiChannelManager):
     __lastEvents = None
     _lastEventCheck = 0
     _lastChatNum = None
+    __eventsInitialized = threading.Event()
     
     def __init__(self, parent, identity, iData, config):
         """ Initialize the HoboChannelManager """
         with self.__eventLock:
             self._dungeonLog = None
-            self._initialized = False
+            self.__eventsInitialized.clear()
             self._active = None # TRUE if Hodgman is still alive
             self._hoid = None
             self.delay = None
@@ -46,7 +47,7 @@ class HoboChannelManager(MultiChannelManager):
             if 'hobopolis' not in self._channelName:
                 raise Exception("HoboChannelManager must be listening to "
                                 "/hobopolis!")
-            self._initialized = True
+            self.__eventsInitialized.set()
 
 
     def _configure(self, config):
@@ -115,7 +116,7 @@ class HoboChannelManager(MultiChannelManager):
     
     def _initializeFromLog(self):
         """ Initialize active status """
-        events = self._getRaidLog()
+        events = self._getRaidLog(force=True)
         self._log.info("Initializing from Hobopolis log...")
         
         # is hodgman killed?
@@ -145,9 +146,11 @@ class HoboChannelManager(MultiChannelManager):
             del self.__lastEvents
 
 
-    def _getRaidLog(self, noThrow=True):
+    def _getRaidLog(self, noThrow=True, force=False):
         """ Access the raid log and store it locally """
         with self.__eventLock:
+            if not self.__eventsInitialized.is_set() and not force:
+                return self.lastEvents
             rl = ClanRaidLogRequest(self.session)
             result = tryRequest(rl, nothrow=noThrow, numTries=5, 
                                 initialDelay=0.5, scaleFactor=2)
@@ -274,12 +277,13 @@ class HoboChannelManager(MultiChannelManager):
                 
                 
     def cleanup(self):
-        self._initialized = False
-        MultiChannelManager.cleanup(self)
+        with self.__eventLock:
+            self.__eventsInitialized.clear()
+            MultiChannelManager.cleanup(self)
 
             
     def _heartbeat(self):
         """ Update logs in heartbeat """
-        if self._initialized:
+        if self.__eventsInitialized.is_set():
             self._updateLogs()
             super(HoboChannelManager, self)._heartbeat()
