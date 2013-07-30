@@ -214,15 +214,19 @@ class CommunicationDirector(EventSubsystem.EventCapable,
                                                  for k,v in x.items())))
                 # get replies from each manager
                 chats = []
+                t1 = time.time()
                 for m in self._managers:
                     man = m.manager
                     chats.extend(man.parseChat(x, self._chatIteration))
+                t2 = time.time()
                 # transmit responses
                 for txtLine in chats:
                     if whisper:
                         self.whisper(x['userId'], txtLine)
                     else:
                         self.sendChat(x['channel'], txtLine)
+#                if chats:
+#                    self._log.debug("Answered in {} ms".format(t2-t1))
 
         # send /who message to keep us out of away mode
         if time.time() - self._lastChatRefresh > 300:

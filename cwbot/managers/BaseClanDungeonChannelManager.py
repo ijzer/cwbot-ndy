@@ -129,7 +129,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
         if self._lastChatNum != checkNum:
             # get new events
             self._lastChatNum = checkNum
-            self._updateLogs()
+            self._updateLogs(force=True)
         events = self._filterEvents(self.lastEvents)        
         with self._syncLock:
             txt = msg['text']
