@@ -115,8 +115,6 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
                     mod = m.module
                     mod.extendedCall('process_log', self._filterEvents(result))
                 self._syncState()
-        
-
 
 
     def _processDungeonChat(self, msg, checkNum):
@@ -130,12 +128,12 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             # get new events
             self._lastChatNum = checkNum
             self._updateLogs(force=True)
-        events = self._filterEvents(self.lastEvents)        
+        raidlog = self._filterEvents(self.lastEvents)        
         with self._syncLock:
             txt = msg['text']
             for m in self._modules:
                 mod = m.module
-                printStr = mod.extendedCall('process_dungeon', txt, events)
+                printStr = mod.extendedCall('process_dungeon', txt, raidlog)
                 if printStr is not None:
                     replies.extend(printStr.split("\n"))
             self._syncState()
@@ -169,10 +167,10 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             
 ############# Override the following:
 
-    def _filterEvents(self, events):
+    def _filterEvents(self, raidlog):
         """ This function is used by subclasses to remove unrelated event
         information. """
-        return events['events']
+        return raidlog
 
 
     def _handleNewRaidlog(self, raidlog):

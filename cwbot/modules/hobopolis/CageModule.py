@@ -147,7 +147,8 @@ class CageModule(BaseHoboModule):
                 'totalFreed': None}
 
         
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         if self.getCageState() in [UNKNOWN, EMPTY]: # don't know cage status
             self._inCageFreedTime = None
         else:
@@ -179,7 +180,7 @@ class CageModule(BaseHoboModule):
         return True
 
             
-    def _processDungeon(self, txt, events):
+    def _processDungeon(self, txt, raidlog):
         if "has been imprisoned by the C. H. U. M.s" in txt:
             m = re.search(r'^(.*) has been imprisoned by the', txt)
             self.setImprisoned(str(m.group(1)))
@@ -191,7 +192,7 @@ class CageModule(BaseHoboModule):
         elif "resetCageStartupTime" in txt:
             self._startupTime = 0
             self._startupSewerActions = -10000
-        self._processLog(events)
+        self._processLog(raidlog)
         return None
 
                 

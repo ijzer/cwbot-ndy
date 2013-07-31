@@ -1,9 +1,5 @@
 import re
 import time
-import copy
-import cwbot.util.DebugThreading as threading
-from cwbot.util.tryRequest import tryRequest
-from cwbot.kolextra.request.ClanRaidLogRequest import ClanRaidLogRequest
 from cwbot.managers.BaseClanDungeonChannelManager \
              import BaseClanDungeonChannelManager
 
@@ -82,7 +78,12 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
 
     def _processorInitData(self):
         """ The initData here is the last read Hobopolis events. """
-        return {'events': self._filterEvents(self.lastEvents)}
+        return self._filterEvents(self.lastEvents)
+
+        
+    def _filterEvents(self, raidlog):
+        relevant_keys = ['events', 'hoid']
+        return dict((k,raidlog[k]) for k in relevant_keys if k in raidlog)
     
     
     def _syncState(self, force=False):
@@ -97,15 +98,14 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
     
     def _initializeFromLog(self):
         """ Initialize active status """
-        events = self._filterEvents(self.lastEvents)
+        raidlog = self._filterEvents(self.lastEvents)
         self._log.info("Initializing from Hobopolis log...")
         
         # is hodgman killed?
         self._active = not any(re.search(r'defeated\s+Hodgman', 
                                          item['event']) 
-                               is not None for item in events)
+                               is not None for item in raidlog['events'])
         self._log.info("Hobopolis active = {}".format(self._active))
-        return events
 
 
     def _handleNewRaidlog(self, raidlog):

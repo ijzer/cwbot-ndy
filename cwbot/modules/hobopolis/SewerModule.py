@@ -22,11 +22,9 @@ class SewerModule(BaseHoboModule):
 
         
     def initialize(self, _state, initData):
-        events = initData['events']
-        
         self._lastValveNotify = 0
         self._lastGrateNotify = 0
-        self._processLog(events)
+        self._processLog(initData)
 
 
     @property
@@ -39,7 +37,8 @@ class SewerModule(BaseHoboModule):
         return {}
 
         
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         self._valves = sum(w['turns'] for w in eventFilter(
                                events, "lowered the water level"))
         self._grates = sum(g['turns'] for g in eventFilter(
@@ -47,8 +46,8 @@ class SewerModule(BaseHoboModule):
         return True
     
 
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if "has lowered the water level" in txt:
             if self._valves != self._lastValveNotify:
                 self._lastValveNotify = self._valves

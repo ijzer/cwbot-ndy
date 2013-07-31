@@ -13,6 +13,11 @@ class ClanRaidLogRequest(GenericRequest):
     instance (required for HoboChannelManager).
     """
 
+    _drunkPattern = re.compile(r'(?:<blockquote>|<br>)([^<]*?)\s+\(#(\d+)\)\s+got the carriageman\s+(\d+)\s+sheet\(s\) drunker')
+    _dreadPattern = re.compile(r'<b>(\d+)</b>\s+(?:monster\(?s?\)? in the\s*)?(kisses|Castle|Forest|Village)')
+    _idPatterns = {'hoid': re.compile(r'hoid:(\d+)'),
+                   'slid': re.compile(r'slid:(\d+)'),
+                   'dvid': re.compile(r'dvid:(\d+)')}
     def __init__(self, session, raidId=None):
         super(ClanRaidLogRequest, self).__init__(session)
         self.url = session.serverURL + "clan_raidlogs.php"
@@ -29,14 +34,25 @@ class ClanRaidLogRequest(GenericRequest):
             index = txt.find('<b>Current Clan Dungeons:</b>')
             if index > 0:
                 txt = txt[:index]
-            self.responseData['hoid'] = int(self.raidId)
+            self.responseData['id'] = int(self.raidId)
         else:
-            m = re.search(r'hoid:(\d+)', txt)
-            if m is not None: 
-                hoid = int(m.group(1))
-                self.responseData['hoid'] = hoid
-            else:
-                self.responseData['hoid'] = None
+            for k,regex in self._idPatterns.items():
+                m = regex.search(txt)
+                if m is not None: 
+                    idval = int(m.group(1))
+                    self.responseData[k] = idval
+                else:
+                    self.responseData[k] = None
+                    
+        drunkMatches = self._drunkPattern.findall(txt)
+        drunkActivity = [{'userName': x[0], 
+                          'userId': x[1], 
+                          'drunkenness': int(x[2])} for x in drunkMatches]
+        dreadMatches = self._dreadPattern.findall(txt)
+        dreadActivity = dict((x[1].lower(), int(x[0])) for x in dreadMatches)
+        dreadActivity['drunkenness'] = sum(x['drunkenness'] 
+                                           for x in drunkActivity)
+        self.responseData['dread'] = dreadActivity
 
         # Get a list of actions that occurred in Hobopolis.
         actions = []

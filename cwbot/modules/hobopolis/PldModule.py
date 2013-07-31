@@ -29,12 +29,10 @@ class PldModule(BaseHoboModule):
 
         
     def initialize(self, state, initData):
-        events = initData['events']
-        
         self._pldLastNotify = -10000
         self._pldDone = False
         self._open = state['open']
-        self._processLog(events)
+        self._processLog(initData)
         self.log("Detected {} sleaze kills".format(self._pldKilled))
         self._pldKnown = state['known']
         self._pldFightDamage = state['fightDamage']
@@ -76,7 +74,8 @@ class PldModule(BaseHoboModule):
         return "[PLD {}{}%]".format(estimateStr, pldPercent) 
 
                 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         # check stench hobos killed
         self._unpopularity = (  
                 sum(u['turns'] for u in eventFilter(
@@ -119,8 +118,8 @@ class PldModule(BaseHoboModule):
                 .format(self.getTag(), damage))
 
     
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if self._pldDone:
             return None
 

@@ -81,9 +81,7 @@ class TownStageModule(BaseHoboModule):
 
 
     def initialize(self, state, initData):
-        events = initData['events']
-        
-        self._processLog(events)
+        self._processLog(initData)
         self._resumeData = state
         self._initialized = True
         
@@ -146,7 +144,8 @@ class TownStageModule(BaseHoboModule):
         return tagMsg[0].data['tag']
 
     
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         self._totalperformers = stageCount(events)
         self._stageClears = (buskCount(events) + ruinCount(events) 
                              + moshCount(events))
@@ -202,8 +201,9 @@ class TownStageModule(BaseHoboModule):
             return getMoshDamage(max(moshVals))
             
     
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
+        events = raidlog['events']
         if "has taken the stage" in txt:
             self._performers += 1
             self._totalperformers += 1
