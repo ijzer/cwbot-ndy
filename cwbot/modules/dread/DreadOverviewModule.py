@@ -18,14 +18,14 @@ class DreadOverviewModule(BaseHoboModule):
     _balance = {0: ['B', 'W'], 1: ['G', 'Z'], 2: ['S', 'V']}
     
     def __init__(self, manager, identity, config):
-        self._woodsDone, self._villageDone, self._castleDone = None, None, None
+        nones = None, None, None
+        self._woodsDone, self._villageDone, self._castleDone = nones
+        self._woodsKilled, self._villageKilled, self._castleKilled = nones
+        self._woodsBal, self._villageBal, self._castleBal = nones
+        self._woodsLvl, self._villageLvl, self._castleLvl = nones
         self._drunk = None
-        self._woodsKilled = None
-        self._villageKilled = None
-        self._castleKilled = None
         self._kisses = None
         
-        self._woodsBal, self._villageBal, self._castleBal = None, None, None
         super(DreadOverviewModule, self).__init__(manager, identity, config)
 
         
@@ -53,14 +53,19 @@ class DreadOverviewModule(BaseHoboModule):
         balance = {0: self._woodsBal,
                    1: self._villageBal,
                    2: self._castleBal}[areaNum]
+        level = {0: self._woodsLvl, 
+                 1: self._villageLvl, 
+                 2: self._castleLvl}[areaNum]
         areaName = {0: "Woods", 1: "Village", 2: "Castle"}[areaNum]
         
         # area
-        txt = areaName + " "
+        txt = areaName
         
         # completion
         if done:
             return txt + " done"
+        if level > 1:
+            txt += "({})".format(level)
         if killed >= 1000:
             txt += " BOSS"
         else:
@@ -92,6 +97,11 @@ class DreadOverviewModule(BaseHoboModule):
                             - sum(e['turns'] for e in eventFilter(events, r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+ghost')))
         self._castleBal = (  sum(e['turns'] for e in eventFilter(events, r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+vampire'))
                            - sum(e['turns'] for e in eventFilter(events, r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+skeleton')))
+        
+        self._woodsLvl   = 1 + sum(e['turns'] for e in eventFilter(events, "made the forest less"))
+        self._villageLvl = 1 + sum(e['turns'] for e in eventFilter(events, "made the village less"))
+        self._castleLvl  = 1 + sum(e['turns'] for e in eventFilter(events, "made the castle less"))
+        print self._woodsLvl
         
         self._kisses = raidlog['dread'].get('kisses', 0)
         return True
