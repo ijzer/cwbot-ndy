@@ -77,7 +77,7 @@ class HeapModule(BaseHoboModule):
             self.log("...but it doesn't matter because we can't "
                      "tell when the last treasure dive was")
         self._heapLastNotify = self._stench
-        self._processLog(events)
+        self._processLog(initData)
 
 
     @property
@@ -105,7 +105,8 @@ class HeapModule(BaseHoboModule):
         return "[Heap {}%]".format(heapPercent)
 
 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         # check stench hobos killed
         self._killed = 0
         for stenchhobo in eventFilter(events, r'defeated +Stench hobo'):
@@ -129,8 +130,8 @@ class HeapModule(BaseHoboModule):
         return True
 
             
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if self._heapDone:
             return None
         if "went treasure-hunting in The Heap" in txt:

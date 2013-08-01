@@ -40,7 +40,7 @@ class AhbgModule(BaseHoboModule):
 
     def initialize(self, state, initData):
         self._open = state['open']
-        self._processLog(initData['events'])
+        self._processLog(initData)
 
             
     @property
@@ -66,7 +66,8 @@ class AhbgModule(BaseHoboModule):
         return "[AHBG closed]"
             
 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         # first: check number of dances available 
         #        = 5 * flim-flams - dances so far
         # also see who has danced so far.
@@ -143,8 +144,8 @@ class AhbgModule(BaseHoboModule):
                     .format(self.getTag(), uname, self._availableDances))
 
             
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if self._ahbgDone:
             return None
         # these don't do anything but change the number of dances available

@@ -107,8 +107,7 @@ class BurnbarrelModule(BaseHoboModule):
                      .format(state['Avalanches'], self._totalAvalanches))
             self._tires = 0
             self._damageState = UNKNOWN
-            
-        self._processLog(events)
+        self._processLog(initData)
 
         
     @property
@@ -149,7 +148,8 @@ class BurnbarrelModule(BaseHoboModule):
         return "[Burnbarrel {}{}%]".format(estimateStr, kp)
     
     
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         #check hot hobos killed (negative for hot door opened)
         #  = defeated - 8 * hot doors opened        
         self._hobosKilled = (
@@ -168,8 +168,8 @@ class BurnbarrelModule(BaseHoboModule):
         return True
     
             
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if self._bbDone:
             return None
         if "put a tire on the fire" in txt:

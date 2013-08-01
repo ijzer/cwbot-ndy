@@ -16,11 +16,11 @@ class TurnsModule(BaseHoboModule):
 
         
     def initialize(self, state, initData):
-        events = initData['events']
-        self._processLog(events)
+        self._processLog(initData)
 
 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         self._turns = 0
         for hobopolisevent in (item for item in events 
                                if "Slime" not in item['event']):
@@ -28,8 +28,8 @@ class TurnsModule(BaseHoboModule):
         return True
 
     
-    def _processDungeon(self, dungeonText, events):
-        self._processLog(events)
+    def _processDungeon(self, dungeonText, raidlog):
+        self._processLog(raidlog)
         return None
 
         

@@ -22,13 +22,11 @@ class ExposureModule(BaseHoboModule):
 
 
     def initialize(self, state, initData):
-        events = initData['events']
-
         self._open = state['open']
         self._yodel = state['yodel']
         self._pipes = state['pipes']
         self._exposureDone = False
-        self._processLog(events)
+        self._processLog(initData)
 
             
     @property
@@ -70,7 +68,8 @@ class ExposureModule(BaseHoboModule):
         return "[Exposure >{}%]".format(percent)
 
 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         # hobos killed by non-yodels
         oldYodel = self._yodel
         oldPipes = self._pipes
@@ -108,8 +107,8 @@ class ExposureModule(BaseHoboModule):
         return True
 
 
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if self._exposureDone:
             return None
         return None

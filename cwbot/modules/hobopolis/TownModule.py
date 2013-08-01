@@ -155,7 +155,7 @@ class TownModule(BaseHoboModule):
         (doneAmt, guessState) = self.getDoneAndState() 
         doneAmt = self.correctDamage(events, doneAmt)
         
-        self._doProcessLog(events, suppressChat=True)
+        self._doProcessLog(initData, suppressChat=True)
         
         self._lastOpening = self.getDoneAndState()[0]
         self.log("Last opening: {}".format(self._lastOpening))
@@ -227,11 +227,12 @@ class TownModule(BaseHoboModule):
                 'damageCorrection': 0}
 
     
-    def _processLog(self, events):
-        return self._doProcessLog(events)
+    def _processLog(self, raidlog):
+        return self._doProcessLog(raidlog)
     
     
-    def _doProcessLog(self, events, suppressChat=False):
+    def _doProcessLog(self, raidlog, suppressChat=False):
+        events = raidlog['events']
         doneAmt = self.getDoneAndState()[0] 
         doneAmt = self.correctDamage(events, doneAmt)
         self._killed = sum(k['turns'] for k in eventFilter(
@@ -296,8 +297,8 @@ class TownModule(BaseHoboModule):
             return "[Town]"
     
             
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         if "has passed a hat in the tent, but didn't manage" in txt:
             # for some reason, this doesn't show up in the logs.
             self._tentOpen = KNOWN_CLOSED

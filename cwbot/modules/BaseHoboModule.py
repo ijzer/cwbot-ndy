@@ -53,7 +53,7 @@ class BaseHoboModule(BaseChatModule):
         
     def initialize(self, lastKnownState, initData):
         """
-        Initialize hobo module state. initData['events'] should contain the 
+        Initialize hobo module state. initData should contain the 
         event log. This function is called by the manager after construction
         with the last known state of the Hobo Module. If a NEW hobopolis 
         instance is detected, lastKnownState == self.initialState.
@@ -63,7 +63,7 @@ class BaseHoboModule(BaseChatModule):
         pass
 
     
-    def _processDungeon(self, dungeonText, lastEvents):
+    def _processDungeon(self, dungeonText, lastRaidLog):
         """
         Process chat from the Dungeon messages.
         All Dungeon messages are sent to this function. The derived class 
@@ -72,7 +72,7 @@ class BaseHoboModule(BaseChatModule):
         This function must return either a string, which will be printed in 
         chat; or None, to do nothing.
         
-        Also, at some point in this function, self._processLog(lastEvents) 
+        Also, at some point in this function, self._processLog(lastRaidLog) 
         should be called. Probably.
         
         Unlike _processCommand, the HoboChatManager calls _processDungeon
@@ -85,7 +85,7 @@ class BaseHoboModule(BaseChatModule):
         pass
 
 
-    def _processLog(self, eventLog):
+    def _processLog(self, lastRaidLog):
         """
         Process new information from the most recent log reading here.
         """

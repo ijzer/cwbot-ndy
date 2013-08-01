@@ -209,7 +209,8 @@ class HoboChatMonitorModule(BaseHoboModule):
         return allNames
 
     
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         with self._lock:
             self._lastEvents = events
             self._newEvents.set()

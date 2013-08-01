@@ -113,7 +113,7 @@ class TownScarehoboModule(BaseHoboModule):
                              self._scareHoboParts, guessText))
             self._scareHoboDamage += 8 * scareHobos
         self._initialized = True
-        self._processLog(events)
+        self._processLog(initData)
 
 
     @property
@@ -135,7 +135,8 @@ class TownScarehoboModule(BaseHoboModule):
                 'scareHoboState': KNOWN}
 
 
-    def _processLog(self, events):
+    def _processLog(self, raidlog):
+        events = raidlog['events']
         self._killed = sum(k['turns'] for k in eventFilter(
                                events, r'defeated +Normal hobo'))
             
@@ -147,8 +148,8 @@ class TownScarehoboModule(BaseHoboModule):
         return True
 
             
-    def _processDungeon(self, txt, events):
-        self._processLog(events)
+    def _processDungeon(self, txt, raidlog):
+        self._processLog(raidlog)
         return None
 
         
