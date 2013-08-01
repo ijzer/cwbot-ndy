@@ -42,6 +42,8 @@ class DiceModule(BaseChatModule):
 
     def _processCommand(self, message, cmd, args):
         if cmd in ["roll", "dice"]:
+            if args.strip() == "":
+                return self._availableCommands()['roll']
             # default manager ignores all text after (); for example
             # !roll (10)+1d5 is interpreted as !roll 10. Here we extract
             # the full argument from the message by removing the first
@@ -62,6 +64,8 @@ class DiceModule(BaseChatModule):
             # failed. just return the original failure message.
             return replyStr
         if cmd in ["order", "permute", "permutation"]:
+            if args.strip() == "":
+                return self._availableCommands()['permute']
             return self.rollOrder(args)
         return None
     
