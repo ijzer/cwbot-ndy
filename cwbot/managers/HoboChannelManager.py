@@ -82,8 +82,19 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
 
         
     def _filterEvents(self, raidlog):
-        relevant_keys = ['events', 'hoid']
-        return dict((k,raidlog[k]) for k in relevant_keys if k in raidlog)
+        relevant_keys = ['hoid']
+        relevant_event_categories = ['Sewers', 
+                                     'Town Square', 
+                                     'Exposure Esplanade', 
+                                     'The Heap', 
+                                     'Burnbarrel Blvd.', 
+                                     'The Purple Light District', 
+                                     'The Ancient Hobo Burial Ground', 
+                                     'Miscellaneous']
+        d = dict((k,raidlog[k]) for k in relevant_keys if k in raidlog)
+        d['events'] = [e for e in raidlog['events'] 
+                       if e['category'] in relevant_event_categories]
+        return d
     
     
     def _syncState(self, force=False):

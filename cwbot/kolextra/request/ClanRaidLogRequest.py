@@ -3,6 +3,9 @@ from kol.manager import PatternManager
 import re
 from datetime import datetime
 
+def decomma(num_str):
+    return "".join(num_str.split(","))
+
 
 class ClanRaidLogRequest(GenericRequest):
     """
@@ -13,8 +16,8 @@ class ClanRaidLogRequest(GenericRequest):
     instance (required for HoboChannelManager).
     """
 
-    _drunkPattern = re.compile(r'(?:<blockquote>|<br>)([^<]*?)\s+\(#(\d+)\)\s+got the carriageman\s+(\d+)\s+sheet\(s\) drunker')
-    _dreadPattern = re.compile(r'<b>(\d+)</b>\s+(?:monster\(?s?\)? in the\s*)?(kisses|Castle|Forest|Village)')
+    _drunkPattern = re.compile(r'(?:<blockquote>|<br>)([^<]*?)\s+\(#(\d+)\)\s+got the carriageman\s+([\d,]+)\s+sheet\(s\) drunker')
+    _dreadPattern = re.compile(r'<b>([\d,]+)</b>\s+(?:monster\(?s?\)? in the\s*)?(kisses|Castle|Forest|Village)')
     _idPatterns = {'hoid': re.compile(r'hoid:(\d+)'),
                    'slid': re.compile(r'slid:(\d+)'),
                    'dvid': re.compile(r'dvid:(\d+)')}
@@ -47,9 +50,11 @@ class ClanRaidLogRequest(GenericRequest):
         drunkMatches = self._drunkPattern.findall(txt)
         drunkActivity = [{'userName': x[0], 
                           'userId': x[1], 
-                          'drunkenness': int(x[2])} for x in drunkMatches]
+                          'drunkenness': int(decomma(x[2]))} 
+                         for x in drunkMatches]
         dreadMatches = self._dreadPattern.findall(txt)
-        dreadActivity = dict((x[1].lower(), int(x[0])) for x in dreadMatches)
+        dreadActivity = dict((x[1].lower(), int(decomma(x[0]))) 
+                             for x in dreadMatches)
         dreadActivity['drunkenness'] = sum(x['drunkenness'] 
                                            for x in drunkActivity)
         self.responseData['dread'] = dreadActivity

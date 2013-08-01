@@ -7,6 +7,18 @@ from cwbot.kolextra.request.ClanRaidLogRequest import ClanRaidLogRequest
 from cwbot.managers.MultiChannelManager import MultiChannelManager
 
 
+class LogDict(dict):
+    """ A dict with supressed __str__ and __repr__ to prevent clogging up
+    the CLI """
+    
+    def __str__(self):
+        return "{Event Log}"
+    
+    def __repr__(self):
+        return "{Event Log}"
+
+
+
 class BaseClanDungeonChannelManager(MultiChannelManager):
     """ Subclass of MultiChannelManager that incorporates Dungeon chat 
     and Raid Logs. Subclasses of this manager should specialize these functions
@@ -21,25 +33,35 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     
     capabilities = set(['chat', 'inventory', 'admin', 'hobopolis', 'dread'])
     
-    __eventLock = threading.RLock() # lock for reading events
-    __lastEvents = None
-    _lastEventCheck = 0
+    __raidlogDownloadLock = threading.RLock()
     _lastChatNum = None
-    __eventsInitialized = threading.Event()
     delay = 300
     
     def __init__(self, parent, identity, iData, config):
         """ Initialize the BaseClanDungeonChannelManager """
+        self.__eventLock = threading.RLock() # lock for reading events
+                                            # LOCK THIS BEFORE 
+                                            # LOCKING self._syncLock
+        self.__initialized = False
+        self.__lastEvents = None
+        self._lastEventCheck = 0
         super(BaseClanDungeonChannelManager, self).__init__(parent, 
                                                             identity, 
                                                             iData, 
                                                             config)
+        self.__initialized = True
+        
     
     def _initialize(self):
-        with self.__eventLock:
-            if not self.__eventsInitialized.is_set():
+        with self.__raidlogDownloadLock:
+            replies = self._raiseEvent("request_raid_log", None)
+            if replies:
+                self._log.info("Using previously acquired raid log...")
+                self._raiseEvent("new_raid_log", 
+                                 "__" + self.identity + "__", 
+                                 replies[0].data)
+            else:
                 self._getRaidLog(noThrow=False, force=True)
-                self.__eventsInitialized.set()
         super(BaseClanDungeonChannelManager, self)._initialize()
 
 
@@ -58,7 +80,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     
     def _processorInitData(self):
         """ The initData here is the last read raid log events. """
-        return {'events': self.lastEvents}
+        return self._filterEvents(self.lastEvents)
 
     
     @property
@@ -82,8 +104,8 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
 
     def _getRaidLog(self, noThrow=True, force=False):
         """ Access the raid log and store it locally """
-        with self.__eventLock:
-            if not self.__eventsInitialized.is_set() and not force:
+        with self.__raidlogDownloadLock:
+            if not self.__initialized and not force:
                 return self.lastEvents
             self._log.debug("Reading clan raid logs...")   
             rl = ClanRaidLogRequest(self.session)
@@ -92,29 +114,18 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             if result is None:
                 self._log.warning("Could not read clan raid logs.")
                 return self.lastEvents
-            self.lastEvents = result
-            self._lastEventCheck = time.time()
-            self._handleNewRaidlog(result)
+            self._raiseEvent("new_raid_log", None, LogDict(result))
             return result
 
 
     def _updateLogs(self, force=False):
         """ Read new logs and parse them if it is time. Then call the
         process_log extended call of each module. """
-        checked = False
-        with self.__eventLock:
+        with self.__raidlogDownloadLock:
             if time.time() - self._lastEventCheck >= self.delay or force:
                 result = self._getRaidLog()
-                checked = True
-            
-            # it's important not to process the log while responding
-            # to chat, so we need a lock here.
-        if checked:
-            with self._syncLock:
-                for m in self._modules:
-                    mod = m.module
-                    mod.extendedCall('process_log', self._filterEvents(result))
-                self._syncState()
+                return result
+            return self.lastEvents
 
 
     def _processDungeonChat(self, msg, checkNum):
@@ -124,19 +135,24 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
         at the same time.
         """
         replies = []
-        if self._lastChatNum != checkNum:
-            # get new events
-            self._lastChatNum = checkNum
-            self._updateLogs(force=True)
-        raidlog = self._filterEvents(self.lastEvents)        
-        with self._syncLock:
-            txt = msg['text']
-            for m in self._modules:
-                mod = m.module
-                printStr = mod.extendedCall('process_dungeon', txt, raidlog)
-                if printStr is not None:
-                    replies.extend(printStr.split("\n"))
-            self._syncState()
+        with self.__raidlogDownloadLock:
+            if self._lastChatNum != checkNum:
+                # get new events
+                self._lastChatNum = checkNum
+                evts = self._updateLogs(force=True)
+            else:
+                evts = self.lastEvents
+            with self.__eventLock:
+                raidlog = self._filterEvents(evts)        
+                with self._syncLock:
+                    txt = msg['text']
+                    for m in self._modules:
+                        mod = m.module
+                        printStr = mod.extendedCall('process_dungeon', 
+                                                    txt, raidlog)
+                        if printStr is not None:
+                            replies.extend(printStr.split("\n"))
+                    self._syncState()
         return replies
                     
                     
@@ -153,15 +169,43 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
                 
     def cleanup(self):
         with self.__eventLock:
-            self.__eventsInitialized.clear()
+            self.__initialized = False
             MultiChannelManager.cleanup(self)
 
             
     def _heartbeat(self):
         """ Update logs in heartbeat """
-        if self.__eventsInitialized.is_set():
+        if self.__initialized:
             self._updateLogs()
             super(BaseClanDungeonChannelManager, self)._heartbeat()
+    
+    
+    def _eventCallback(self, eData):
+        MultiChannelManager._eventCallback(self, eData)
+        if eData.subject == "new_raid_log":
+            raidlog = dict((k,v) for k,v in eData.data.items())
+            self.lastEvents = raidlog
+            if not self.__initialized:
+                return
+            self._notifyModulesOfNewRaidLog(raidlog)
+        elif eData.subject == "request_raid_log":
+            if self.lastEvents is not None:
+                self._eventReply(LogDict(self.lastEvents))
+
+            
+    def _notifyModulesOfNewRaidLog(self, raidlog):
+        # it's important not to process the log while responding
+        # to chat, so we need a lock here.
+        with self.__eventLock:
+            self._lastEventCheck = time.time()
+            self._handleNewRaidlog(raidlog)
+            with self._syncLock:
+                for m in self._modules:
+                    mod = m.module
+                    mod.extendedCall('process_log', 
+                                     self._filterEvents(raidlog))
+                self._syncState()
+
             
             
             
