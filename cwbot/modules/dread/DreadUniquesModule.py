@@ -114,7 +114,7 @@ class DreadUniquesModule(BaseHoboModule):
             # check if unlocked
             self._locked[item['name']] = (
                 item['unlocked_regex'] is not None 
-                and any(eventFilter(events, item['unlocked_regex'])))
+                and not any(eventFilter(events, item['unlocked_regex'])))
             
             # see how many items were taken and who did it
             itemsAcquired = 0
@@ -130,8 +130,10 @@ class DreadUniquesModule(BaseHoboModule):
                 for k,v in c2.items():
                     numCollected = v - c1[k]
                     for _ in range(numCollected):
-                        self.chat("{} {}.".format(userNames[k], 
-                                                  item['acquire_text']))
+                        self.chat("{} {} ({} remaining)."
+                                  .format(userNames[k], 
+                                          item['acquire_text'],
+                                          item['qty'] - itemsAcquired))
         self._claimed = newClaimed
         return True
 
@@ -178,7 +180,7 @@ class DreadUniquesModule(BaseHoboModule):
             return ("Looks like adventurers have combed over Dreadsylvania "
                     "pretty well.")
         if cmd in ["pencil", "pencils"]:
-            pencils = 10 - self._claimed['ghost pencil']
+            pencils = 10 - len(self._claimed['ghost pencil'])
             pencilsLocked = self._locked['ghost pencil']
             if (pencils > 0 
                     and not self._villageDone 
@@ -188,7 +190,7 @@ class DreadUniquesModule(BaseHoboModule):
                             "(unlock the Schoolhouse).")
                 else:
                     return ("{} ghost pencils remaining (desk in the Village "
-                               "Square Schoolhouse).".format(self._pencils))
+                               "Square Schoolhouse).".format(pencils))
             return "No ghost pencils remaining."
         return None
         
