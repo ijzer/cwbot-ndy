@@ -21,7 +21,7 @@ class DreadUniquesModule(BaseHoboModule):
                         "got a blood kiwi", 
                         "Tree: coordinated w/ Mus. only"),
                   ditem("Auditor's badge", 
-                        "UNKNOWN", 
+                        "got a Dreadsylvanian auditor's badge", 
                         "Cabin: need Replica Key")],
               1: [ditem('clockwork key', 
                         "(?:hung|hanged) a clanmate", 
