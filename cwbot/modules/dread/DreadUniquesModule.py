@@ -1,14 +1,30 @@
 from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.util.textProcessing import stringToBool
 from itertools import chain
+from collections import defaultdict, Counter
 
-def ditem(itname, itregex, itarea):
-    return {'name': itname, 'regex': itregex, 'area': itarea}
+def ditem(itname, 
+          itregex, 
+          itarea, 
+          qty=1, 
+          unlockedRegex=None, 
+          lockedText=None,
+          acquireText=None):
+    return {'name': itname, 
+            'regex': itregex, 
+            'area': itarea,
+            'unlocked_regex': unlockedRegex,
+            'locked_text': lockedText, 
+            'qty': qty,
+            'acquire_text': acquireText if acquireText else itregex}
 
 class DreadUniquesModule(BaseHoboModule):
     """ 
     Displays which per-instance items are still in Dreadsylvania
     
-    No configuration options.
+    Configuration options:
+    
+    announce - if new items should be announced (True)
     """
     requiredCapabilities = ['chat', 'dread']
     _name = "dread-uniques"
@@ -23,9 +39,16 @@ class DreadUniquesModule(BaseHoboModule):
                   ditem("Auditor's badge", 
                         "got a Dreadsylvanian auditor's badge", 
                         "Cabin: need Replica Key")],
-              1: [ditem('clockwork key', 
+              1: [ditem('gallows item', 
                         "(?:hung|hanged) a clanmate", 
-                        "Square: coordinated @ gallows")],
+                        "Square: coordinated @ gallows",
+                        acquireText="picked up an item from the gallows"),
+                  ditem('ghost pencil',
+                        "collected a ghost pencil",
+                        "Schoolhouse: in desk",
+                        qty=10,
+                        unlockedRegex="unlocked the schoolhouse",
+                        lockedText="unlock Schoolhouse")],
               2: [ditem('dreadful roast', 
                         "got some roast beast", 
                         "Hall: dining room"),
@@ -37,20 +60,25 @@ class DreadUniquesModule(BaseHoboModule):
                         "Dungeon: guardroom")]}
     
     def __init__(self, manager, identity, config):
+        self._announce = None
         self._woodsDone = None
         self._villageDone = None
         self._castleDone = None
         self._woodsKilled = None
         self._villageKilled = None
         self._castleKilled = None
-        self._available = None
-        self._pencils = None
-        self._pencilsUnlocked = None
+        self._locked = None
+        self._claimed = None
         super(DreadUniquesModule, self).__init__(manager, identity, config)
 
         
     def initialize(self, state, initData):
+        self._claimed = None
         self._processLog(initData)
+
+
+    def _configure(self, config):
+        self._announce = stringToBool(config.setdefault('announce', "True"))
 
 
     @property
@@ -78,14 +106,33 @@ class DreadUniquesModule(BaseHoboModule):
         self._woodsKilled   = raidlog['dread'].get('forest', 0)
         self._villageKilled = raidlog['dread'].get('village', 0)
         self._castleKilled  = raidlog['dread'].get('castle', 0)
-        self._available = set([])
+        
+        newClaimed = defaultdict(list)
+        self._locked = {}
+        userNames = {}
         for item in chain.from_iterable(self._areas.values()):
-            if not any(eventFilter(events, item['regex'])):
-                self._available.add(item['name'])
-        self._pencils = 10 - sum(e['turns'] for e in eventFilter(events, 
-                                                r'collected a ghost pencil'))
-        self._pencilsUnlocked = any(eventFilter(events, 
-                                                "unlocked the schoolhouse"))
+            # check if unlocked
+            self._locked[item['name']] = (
+                item['unlocked_regex'] is not None 
+                and any(eventFilter(events, item['unlocked_regex'])))
+            
+            # see how many items were taken and who did it
+            itemsAcquired = 0
+            for e in eventFilter(events, item['regex']):
+                newClaimed[item['name']].extend([e['userId']] * e['turns'])
+                userNames[e['userId']] = e['userName']
+                itemsAcquired += e['turns']
+
+            # compare to old list and announce if specified in the options
+            if self._claimed is not None:
+                c1 = Counter(self._claimed.get(item['name'], []))
+                c2 = Counter(newClaimed.get(item['name'], []))
+                for k,v in c2.items():
+                    numCollected = v - c1[k]
+                    for _ in range(numCollected):
+                        self.chat("{} {}.".format(userNames[k], 
+                                                  item['acquire_text']))
+        self._claimed = newClaimed
         return True
 
             
@@ -96,7 +143,7 @@ class DreadUniquesModule(BaseHoboModule):
         
     def _processCommand(self, unused_msg, cmd, unused_args):
         if cmd in ["unique", "uniques"]:
-            if not self._dungeonActive():
+            if not self._dungeonActive() or self._claimed is None:
                 return ("Dreadsylvania has faded into the mist, along with "
                         "all its stuff. Don't you just hate when that "
                         "happens?")
@@ -104,23 +151,26 @@ class DreadUniquesModule(BaseHoboModule):
                          self._villageDone or self._villageKilled >= 1000, 
                          self._castleDone or self._castleKilled >= 1000]
             messages = []
-            
+            qtyText = lambda x: "{}x ".format(x)
             for areaIdx, itemList in self._areas.items():
                 if doneAreas[areaIdx]:
                     continue
                 txt = []
                 for item in itemList:
-                    if item['name'] in self._available:
-                        txt.append("{} ({})"
-                                   .format(item['name'], item['area']))
-                if areaIdx == 1 and self._pencils > 0:
-                    if not self._pencilsUnlocked:
-                        txt.append("10 ghost pencils (unlock Schoolhouse)")
+                    itemName = item['name']
+                    numAvailable = item['qty'] - len(self._claimed[itemName])
+                    if numAvailable == 0:
+                        continue
+                    if self._locked[itemName]:
+                        txt.append("{}{} ({})".format(qtyText(numAvailable),
+                                                      itemName, 
+                                                      item['locked_text']))
                     else:
-                        txt.append("{} ghost pencils (Schoolhouse: in desk)"
-                                   .format(self._pencils))
+                        txt.append("{}{} ({})".format(qtyText(numAvailable),
+                                                      itemName, 
+                                                      item['area']))
                 if txt:
-                    messages.append("{}: {}"
+                    messages.append("{}: {}."
                                     .format(self._areaNames[areaIdx],
                                             ", ".join(txt)))
             if messages:
@@ -128,8 +178,12 @@ class DreadUniquesModule(BaseHoboModule):
             return ("Looks like adventurers have combed over Dreadsylvania "
                     "pretty well.")
         if cmd in ["pencil", "pencils"]:
-            if self._pencils > 0:
-                if not self._pencilsUnlocked:
+            pencils = 10 - self._claimed['ghost pencil']
+            pencilsLocked = self._locked['ghost pencil']
+            if (pencils > 0 
+                    and not self._villageDone 
+                    and not self._villageKilled >= 1000):
+                if pencilsLocked:
                     return ("10 ghost pencils remaining "
                             "(unlock the Schoolhouse).")
                 else:
