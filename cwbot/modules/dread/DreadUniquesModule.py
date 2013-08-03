@@ -40,7 +40,7 @@ class DreadUniquesModule(BaseHoboModule):
                         "got a Dreadsylvanian auditor's badge", 
                         "Cabin: need Replica Key")],
               1: [ditem('gallows item', 
-                        "(?:hung|hanged) a clanmate", 
+                        "was (?:hung|hanged) by a clanmate", 
                         "Square: coordinated @ gallows",
                         acquireText="picked up an item from the gallows"),
                   ditem('ghost pencil',
