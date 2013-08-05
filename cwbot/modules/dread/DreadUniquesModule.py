@@ -29,7 +29,7 @@ class DreadUniquesModule(BaseDungeonModule):
     def initialize(self, state, initData):
         self._claimed = None
         self._db = initData['event-db']
-        self._uniques = [r for r in self._db if r['unique_text']]
+        self._uniques = [r for r in self._db if r['unique_type']]
         self._processLog(initData)
 
 
@@ -103,6 +103,28 @@ class DreadUniquesModule(BaseDungeonModule):
     def _processDungeon(self, txt, raidlog):
         self._processLog(raidlog)
         return None
+    
+    
+    def _getUniqueData(self, typeList):
+        for record in self._uniques:
+            if record['unique_type'] not in typeList:
+                continue     
+            itemData = self._dread[record['category']]
+            if itemData['status'] in ["done", "boss"]:
+                continue
+
+            quantity = 1
+            try:
+                quantity = int(record['quantity'])
+            except ValueError:
+                pass
+            
+            itemName = record['unique_text']
+            numAvailable = (quantity - len(self._claimed[itemName]))
+            if numAvailable <= 0:
+                continue
+            isLocked = (record['subzone'] in itemData['locked'])
+            yield (record, numAvailable, isLocked)
         
         
     def _processCommand(self, unused_msg, cmd, unused_args):
@@ -112,30 +134,16 @@ class DreadUniquesModule(BaseDungeonModule):
                         "all its stuff. Don't you just hate when that "
                         "happens?")
             messages = defaultdict(list)
+            lockedTxt = {True: "LOCKED ", False: ""}
             qtyText = lambda x: "{}x ".format(x)
-            for record in self._uniques:
-                quantity = 1
-                try:
-                    quantity = int(record['quantity'])
-                except ValueError:
-                    pass
-
-                itemData = self._dread[record['category']]
-                if itemData['status'] in ["done", "boss"]:
-                    continue
-
-                itemName = record['unique_text']
-                numAvailable = (quantity - len(self._claimed[itemName]))
-                if numAvailable == 0:
-                    continue
-                if record['subzone'] in itemData['locked']:
+            for record,available,locked in self._getUniqueData(['pencil', 
+                                                                'unique', 
+                                                                'uncommon']):
                     messages[record['category']].append(
-                            "{}LOCKED {}".format(qtyText(numAvailable),
-                                                  itemName))
-                else:
-                    messages[record['category']].append(
-                            "{}{}".format(qtyText(numAvailable), itemName))
-            
+                            "{}{}{}".format(qtyText(available),
+                                            lockedTxt[locked],
+                                            record['unique_text']))
+
             # get list of areas by index
             areas = dict((v['index'], k) for k,v in self._dread.items())
             txt = []
@@ -145,10 +153,30 @@ class DreadUniquesModule(BaseDungeonModule):
                     txt.append("{}: {}."
                                .format(areaname, 
                                        ", ".join(messages[areaname])))
+
+            # show FKs
+            fkTxt = []
+            for record,available,locked in self._getUniqueData(['fk']):
+                fkTxt.append("{} {}x{}".format(record['zone'],
+                                               lockedTxt[locked],
+                                               available))
+            if fkTxt:
+                txt.append("FKs available: {}".format(", ".join(fkTxt)))
+
             if txt:
                 return "\n".join(txt)
             return ("Looks like adventurers have combed over Dreadsylvania "
                     "pretty well.")
+        if cmd in ["pencil", "pencils"]:
+            pencils = list(self._getUniqueData(['pencil']))
+            if not pencils:
+                return ("All the ghost pencils are gone. Now nobody can do "
+                        "their ghost homework assignment from ghost math "
+                        "class.")
+            (_,available,locked) = pencils[0]
+            if locked:
+                return "The schoolhouse is still locked."
+            return "{} pencils available.".format(available)
         return None
         
                 
