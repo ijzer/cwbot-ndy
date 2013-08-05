@@ -1,8 +1,11 @@
-from cwbot.modules.BaseHoboModule import (BaseHoboModule, killPercent, 
-                                          eventFilter)
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 
 
-class HeapModule(BaseHoboModule):
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
+
+
+class HeapModule(BaseDungeonModule):
     """ 
     A module that tracks the stench level of the Heap. The logic is somewhat
     complicated, but not nearly as much as the BurnbarrelModule.

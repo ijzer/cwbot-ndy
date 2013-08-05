@@ -2,7 +2,7 @@ import collections
 import datetime
 import pytz #@UnresolvedImport
 import threading
-from cwbot.modules.BaseHoboModule import BaseHoboModule
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule
 from cwbot.util.textProcessing import stringToBool
 from cwbot.common.kmailContainer import Kmail
 
@@ -100,7 +100,7 @@ def violationTimeRanges(playerEventList):
     return timeRanges
             
 
-class HoboChatMonitorModule(BaseHoboModule):
+class HoboChatMonitorModule(BaseDungeonModule):
     """ 
     A module that monitors /hobopolis to make sure that anyone adventuring
     in Hobopolis is also in the chat channel. A daily dispatch is sent to

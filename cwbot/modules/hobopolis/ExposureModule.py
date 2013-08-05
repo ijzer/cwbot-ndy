@@ -1,8 +1,11 @@
-from cwbot.modules.BaseHoboModule import (BaseHoboModule, killPercent, 
-                                          eventFilter)
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 
 
-class ExposureModule(BaseHoboModule):
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
+
+
+class ExposureModule(BaseDungeonModule):
     """ 
     A module that tracks Exposure Esplanade. EE is not well spaded, so
     this module just uses a linear approximation.

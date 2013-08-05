@@ -1,10 +1,12 @@
 import math
 import re
-from cwbot.modules.BaseHoboModule import (BaseHoboModule, killPercent, 
-                                          eventFilter)
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
 
 
-class AhbgModule(BaseHoboModule):
+class AhbgModule(BaseDungeonModule):
     """ 
     A module for tracking Ancient Hobo Burial Ground dances and observations.
     

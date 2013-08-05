@@ -3,13 +3,9 @@ from cwbot.modules.BaseChatModule import BaseChatModule
 
 __compiled = {}
 
-def killPercent(n):
-    return int(max(0, min(99, 100*n / 500.0)))
-
-
 def eventFilter(events, *text):
     """
-    This function is often used in Hobo module parsing. It returns a 
+    This function is often used in dungeon module parsing. It returns a 
     generator that returns log entries that have an event that matches 
     any of the regexes passed in. It is used so commonly that this function
     is very convenient. Regexes are automatically compiled and cached.
@@ -18,8 +14,19 @@ def eventFilter(events, *text):
     regex = __compiled.setdefault(regexText, re.compile(regexText))
     return (e for e in events if regex.search(e['event']) is not None)
 
+
+def eventDbMatch(events, categoryDict):
+    """
+    This function is often used in dungeon module parsing. It returns a 
+    generator that returns log entries that have an event that matches 
+    any of the regexes passed in. It is used so commonly that this function
+    is very convenient. Regexes are automatically compiled and cached.
+    """
+    return (e for e in events 
+            if set(categoryDict.items()).issubset(set(e['db-match'].items())))
+
     
-class BaseHoboModule(BaseChatModule):
+class BaseDungeonModule(BaseChatModule):
     """This class extends BaseChatModule to process Hobopolis information, 
     including Dungeon messages and raid logs. In addition to those in
     BaseChatModule, there are two extended calls: 
@@ -34,15 +41,15 @@ class BaseHoboModule(BaseChatModule):
     
     def __init__(self, manager, identity, config):
         """
-        Initialize BaseHoboModule
+        Initialize BaseDungeonModule
         """
-        super(BaseHoboModule, self).__init__(manager, identity, config)
+        super(BaseDungeonModule, self).__init__(manager, identity, config)
         self._registerExtendedCall('process_dungeon', self._processDungeon)
         self._registerExtendedCall('process_log', self._processLog)
 
         
     def _dungeonActive(self):
-        """ Is hodgman alive? """
+        """ Is dungeon alive? """
         return self.parent.active()
 
 

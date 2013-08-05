@@ -1,4 +1,4 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 from cwbot.kolextra.request.GetScareHoboPartsRequest \
                      import GetScareHoboPartsRequest
 
@@ -14,7 +14,7 @@ UNKNOWN = 0
 GUESSED = 1
 KNOWN = 2
 
-class TownScarehoboModule(BaseHoboModule):
+class TownScarehoboModule(BaseDungeonModule):
     """ 
     A module that keeps track of the scarehobo status in Hobopolis and
     announces when any are created. Players do not directly communicate

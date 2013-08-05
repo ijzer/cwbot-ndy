@@ -1,9 +1,12 @@
 import math
-from cwbot.modules.BaseHoboModule import (BaseHoboModule, killPercent, 
-                                          eventFilter)
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 
 
-class PldModule(BaseHoboModule):
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
+
+
+class PldModule(BaseDungeonModule):
     """ 
     A module that tracks the club opening in the PLD. There is some persistent
     state here, because a barfight kills 10% of the remaining hobos in the

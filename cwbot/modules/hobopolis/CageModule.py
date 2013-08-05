@@ -1,6 +1,11 @@
 import re
 import time
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+
+
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
+
 
 
 UNKNOWN = 0
@@ -15,7 +20,7 @@ def cageStateStr(n):
             EMPTY: "empty"}[n]
 
 
-class CageModule(BaseHoboModule):
+class CageModule(BaseDungeonModule):
     """ 
     A module that tracks the C.H.U.M. cage. It is capable of tracking the 
     following:

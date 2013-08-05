@@ -1,4 +1,4 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 
 
 def moshCount(events):
@@ -35,7 +35,7 @@ def getMoshDamage(n):
         raise Exception("Invalid n={}".format(n))
     return [5,10,20,40,64,100][n-1]
 
-class TownStageModule(BaseHoboModule):
+class TownStageModule(BaseDungeonModule):
     """ 
     A module that keeps track of the stage in town square, including getting
     on/off stage, mosh damage, and busking .Players do not directly communicate

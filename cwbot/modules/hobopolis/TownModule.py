@@ -1,4 +1,4 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 import re
 
 
@@ -20,7 +20,7 @@ KNOWN_OPEN = 2
 KNOWN_CLOSED = 3
 
 
-class TownModule(BaseHoboModule):
+class TownModule(BaseDungeonModule):
     """ 
     A module that tracks town square status, including zone and stage openings.
     This module also coordinates with the TownScarehobo and TownStage modules,
@@ -345,7 +345,7 @@ class TownModule(BaseHoboModule):
                             "{} scarehobos available."
                             .format(self.getTag(), onstage, 
                                     availableScareHobos))
-        elif cmd in ["summary", "hobopolis", "status"]: 
+        elif cmd in ["summary", "hobopolis", "status", "hobo"]: 
             if not self._dungeonActive():
                 return "The Hobopolis instance is complete."
             return self.getSummary()
@@ -412,5 +412,4 @@ class TownModule(BaseHoboModule):
     def _availableCommands(self):
         return {'town': "!town: show the number of scarehobos available "
                         "and the state of the town stage.",
-                'status': "!status: show a summary of Hobopolis progress.",
-                'summary': None, 'hobopolis': None}
+                'status': "!status: show a summary of Hobopolis progress."}

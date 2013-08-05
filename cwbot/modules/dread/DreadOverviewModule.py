@@ -1,4 +1,5 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import (BaseDungeonModule, eventFilter,
+                                             eventDbMatch)
 
 
 def dreadPercent(n):
@@ -6,9 +7,11 @@ def dreadPercent(n):
         return "BOSS"
     return "{}%".format(max(0, min(99, int(n/10))))
 
-class DreadOverviewModule(BaseHoboModule):
+
+class DreadOverviewModule(BaseDungeonModule):
     """ 
-    Displays an overview of Dreadsylvania
+    Displays an overview of Dreadsylvania.
+    NOTE: SHOULD BE HIGHER PRIORITY THAN OTHER MODULES IN DREADSYLVANIA
     
     No configuration options.
     """
@@ -25,67 +28,90 @@ class DreadOverviewModule(BaseHoboModule):
         self._woodsLvl, self._villageLvl, self._castleLvl = nones
         self._drunk = None
         self._kisses = None
+        self._lockedAreas = None
+        self._locked = None
         
         super(DreadOverviewModule, self).__init__(manager, identity, config)
 
         
     def initialize(self, state, initData):
+        self._db = initData['event-db']
+        self._lockedAreas = [r for r in self._db if r['zone'] == "(unlock)"]
         self._processLog(initData)
 
 
-    @property
-    def state(self):
-        return {}
-
+    def _areaInfo(self, areaNum):
+        d = {}
+        d['index'] = areaNum
+        d['accessible'] = self._drunk >= areaNum * 1000
+        d['killed'] = {0: self._woodsKilled, 
+                       1: self._villageKilled, 
+                       2: self._castleKilled}[areaNum]
+        d['done'] = {0: self._woodsDone,
+                     1: self._villageDone,
+                     2: self._castleDone}[areaNum]
+        d['balance'] = {0: self._woodsBal,
+                        1: self._villageBal,
+                        2: self._castleBal}[areaNum]
+        if d['balance'] == 0:
+            d['balanceWinning'] = ""
+        else:
+            idx = 0 if d['balance'] < 0 else 1
+            d['balanceWinning'] = self._balance[areaNum][idx]
+        d['level'] = {0: self._woodsLvl, 
+                      1: self._villageLvl, 
+                      2: self._castleLvl}[areaNum]
+        d['fullname'] = {0: "The Woods", 
+                         1: "The Village", 
+                         2: "The Castle"}[areaNum]
+        d['name'] = d['fullname'][4:]
+        d['locked'] = [a['subzone'] for a in self._locked
+                       if a['category'] == d['fullname']]
+        d['status'] = ("done" if d['done']
+                       else "boss" if d['killed'] >= 1000
+                       else "open" if d['accessible']
+                       else "locked")
+        return d
     
-    @property
-    def initialState(self):
-        return {}
-
     
     def getTag(self, areaNum):
-        killed = {0: self._woodsKilled, 
-                  1: self._villageKilled, 
-                  2: self._castleKilled}[areaNum]
-        done = {0: self._woodsDone,
-                1: self._villageDone,
-                2: self._castleDone}[areaNum]
-        balance = {0: self._woodsBal,
-                   1: self._villageBal,
-                   2: self._castleBal}[areaNum]
-        level = {0: self._woodsLvl, 
-                 1: self._villageLvl, 
-                 2: self._castleLvl}[areaNum]
-        areaName = {0: "Woods", 1: "Village", 2: "Castle"}[areaNum]
-        
+        d = self._areaInfo(areaNum)
         # area
-        txt = areaName
+        txt = d['name']
         
         # completion
-        if done:
+        if d['done']:
             return txt + " done"
-        if level > 1:
-            txt += "({})".format(level)
-        if killed >= 1000:
+        if d['level'] > 1:
+            txt += "({})".format(d['level'])
+        if d['killed'] >= 1000:
             txt += " BOSS"
         else:
-            txt += " {}%".format(int(killed/10))
+            txt += " {}%".format(int(d['killed']/10))
         
         # balance
-        if balance == 0:
+        if d['balance'] == 0:
             txt += " ="
         else:
-            idx = 0 if balance < 0 else 1
-            txt += " " + self._balance[areaNum][idx] + "+"
-            txt += "{}".format(abs(balance))
+            txt += " " + d['balanceWinning'] + "+"
+            txt += "{}".format(abs(d['balance']))
         return txt
 
 
     def _processLog(self, raidlog):
         events = raidlog['events']
-        self._woodsDone   = any(eventFilter(events, r"""(?i)defeated\s+(The Great Wolf of the Air|Falls-From-Sky)"""))
-        self._villageDone = any(eventFilter(events, r"""(?i)defeated\s+(the Zombie Homeowners' Association|Mayor Ghost)"""))
-        self._castleDone  = any(eventFilter(events, r"""(?i)defeated\s+(The Unkillable Skeleton|Count Drunkula)"""))
+        self._woodsDone   = any(eventDbMatch(events, 
+            {'category': "The Woods", 
+             'zone': "(combat)",
+             'subzone': "boss"}))
+        self._villageDone = any(eventDbMatch(events, 
+            {'category': "The Village", 
+             'zone': "(combat)",
+             'subzone': "boss"}))
+        self._castleDone  = any(eventDbMatch(events, 
+            {'category': "The Castle", 
+             'zone': "(combat)",
+             'subzone': "boss"}))
         self._drunk = raidlog['dread']['drunkenness']
         self._woodsKilled   = raidlog['dread'].get('forest', 0)
         self._villageKilled = raidlog['dread'].get('village', 0)
@@ -101,9 +127,13 @@ class DreadOverviewModule(BaseHoboModule):
         self._woodsLvl   = 1 + sum(e['turns'] for e in eventFilter(events, "made the forest less"))
         self._villageLvl = 1 + sum(e['turns'] for e in eventFilter(events, "made the village less"))
         self._castleLvl  = 1 + sum(e['turns'] for e in eventFilter(events, "made the castle less"))
-        print self._woodsLvl
         
         self._kisses = raidlog['dread'].get('kisses', 0)
+        
+        self._locked = []
+        for area in self._lockedAreas:
+            if not any(eventDbMatch(events, area)):
+                self._locked.append(area)
         return True
 
             
@@ -113,7 +143,7 @@ class DreadOverviewModule(BaseHoboModule):
         
         
     def _processCommand(self, unused_msg, cmd, unused_args):
-        if cmd in ["dread"]:
+        if cmd in ["dread", "dreadsylvania", "status", "summary"]:
             if not self._dungeonActive():
                 return ("Dreadsylvania has disappeared for this century.")
             wtxt = "Woods done"
@@ -142,8 +172,32 @@ class DreadOverviewModule(BaseHoboModule):
             txt = ", ".join([ktxt, wtxt, vtxt, ctxt])
             return txt
         return None
-        
+    
+    
+    def _eventCallback(self, eData):
+        if eData.subject == "dread":
+            style = 'list'
+            keys = None
+            if eData.data:
+                style = eData.data.get('style', 'list')
+                keys = eData.data.get('keys', None)
+            dFilter = lambda x: x
+            if keys:
+                dFilter = lambda x: {k: x[k] for k in keys}
+            
+            dreadData = [self._areaInfo(areaNum) for areaNum in range(3)]
+            filteredData = [dFilter(d) for d in dreadData]
+
+            if style == 'dict':
+                self._eventReply(dict((dreadData[idx]['fullname'], 
+                                       filteredData[idx]) 
+                                      for idx in range(len(dreadData))))
+            elif style == 'list':
+                self._eventReply(dreadData)
+            else:
+                raise IndexError("invalid dread event style")
+                
                 
     def _availableCommands(self):
-        return {'dread': "!dread: Display an overview of Dreadsylvania."}
+        return {'status': "!status: Display an overview of Dreadsylvania."}
     

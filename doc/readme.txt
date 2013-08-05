@@ -778,6 +778,10 @@ cwbot.managers.HoboChannelManager - A special MultiChannelManager that
 	hobopolis the default channel by making it the first on the channel
 	list, if you use multiple channels.
 	
+cwbot.managers.DreadChannelManager - This manager functions identically to
+    the HoboChannelManager, but functions for Dreadsylvania instead of
+    Hobopolis.
+    
 cwbot.managers.AllChannelManager - A manager that responds to chats received
 	on any channel (assuming the bot is listening to that channel). The
 	bot's listening channels are specified in the [system] section of
@@ -1119,7 +1123,35 @@ cwbot.modules.hobopolis.TurnsModule - This module tracks the total number
 	of turns in the Hobopolis instance. Use "!turns" to see a total turn
 	count.
 	(No options)
-	
+
+
+Dreadsylvania modules (all require the DreadChannelManager):
+
+NOTE: All of these modules should not be loaded more than once.
+
+cwbot.modules.dread.DreadOverviewModule - Shows an overview of
+    the Dreadsylvanian zones with the !summary, !status, or !dread commands.
+    This module is REQUIRED for other Dread modules to function and must be
+    at a HIGHER priority value.
+    (No options)
+    
+cwbot.modules.dread.DreadKeyModule - Shows which subareas are locked with
+    the !keys command.
+    (No options)
+    
+cwbot.modules.dread.DreadUniquesModule - Shows which unique items area still
+    in Dreadsylvania, and optionally announces when they are taken. Use the
+    !uniques command to check the presence of unique items. 
+    Options: announce: if true, announces when unique items are taken (True)
+    
+cwbot.modules.dread.DreadChoicesModule - Shows which choice adventures are
+    still available for the given player with the !choices command. Note that,
+    as of this writing, not all of the choices in the log are spaded, and the
+    choice for an owl folder is not printed in the logs and is therefore
+    undetectable. (If you have a log message not in the database, please
+    check if you have the latest version, then kmail rlbond86 with a copy
+    of your log message and exactly which choice you made, in which zone,
+    choice adventure, subarea, and button text.
 
 
 4. Contact Info

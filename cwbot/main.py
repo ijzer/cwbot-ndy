@@ -15,6 +15,7 @@ from cwbot.kolextra.manager.ChatManager import ChatManager
 from cwbot.kolextra.request.SendMessageRequest import SendMessageRequest
 from cwbot.kolextra.manager.InventoryManager import InventoryManager
 from cwbot.util.tryRequest import tryRequest
+from cwbot.database import database
 from kol.Session import Session
 import kol.Error
 from cwbot.sys.database import Database
@@ -83,6 +84,7 @@ def loginLoop(myDb, props):
         s = openSession(props)
         inv = createInventoryManager(s, myDb)
         cman = createChatManager(s)
+        database.flush()
         bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb, exitEvent)
         
         # run the bot main loop. If this function returns, then we are logging

@@ -1,7 +1,7 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 
 
-class SewerModule(BaseHoboModule):
+class SewerModule(BaseDungeonModule):
     """ 
     A module that tracks the valves/grate status in the sewer. This
     information can be obtained from the logs, so the module is essentially

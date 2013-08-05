@@ -114,7 +114,8 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             if result is None:
                 self._log.warning("Could not read clan raid logs.")
                 return self.lastEvents
-            self._raiseEvent("new_raid_log", None, LogDict(result))
+            with self._syncLock:
+                self._raiseEvent("new_raid_log", None, LogDict(result))
             return result
 
 
@@ -196,17 +197,21 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     def _notifyModulesOfNewRaidLog(self, raidlog):
         # it's important not to process the log while responding
         # to chat, so we need a lock here.
+        if not self.__initialized:
+            return
+        
+        # important to keep this ordering for the locks
         with self.__eventLock:
-            self._lastEventCheck = time.time()
-            self._handleNewRaidlog(raidlog)
             with self._syncLock:
+                self._log.debug("{} received new log".format(self.identity))
+                self._lastEventCheck = time.time()
+                self._handleNewRaidlog(raidlog)
                 for m in self._modules:
                     mod = m.module
                     mod.extendedCall('process_log', 
                                      self._filterEvents(raidlog))
                 self._syncState()
 
-            
             
             
 ############# Override the following:

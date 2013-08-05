@@ -1,7 +1,7 @@
-from cwbot.modules.BaseHoboModule import BaseHoboModule
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule
 
 
-class TurnsModule(BaseHoboModule):
+class TurnsModule(BaseDungeonModule):
     """ 
     A stateless module that keeps track of number of turns spent in Hobopolis.
     

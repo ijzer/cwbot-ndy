@@ -1,5 +1,8 @@
-from cwbot.modules.BaseHoboModule import (BaseHoboModule, killPercent, 
-                                          eventFilter)
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+
+
+def killPercent(n):
+    return int(max(0, min(99, 100*n / 500.0)))
 
 
 def getTireDamage(n):
@@ -10,7 +13,7 @@ GUESSED = 1
 KNOWN = 2
 
 
-class BurnbarrelModule(BaseHoboModule):
+class BurnbarrelModule(BaseDungeonModule):
     """ 
     A module that tracks the tire stack in Burnbarrel Blvd.
     This module is extremely complicated due to the stateful nature of
