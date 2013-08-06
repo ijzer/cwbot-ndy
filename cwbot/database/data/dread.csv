@@ -10,7 +10,7 @@ The Woods,Cabin,Basement,Look through the newspapers,recycled some newspapers,FK
 The Woods,Cabin,Basement,Read diary,read an old diary,100 turns Bored Stiff,Aquacadet08,,,
 The Woods,Cabin,Basement,Check out the lockbox,got a Dreadsylvanian auditor's badge,req replica key,,1,unique,badge (Cabin: need Replica Key)
 The Woods,Cabin,Basement,Stick a wax banana in the lock,made an impression of a complicated lock,req wax banana,PeKaJe,,,
-The Woods,Cabin,Attic,Turn off the music box,made the forest less spooky,-spooky; item for AT,,1,unique,"music box parts (Cabin: attic, AT only)"
+The Woods,Cabin,Attic,Turn off the music box,made the forest less spooky,-spooky; item for AT,,1,unique,"music box (Cabin: attic, AT only)"
 The Woods,Cabin,Attic,Check out the wolfsbane,drove some werewolves out of the forest,-werewolves,,,,
 The Woods,Cabin,Attic,Poke around in the rafters,drove some vampires out of the castle,-vampires,rlbond86,,,
 The Woods,Cabin,Attic,Look through the photo albums,flipped through a photo album,+moxie,,,,
@@ -24,7 +24,7 @@ The Woods,Tallest Tree,Base,Stand near the base looking upward,(?:got a blood ki
 The Woods,Tallest Tree,Base,Stand near the base looking downward,got a cool seed pod,seed pod,skinz3,,,
 The Woods,Tallest Tree,Base,Investigate the hole,###NO MESSAGE###,req folder holder; NO MESSAGE IN LOG :(,lordhyperion,,,
 The Woods,Burrows,Heat,Pull the cork,made the forest less hot,-hot,rlbond86,,,
-The Woods,Burrows,Heat,Play in the fire,got intimate with some hot coals,100 turns Dragged Through the Coals,,,,
+The Woods,Burrows,Heat,Play in the fire,got intimate with some hot coals,100 turns Dragged Through the Coals,rlbond86,,,
 The Woods,Burrows,Heat,Melt down an old ball and chain,made a cool iron ingot,"req old ball and chain, gives cool iron ingot",Aquacadet08,,,
 The Woods,Burrows,Cold,Read the heart a story,made the forest less cold,-cold,,,,
 The Woods,Burrows,Cold,Listen to the heart,listened to the forest's heart,+myst,rlbond86,,,
@@ -36,7 +36,7 @@ The Village,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:g
 The Village,(combat),boss,,defeated\s+(?:Major Ghost|the Zombie Homeowners' Association),,rlbond86,,,
 The Village,(unlock),Suite,,unlocked the master suite,,rlbond86,,,
 The Village,(unlock),School,,unlocked the schoolhouse,,rlbond86,,,
-The Village,Square,School,Clean the erasers,drove some ghosts out of the village,-ghosts,,,,
+The Village,Square,School,Clean the erasers,drove some ghosts out of the village,-ghosts,rlbond86,,,
 The Village,Square,School,Rummage through the teacher's desk,collected a ghost pencil,ghost pencil,rlbond86,10,pencil,ghost pencil (Square: in school desk)
 The Village,Square,School,Read the carvings on the students' desks,read some naughty carvings,+myst,,,,
 The Village,Square,Blacksmith,Stoke the furnace,made the village less cold,-cold,,,,
