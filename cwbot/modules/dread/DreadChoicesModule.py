@@ -38,10 +38,10 @@ class DreadChoicesModule(BaseDungeonModule):
         for e in events:
             zone = e['db-match'].get('zone')
             userName = "".join(e['userName'].split()).strip().lower()
-            self._userAdventures.setdefault(userName, set())
+            self._userAdventures.setdefault(userName, [])
             self._properUserNames[userName] = e['userName']
             if zone in self._choiceLocations:
-                self._userAdventures[userName].add(zone)
+                self._userAdventures[userName].append(e['db-match'])
             
                 
         try:
@@ -62,32 +62,44 @@ class DreadChoicesModule(BaseDungeonModule):
         
     def _processCommand(self, msg, cmd, args):
         if cmd in ["choice", "choices"]:
+            isSelf = False
             if not self._dungeonActive():
                 return ("How can you choose what doesn't exist?")
             if args == "":
+                isSelf = True
                 args = msg['userName']
             user = "".join(args.split()).strip().lower()
-            isSelf = (msg['userName'] == self._properUserNames.get(user, ""))
             choices = self._userAdventures.get(user)
             if isSelf and choices is None:
                 choices = []
+                self._properUserNames[user] = msg['userName']
             elif choices is None:
                 return ("Player {} has not adventured in this Dreadsylvania "
                         "instance.".format(args))
             
             playerChoicesLeft = []
+            playerChoicesMade = []
             for zone in self._choiceLocations:
-                if zone not in choices:
+                zoneMatches = [e for e in choices if e['zone'] == zone]
+                if zoneMatches:
+                    playerChoicesMade.append((zone, zoneMatches[0]['code']))
+                else:
                     zoneData = self._dread[self._choiceCategories[zone]]
                     if zoneData['status'] not in ["done", "boss"]:
                         playerChoicesLeft.append(zone)
-            if not playerChoicesLeft:
-                return ("Player {} has no more choice adventures available "
-                        "in Dreadsylvania."
-                        .format(self._properUserNames[user]))
-            return ("Choices available to {}: {}"
-                    .format(self._properUserNames[user],
-                            ", ".join(playerChoicesLeft)))
+                    else:
+                        playerChoicesMade.append((zone, "missed"))
+            txt = "{}: ".format(self._properUserNames[user])
+            if playerChoicesMade:
+                txt += "[{}] ".format(", ".join("{0[0]}: {0[1]}"
+                                                .format(args)
+                                                for args in playerChoicesMade))
+            if playerChoicesLeft:
+                txt += "Still available: {}.".format(
+                                                ", ".join(playerChoicesLeft))
+            else:
+                txt += "None left."
+            return txt
         return None
         
                 

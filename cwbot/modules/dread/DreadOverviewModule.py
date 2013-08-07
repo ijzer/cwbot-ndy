@@ -1,5 +1,7 @@
 from cwbot.modules.BaseDungeonModule import (BaseDungeonModule, eventFilter,
                                              eventDbMatch)
+from cwbot.util.textProcessing import stringToList
+from cwbot.common.exceptions import FatalError
 
 
 def dreadPercent(n):
@@ -13,7 +15,9 @@ class DreadOverviewModule(BaseDungeonModule):
     Displays an overview of Dreadsylvania.
     NOTE: SHOULD BE HIGHER PRIORITY THAN OTHER MODULES IN DREADSYLVANIA
     
-    No configuration options.
+    Options:
+        update-percent: comma-separated list of percent values to 
+                        update progress on zones (25, 50, 75, 90)
     """
     requiredCapabilities = ['chat', 'dread']
     _name = "dread-overview"
@@ -22,14 +26,15 @@ class DreadOverviewModule(BaseDungeonModule):
     
     def __init__(self, manager, identity, config):
         nones = None, None, None
-        self._woodsDone, self._villageDone, self._castleDone = nones
-        self._woodsKilled, self._villageKilled, self._castleKilled = nones
+        self._done = None
+        self._killed = None
         self._woodsBal, self._villageBal, self._castleBal = nones
         self._woodsLvl, self._villageLvl, self._castleLvl = nones
         self._drunk = None
         self._kisses = None
         self._lockedAreas = None
         self._locked = None
+        self._notifyPercent = None
         
         super(DreadOverviewModule, self).__init__(manager, identity, config)
 
@@ -38,18 +43,23 @@ class DreadOverviewModule(BaseDungeonModule):
         self._db = initData['event-db']
         self._lockedAreas = [r for r in self._db if r['zone'] == "(unlock)"]
         self._processLog(initData)
-
+        
+    
+    def _configure(self, config):
+        try:
+            self._notifyPercent = map(int, stringToList(
+                                            config.setdefault('update-percent',
+                                                              "25,50,75,90")))
+        except ValueError:
+            raise FatalError("update-percent must be a list of integers")
+    
 
     def _areaInfo(self, areaNum):
         d = {}
         d['index'] = areaNum
         d['accessible'] = self._drunk >= areaNum * 1000
-        d['killed'] = {0: self._woodsKilled, 
-                       1: self._villageKilled, 
-                       2: self._castleKilled}[areaNum]
-        d['done'] = {0: self._woodsDone,
-                     1: self._villageDone,
-                     2: self._castleDone}[areaNum]
+        d['killed'] = self._killed[areaNum]
+        d['done'] = self._done[areaNum]
         d['balance'] = {0: self._woodsBal,
                         1: self._villageBal,
                         2: self._castleBal}[areaNum]
@@ -100,22 +110,33 @@ class DreadOverviewModule(BaseDungeonModule):
 
     def _processLog(self, raidlog):
         events = raidlog['events']
-        self._woodsDone   = any(eventDbMatch(events, 
+        self._done = {}
+        self._done[0] = any(eventDbMatch(events, 
             {'category': "The Woods", 
              'zone': "(combat)",
              'subzone': "boss"}))
-        self._villageDone = any(eventDbMatch(events, 
+        self._done[1] = any(eventDbMatch(events, 
             {'category': "The Village", 
              'zone': "(combat)",
              'subzone': "boss"}))
-        self._castleDone  = any(eventDbMatch(events, 
+        self._done[2]  = any(eventDbMatch(events, 
             {'category': "The Castle", 
              'zone': "(combat)",
              'subzone': "boss"}))
         self._drunk = raidlog['dread']['drunkenness']
-        self._woodsKilled   = raidlog['dread'].get('forest', 0)
-        self._villageKilled = raidlog['dread'].get('village', 0)
-        self._castleKilled  = raidlog['dread'].get('castle', 0)
+        
+        newKilled = [raidlog['dread'].get('forest', 0),
+                     raidlog['dread'].get('village', 0),
+                     raidlog['dread'].get('castle', 0)]
+        areaNames = ["Woods are", "Village is", "Castle is"]
+        if self._killed is not None:
+            for old,new,area in zip(self._killed, newKilled, areaNames):
+                for threshold in self._notifyPercent:
+                    if old < 10*threshold <= new:
+                        self.chat("The {} {}% complete.".format(area,
+                                                                int(new/10)))
+                        break
+        self._killed = newKilled
         
         self._woodsBal = (  sum(e['turns'] for e in eventFilter(events, r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+werewolf'))
                           - sum(e['turns'] for e in eventFilter(events, r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+bugbear')))
@@ -151,23 +172,23 @@ class DreadOverviewModule(BaseDungeonModule):
             ctxt = "Castle done"
             ktxt = "{} kisses".format(self._kisses)
 
-            if not self._castleDone:
+            if not self._done[2]:
                 if self._drunk < 2000:
                     ctxt = ("[+{} drunk to open Castle]"
                             .format(2000 - self._drunk))
                 else:
                     ctxt = self.getTag(2)
 
-            if not self._villageDone:
+            if not self._done[1]:
                 if self._drunk < 1000:
                     vtxt = ("[+{} drunk to open Village]"
                             .format(1000 - self._drunk))
-                    if not self._castleDone:
+                    if not self._done[2]:
                         ctxt = "[Castle closed]"
                 else:
                     vtxt = self.getTag(1)
                     
-            if not self._woodsDone:
+            if not self._done[0]:
                 wtxt = self.getTag(0)
             txt = ", ".join([ktxt, wtxt, vtxt, ctxt])
             return txt

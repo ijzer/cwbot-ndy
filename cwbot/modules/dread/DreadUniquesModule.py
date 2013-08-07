@@ -1,6 +1,6 @@
 from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 from cwbot.common.exceptions import FatalError
-from cwbot.util.textProcessing import stringToBool
+from cwbot.util.textProcessing import stringToBool, toTypeOrNone
 from collections import defaultdict, Counter
 
 
@@ -66,11 +66,9 @@ class DreadUniquesModule(BaseDungeonModule):
         userNames = {}
         for record in self._uniques:
             itemTxt = record['unique_text']
-            quantity = 1
-            try:
-                quantity = int(record['quantity'])
-            except ValueError:
-                pass
+            quantity = toTypeOrNone(record['quantity'], int)
+            if quantity is None:
+                quantity = 1
             
             # see how many items were taken and who did it
             itemsAcquired = 0
@@ -113,11 +111,9 @@ class DreadUniquesModule(BaseDungeonModule):
             if itemData['status'] in ["done", "boss"]:
                 continue
 
-            quantity = 1
-            try:
-                quantity = int(record['quantity'])
-            except ValueError:
-                pass
+            quantity = toTypeOrNone(record['quantity'], int)
+            if quantity is None:
+                quantity = 1
             
             itemName = record['unique_text']
             numAvailable = (quantity - len(self._claimed[itemName]))
@@ -133,26 +129,37 @@ class DreadUniquesModule(BaseDungeonModule):
                 return ("Dreadsylvania has faded into the mist, along with "
                         "all its stuff. Don't you just hate when that "
                         "happens?")
-            messages = defaultdict(list)
+            messages = {}
             lockedTxt = {True: "LOCKED ", False: ""}
-            qtyText = lambda x: "{}x ".format(x)
+            areaItems = defaultdict(list)
             for record,available,locked in self._getUniqueData(['pencil', 
                                                                 'unique', 
                                                                 'uncommon']):
-                    messages[record['category']].append(
-                            "{}{}{}".format(qtyText(available),
-                                            lockedTxt[locked],
-                                            record['unique_text']))
-
+                areaItems[record['category']].append(
+                                                (record, available,locked))
+            for k,v in areaItems.items():
+                itemTxt = []
+                for record,available,locked in v:
+                    quantity = toTypeOrNone(record['quantity'], int)
+                    if quantity is None:
+                        quantity = 1
+                    
+                    txt = ""
+                    if quantity > 1:
+                        txt += "{}x ".format(available)
+                    txt += lockedTxt[locked]
+                    txt += record['unique_text']
+                    itemTxt.append(txt)
+                messages[k] = "({}) {}".format(k[4:], ", ".join(itemTxt))
+                    
             # get list of areas by index
             areas = dict((v['index'], k) for k,v in self._dread.items())
-            txt = []
-            for idx in areas.keys():
+            txtSegments = []
+            for idx in sorted(areas.keys()):
                 areaname = areas[idx]
-                if messages[areaname]:
-                    txt.append("{}: {}."
-                               .format(areaname, 
-                                       ", ".join(messages[areaname])))
+                if areaname in messages:
+                    txtSegments.append(messages[areaname])
+            txt = ["; ".join(txtSegments)]
 
             # show FKs
             fkTxt = []
@@ -168,6 +175,10 @@ class DreadUniquesModule(BaseDungeonModule):
             return ("Looks like adventurers have combed over Dreadsylvania "
                     "pretty well.")
         if cmd in ["pencil", "pencils"]:
+            if not self._dungeonActive() or self._claimed is None:
+                return ("Dreadsylvania has dissappeared once again, along "
+                        "with its ghost pencil factory. You probably can't "
+                        "find them in stores anymore.") 
             pencils = list(self._getUniqueData(['pencil']))
             if not pencils:
                 return ("All the ghost pencils are gone. Now nobody can do "

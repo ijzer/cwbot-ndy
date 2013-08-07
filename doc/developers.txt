@@ -327,8 +327,9 @@ O.initialize(self, lastKnownState, initData): this method should not be called
 	shutdown (see O.state and O.initialState below). initData is a dict that is
 	passed to the module from its manager. Each manager can determine what
 	information goes here. At the moment, all modules pass an empty dict here,
-	except the HoboChannelManager, which passes raid log information. See
-	BaseHoboModule for more information. This method should be overridden.
+	except dungeon managers (the HoboChannelManager and DreadChannelManager),
+    which passes raid log information. See BaseHoboModule or BaseDreadModule
+    for more information. This method should be overridden.
 	Note that if this method throws an exception -- any exception -- when
 	initialized with persistent state, then the state is discarded and the
 	module is initialized with its initialState instead. This method may also
@@ -547,10 +548,10 @@ done for a BaseModule:
 - impliment the _availableCommands() method.
 
 
-4D. BaseHoboModule
-------------------
+4D. BaseDungeonModule
+---------------------
 
-The BaseHoboModule is a subclass of BaseChatModule and is designed to
+The BaseDungeonModule is a subclass of BaseChatModule and is designed to
 interact with the HoboChannelManager. In addition to BaseChatModule, 
 it adds the following:
 
@@ -566,7 +567,7 @@ O._dungeonActive(self): returns True if Hodgman is still alive in the
 
 --- Methods to OVERRIDE ---
 	
-O._processDungeon(self, dungeonText, lastEvents): this function is called
+O._processDungeon(self, dungeonText, raidlog): this function is called
 	any time a chat from Dungeon is received. The dungeonText argument is a
 	string that has the text in the chat. The lastEvents argument is a list
 	of the most recent raid log, as returned from PyKol; these events are
@@ -574,19 +575,21 @@ O._processDungeon(self, dungeonText, lastEvents): this function is called
 	as the chat. It is possible that more recent events are included in
 	lastEvents. It's recommended that you either use dungeonText OR
 	lastEvents if keeping track of event counts, but don't use both.
-	It's often useful to call self._processLog(lastEvents) either at the
-	beginning or at the end of this function.
+	It's often useful to call self._processLog(raidlog['events']) either at 
+    the beginning or at the end of this function.
 	
-O._processLog(self, eventLog): this function is called periodically when
+O._processLog(self, raidlog): this function is called periodically when
 	events are updated. You can do whatever you want with this information.
-	The HoboChatManager does this in a different thread, but everything is
+	The dungeon managers do this in a different thread, but everything is
 	synchronized, so you can treat this function as if it is called in the
-	same thread as _processDungeon.
+	same thread as _processDungeon. The variable raidlog has an 'events' key
+    which contains the relevant portion of the raidlog.
 
 	
 --- Extra Functions ---
 
-Included in the BaseHoboModule file are two auxiliary functions you can import:
+Included in the BaseDungeonModule file are two auxiliary functions you can 
+import:
 
 eventFilter(events, *text) is a shortcut function to filter events from
 	the event log. eventFilter(events, regex1, regex2, ...) will return
@@ -595,14 +598,12 @@ eventFilter(events, *text) is a shortcut function to filter events from
 	to count the total number of hot hobos killed:
 	N = sum(k['turns'] for k in eventFilter(events, r'defeated\s+Hot hobo'))
 
-killPercent(n) returns an integer between 0 and 99 that corresponds to the
-	percent completion of a Hobopolis side zone (assumed to need 500 kills).
-	n is the number of hobos killed in the zone (counting extra kills, for
-	example from trashcanos).
+ADD HERE ****************************************************************************
 	
+    
 --- Summary ---
 
-To create a Hobopolis module, perform the following, IN ADDITION to what is
+To create a Dungeon module, perform the following, IN ADDITION to what is
 done for a BaseModule and a BaseChatModule:
 
 - impliment the _processDungeon() method.
@@ -770,10 +771,11 @@ chat from any channel; its defaultChannel() method returns the same channel as
 the most recent chat received, so that it always replies on the same channel.
 
 
-5E. HoboChannelManager
-----------------------
+5E. BaseDungeonChannelManager
+-----------------------------
 
-This manager is derived from MultiChannelManager and adds Hobopolis features.
+This manager is derived from MultiChannelManager and adds clan dungeon
+features.
 
 The first difference between this and MultiChannelManager is the parseChat()
 method. After filtering, chats from Dungeon are routed to the 
@@ -783,15 +785,21 @@ have it.
 
 The HoboChannelManager polls the Hobopolis logs periodically by calling the
 _updateLogs() method. This method checks the amount of time since the last
-update, and if it has been long enough, redownloads the hobopolis logs
+update, and if it has been long enough, redownloads the raid logs
 via _getRaidLog() and then calls the _processLog() method for each module.
+It also notifies any other BaseDungeonChannelManagers and they also call
+their _processLog() methods, so the raidlogs are not repeatedly downloaded
+by multiple managers.
 
-There are two properties: active is true if the dungeon is active (i.e.,
-Hodgman is alive), and lastEvents holds a copy of the most recent events.
+There are two properties: O.active is true if the dungeon is active, 
+and O.lastEvents holds a copy of the most recent events.
 self.lastEvents returns a copy and is thread safe.
 
-Modules that are under the HoboChannelManager are reset (via their reset()
-methods) whenever a new Hobopolis instance is present.
+Modules that are under the BaseDungeonChannelManager are reset (via their
+reset() methods) whenever a new Hobopolis instance is present.
+
+There are two derived managers: HoboChannelManager and DreadChannelManager. 
+They are nearly identical but perform some log filtering.
 
 
 6. CommunicationDirector
