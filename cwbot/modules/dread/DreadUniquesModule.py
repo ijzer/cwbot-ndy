@@ -159,7 +159,7 @@ class DreadUniquesModule(BaseDungeonModule):
                 areaname = areas[idx]
                 if areaname in messages:
                     txtSegments.append(messages[areaname])
-            txt = ["; ".join(txtSegments)]
+            txt = ["; ".join(txtSegments)] if txtSegments else []
 
             # show FKs
             fkTxt = []
@@ -170,6 +170,7 @@ class DreadUniquesModule(BaseDungeonModule):
             if fkTxt:
                 txt.append("FKs available: {}".format(", ".join(fkTxt)))
 
+            
             if txt:
                 return "\n".join(txt)
             return ("Looks like adventurers have combed over Dreadsylvania "
