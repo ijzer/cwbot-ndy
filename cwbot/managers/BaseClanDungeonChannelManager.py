@@ -171,7 +171,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     def cleanup(self):
         with self.__eventLock:
             self.__initialized = False
-            MultiChannelManager.cleanup(self)
+        MultiChannelManager.cleanup(self)
 
             
     def _heartbeat(self):
@@ -205,11 +205,11 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             with self._syncLock:
                 self._log.debug("{} received new log".format(self.identity))
                 self._lastEventCheck = time.time()
-                self._handleNewRaidlog(raidlog)
+                filteredLog = self._filterEvents(raidlog)
+                self._handleNewRaidlog(filteredLog)
                 for m in self._modules:
                     mod = m.module
-                    mod.extendedCall('process_log', 
-                                     self._filterEvents(raidlog))
+                    mod.extendedCall('process_log', filteredLog)
                 self._syncState()
 
             

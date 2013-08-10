@@ -133,9 +133,9 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
 
     def _dungeonIsActive(self, raidlog):
         """ Check if dungeon is active """
-        bossRegex = re.compile(r"""defeated\s+(The Great Wolf of the Air|The Unkillable Skeleton|the Zombie Homeowners' Association|Count Drunkula|Falls-From-Sky|Mayor Ghost)""", re.IGNORECASE)
-        bossesKilled = [e for e in raidlog['events'] 
-                        if bossRegex.search(e['event']) is not None]
+        bossesKilled = [e for e in raidlog['events']
+                        if e['db-match'].get("zone") == "(combat)"
+                        and e['db-match'].get("subzone") == "boss"]
         return len(bossesKilled) < 3
     
 

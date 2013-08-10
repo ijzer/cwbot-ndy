@@ -1,4 +1,7 @@
 category,zone,subzone,choice,regex,notes,verified by,quantity,unique_type,unique_text,code
+Town Square,(combat),normal,,defeated\s+Normal hobo,,,,,,
+Miscellaneous,(combat),boss,,defeated\s+Hodgman,,,,,,
+,,,,,,,,,,
 The Woods,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:werewolf|bugbear),,rlbond86,,,,
 The Woods,(combat),boss,,defeated\s+(?:The Great Wolf of the Air|Falls-From-Sky),,rlbond86,,,,
 The Woods,(unlock),Attic,,unlocked the attic of the cabin,,rlbond86,,,,
@@ -33,7 +36,7 @@ The Woods,Burrows,Smelly,Smash the eggs,drove some bugbears out of the forest,-b
 The Woods,Burrows,Smelly,Dig through the garbage,found and sold a rare baseball card,FKs,PeKaJe,10,fk,FK-3,FKs
 The Woods,Burrows,Smelly,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
 The Village,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:ghost|zombie),,rlbond86,,,,
-The Village,(combat),boss,,defeated\s+(?:Major Ghost|the Zombie Homeowners' Association),,rlbond86,,,,
+The Village,(combat),boss,,defeated\s+(?:Mayor Ghost|the Zombie Homeowners' Association),,rlbond86,,,,
 The Village,(unlock),Suite,,unlocked the master suite,,rlbond86,,,,
 The Village,(unlock),School,,unlocked the schoolhouse,,rlbond86,,,,
 The Village,Square,School,Clean the erasers,drove some ghosts out of the village,-ghosts,rlbond86,,,,-ghost
@@ -46,7 +49,7 @@ The Village,Square,Gallows,Paint the noose pink,made the village less spooky,-sp
 The Village,Square,Gallows,Stand on the trap door,was hung by a clanmate,wait,skinz3,1,unique,gallows item,hanged
 The Village,Square,Gallows,Pull the lever,hung a clanmate,pull lever,,,,,lever
 The Village,Skid Row,Sewers,Unclog the grate,made the village less stinky,-stench,rlbond86,,,,-stench
-The Village,Skid Row,Sewers,Slosh in the muck,swam in a sewer,100 turns sewer drenched,,,,,effect
+The Village,Skid Row,Sewers,Slosh in the muck,swam in a sewer,100 turns sewer drenched,rlbond86,,,,effect
 The Village,Skid Row,Sewers,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
 The Village,Skid Row,Tenements,Drive out the rats,drove some skeletons out of the castle,-skeletons,rlbond86,,,,-skel.
 The Village,Skid Row,Tenements,Paint over the graffiti,made the village less sleazy,-sleaze,rlbond86,,,,-sleaze
@@ -54,26 +57,26 @@ The Village,Skid Row,Tenements,Move bricks around,moved some bricks around,+musc
 The Village,Skid Row,Shack,Rummage through the shelves,looted the tinker's shack,mox class; FKs,PeKaJe,10,fk,FK-5,FKs
 The Village,Skid Row,Shack,Make a key using the wax lock impression,made a complicated key,mox class; replica key,PeKaJe,,,,repl-key
 The Village,Skid Row,Shack,Polish the moon-amber,polished some moon-amber,mox class; req moon amber,,,,,polish
-The Village,Skid Row,Shack,Assemble a clockwork bird,###UNKNOWN###,mox class; clockwork bird,,,,,cwk-bird
+The Village,Skid Row,Shack,Assemble a clockwork bird,made a clockwork bird,mox class; clockwork bird,Darzil,,,,cwk-bird
 The Village,Skid Row,Shack,Look through the boxes,got some old fuse,mox class; get old fuse,,,,,old-fuse
 The Village,Estate,Plot,Close the gates,drove some zombies out of the village,-zombies,,,,,-zombie
 The Village,Estate,Plot,Rob some graves,robbed some graves,FKs,PeKaJe,10,fk,FK-6,FKs
 The Village,Estate,Plot,Read some tombstones,read some lurid epitaphs,100 turns Fifty Ways to Bereave...,rlbond86,,,,effect
 The Village,Estate,Quarters,Turn off the ovens,made the village less hot,-hot,,,,,-hot
-The Village,Estate,Quarters,Make a sheperd's pie,###UNKNOWN###,req myst; make sheperd's pie,,,,,shep-pie
+The Village,Estate,Quarters,Make a sheperd's pie,made a shepherd's pie,req myst; make sheperd's pie,MajorInfinity,,,,shep-pie
 The Village,Estate,Quarters,Look through the cabinets,raided some naughty cabinets,+moxie,,,,,+moxie
 The Village,Estate,Suite,Blow the whistle,drove some werewolves out of the forest,-werewolves,,,,,-wwolf
 The Village,Estate,Suite,Check the nightstand,got a bottle of eau de mort,eau de mort,PeKaJe,,,,eau-mort
-The Village,Estate,Suite,Mess with the loom,###UNKNOWN###,req 10 ghost threads,,,,,loom
+The Village,Estate,Suite,Mess with the loom,made a ghost shawl,req 10 ghost threads,,,,,loom
 The Castle,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:skeleton|vampire),,rlbond86,,,,
 The Castle,(combat),boss,,defeated\s+(?:Count Drunkula|The Unkillable Skeleton),,rlbond86,,,,
 The Castle,(unlock),Lab,,unlocked the lab,,rlbond86,,,,
 The Castle,(unlock),Ballroom,,unlocked the ballroom,,rlbond86,,,,
 The Castle,Tower,Lab,Turn on the lamp,drove some bugbears out of the forest,-bugbears,,,,,-bugbear
 The Castle,Tower,Lab,Examine the brains in jars,drove some zombies out of the village,-zombies,,,,,-zombie
-The Castle,Tower,Lab,Approach The Machine (gain skill),###UNKNOWN###,machine to make skills,,,,,skill
-The Castle,Tower,Lab,Approach The Machine (assist),###UNKNOWN###,,,,,,assist
-The Castle,Tower,Lab,Use the still,###UNKNOWN###,use still w/ kiwi+eau de mort,,,,,still
+The Castle,Tower,Lab,Approach The Machine (gain skill),###NO MESSAGE###,machine to make skills,,,,,skill
+The Castle,Tower,Lab,Approach The Machine (assist),###NO MESSAGE###,,,,,,assist
+The Castle,Tower,Lab,Use the still,made a blood kiwitini,mox class; use still w/ kiwi+eau de mort,PeKaJe,,,,still
 The Castle,Tower,Books,"Read ""Bone-Dissolving Incantations: A Treatise""",drove some skeletons out of the castle,myst class; -skeletons,rlbond86,,,,-skel.
 The Castle,Tower,Books,"Read ""Amazing Ancient Mystical Secrets""",read some ancient secrets,myst class; +myst,,,,,+myst
 The Castle,Tower,Books,"Read ""Enchanted Jewelry, Then and Now""",learned to make a moon-amber necklace,myst class; moon-amber necklace recipe,Skinz3,,,,recipe
@@ -83,7 +86,7 @@ The Castle,Tower,Bedroom,Turn on the magic fingers,got magically fingered,100 tu
 The Castle,Hall,Ballroom,Play the organ,drove some vampires out of the castle,-vampires,rlbond86,,,,-vampire
 The Castle,Hall,Ballroom,Trip the light fantastic,twirled on the dance floor,+moxie,,,,,+moxie
 The Castle,Hall,Ballroom,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
-The Castle,Hall,Kitchen,Turn down the freezer,made the castle less cold,-cold,,,,,-cold
+The Castle,Hall,Kitchen,Turn down the freezer,made the castle less cold,-cold,rlbond86,,,,-cold
 The Castle,Hall,Kitchen,Hang out in the freezer,frolicked in a freezer,100 turns staying frosty,Aquacadet08,,,,effect
 The Castle,Hall,Dining Room,Grab the roast,got some roast beast,roast,skinz3,1,unique,roast,roast
 The Castle,Hall,Dining Room,Clear the dishes,made the castle less stinky,-stench,,,,,-stench

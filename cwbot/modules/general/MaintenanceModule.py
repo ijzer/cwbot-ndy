@@ -1,4 +1,5 @@
 import datetime
+import re
 from cwbot.modules.BaseChatModule import BaseChatModule
 import kol.Error
 from cwbot.common.kmailContainer import Kmail
@@ -80,6 +81,12 @@ class MaintenanceModule(BaseChatModule):
             return str(tf)
         elif cmd == "plist":
             return str(self.properties.getPermissions(int(args)))
+        elif cmd == "say":
+            txtMatch = re.search(r"^\s*(?:/(\w+))?\s*(.*)", args)
+            if txtMatch:
+                self.chat(txtMatch.group(2), channel=txtMatch.group(1))
+                return None
+            return "Error matching text"
         return None
 
 
@@ -92,6 +99,7 @@ class MaintenanceModule(BaseChatModule):
                 'restart': "!restart: restarts the bot. This actually "
                            "restarts the process instead of just restarting "
                            "the main loop, and reloads all code.",
+                'say': "!say: Have the bot say something.",
                 'spam': None,
                 'raise_event': None,
                 'kmail_test': None,
