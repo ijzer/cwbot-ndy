@@ -109,7 +109,7 @@ class FaxModule(BaseChatModule):
         self._lastFax, self._lastFaxTime = None, None
         # username of last faxer / last time bot got a message from faxbot 
         self._lastFaxUname, self._lastFaxBotTime = None, None
-        self._noMoreFaxesToday = False
+        self._noMoreFaxesTime = None
         self._lastFaxCheck = 0
         self.updateLastFax()
     
@@ -138,6 +138,7 @@ class FaxModule(BaseChatModule):
     def initialize(self, state, initData):
         newFaxList = map(FaxMonsterEntry.fromDict, state['faxes'])
         self._faxList = dict((e.code, e) for e in newFaxList)
+        self._noMoreFaxesTime = None
 
 
     @property
@@ -191,7 +192,8 @@ class FaxModule(BaseChatModule):
     def checkAbort(self):
         """ Check if a request is too old and should be aborted """
         with self.__lock:
-            if self._lastRequest is not None and not self._noMoreFaxesToday:
+            if (self._lastRequest is not None 
+                    and self._noMoreFaxesTime is None):
                 timeDiff = utcTime() - self._lastRequestTime
                 if timeDiff > self._abortTime:
                     self.chat("FaxBot has not replied to my request. "
@@ -224,9 +226,9 @@ class FaxModule(BaseChatModule):
                 if event['userId'] == self.faxbot_uid:
                     self._lastRequest = None
                     self._lastRequestTime = None
-            if self._noMoreFaxesToday:
-                if utcTime() - self._lastRequestTime > 3600 * 3:
-                    self._noMoreFaxesToday = False
+            if self._noMoreFaxesTime is not None:
+                if utcTime() - self._noMoreFaxesTime > 3600 * 3:
+                    self._noMoreFaxesTime = False
                     self._lastRequestTime = None
             self.checkAbort()
             return replyStr
@@ -275,7 +277,7 @@ class FaxModule(BaseChatModule):
                 return ("{} There is already a(n) {} in the fax machine. "
                         "Use '!fax {} force' to fax one anyway."
                         .format(prependText, monstername, monstercode))
-            if not self._noMoreFaxesToday:
+            if self._noMoreFaxesTime is None:
                 self.whisper(self.faxbot_uid, monstercode)
                 self._lastRequest = monstercode
                 self._lastRequestTime = utcTime()
@@ -404,7 +406,7 @@ class FaxModule(BaseChatModule):
                 return ("FaxBot received the request too early. "
                         "Please try again.")
             if "try again tomorrow" in txt:
-                self._noMoreFaxesToday = True
+                self._noMoreFaxesTime = utcTime()
                 txt = ("I'm not allowed to request any more faxes today. "
                        "Request manually with /w FaxBot {}"
                        .format(self._lastRequest))
