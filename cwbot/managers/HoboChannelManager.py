@@ -100,11 +100,13 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
     def _syncState(self, force=False):
         '''Store persistent data for Hobo Modules. Here there is the 
         extra step of storing the old log and hoid. '''
-        with self._syncLock:
-            if self._persist is not None:
-                self._persist['__log__'] = self._filterEvents(self.lastEvents)
-                self._persist['__hoid__'] = self._hoid
-            super(HoboChannelManager, self)._syncState(force)
+        with self.__eventLock:
+            with self._syncLock:
+                if self._persist is not None:
+                    self._persist['__log__'] = self._filterEvents(
+                                                            self.lastEvents)
+                    self._persist['__hoid__'] = self._hoid
+                super(HoboChannelManager, self)._syncState(force)
 
     
     def _initializeFromLog(self):
