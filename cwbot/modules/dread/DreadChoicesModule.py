@@ -13,6 +13,7 @@ class DreadChoicesModule(BaseDungeonModule):
     
     def __init__(self, manager, identity, config):
         self._choiceLocations = None
+        self._choiceCategories = None
         self._userAdventures = None
         self._properUserNames = None
         super(DreadChoicesModule, self).__init__(manager, identity, config)
