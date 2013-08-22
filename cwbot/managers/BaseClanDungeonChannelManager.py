@@ -78,7 +78,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
                             "log_check_interval must be integral")
 
     
-    def _processorInitData(self):
+    def _moduleInitData(self):
         """ The initData here is the last read raid log events. """
         return self._filterEvents(self.lastEvents)
 
@@ -224,5 +224,9 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
 
     def _handleNewRaidlog(self, raidlog):
         """ This function is called when new raidlogs are downloaded. """
+        pass
+    
+    @abc.abstractmethod
+    def active(self):
         pass
     

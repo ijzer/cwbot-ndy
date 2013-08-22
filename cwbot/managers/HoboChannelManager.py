@@ -76,7 +76,7 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                 self._log.info("Same hobopolis instance as last shutdown.")
         
 
-    def _processorInitData(self):
+    def _moduleInitData(self):
         """ The initData here is the last read Hobopolis events. """
         return self._filterEvents(self.lastEvents)
 
@@ -170,5 +170,5 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
             for m in self._modules:
                 mod = m.module
                 self._log.debug("Resetting {}".format(mod.id))
-                mod.reset(self._processorInitData())
+                mod.reset(self._moduleInitData())
 

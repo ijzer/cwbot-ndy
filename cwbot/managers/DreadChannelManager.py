@@ -71,7 +71,7 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
                 self._log.info("Same Dreadsylvania instance as last shutdown.")
         
 
-    def _processorInitData(self):
+    def _moduleInitData(self):
         """ The initData here is the last read Dreadsylvania events. """
         d = self._filterEvents(self.lastEvents)
         d['event-db'] = self._logEntryDb
@@ -185,5 +185,5 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
             for m in self._modules:
                 mod = m.module
                 self._log.debug("Resetting {}".format(mod.id))
-                mod.reset(self._processorInitData())
+                mod.reset(self._moduleInitData())
 

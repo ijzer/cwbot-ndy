@@ -108,15 +108,15 @@ def loginLoop(myDb, props):
         raise
     except kol.Error.Error as inst:
         # standard error with a pyKol component
+        if inst.code == kol.Error.NIGHTLY_MAINTENANCE and s is None:
+            log.info("Nightly maintenance; waiting to try again...")
+            loginWait = 60
+            successfulShutdown = True
         if hasattr(inst, 'timeToWait'):
             loginWait = inst.timeToWait
         if props.debug:
             log.exception("Exception raised.".format(loginWait))
             raise
-        if inst.code == kol.Error.NIGHTLY_MAINTENANCE and s is None:
-            log.info("Nightly maintenance; waiting to try again...")
-            loginWait = 60
-            successfulShutdown = True
         else:
             log.exception("Exception raised; waiting {} seconds."
                           .format(loginWait))

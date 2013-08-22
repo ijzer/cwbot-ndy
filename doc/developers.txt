@@ -67,8 +67,8 @@ result. (It also responds to the related !permute command.) All modules are
 derived from a base module -- kmail-based modules derive from 
 cwbot.modules.BaseKmailModule, and chat modules derive from 
 cwbot.modules.BaseChatModule. Modules which rely on neither can derive 
-directly from cwbot.modules.BaseModule. The special Hobopolis modules
-derive from cwbot.modules.BaseHoboModule, which itself derives from 
+directly from cwbot.modules.BaseModule. The special Dungeon modules
+derive from cwbot.modules.BaseDungeonModule, which itself derives from 
 BaseChatModule. Both BaseChatModule and BaseKmailModule in turn derive from
 cwbot.modules.BaseModule. See the module section for details.
 
@@ -93,10 +93,11 @@ The BotSystem is the main class of the bot and contains the main loop, which
 sleeps for an amount of time, checks that the bot is still online, and then
 instructs the CommunicationDirector to check for new communications.
 
-All subsystems are all members of the CommunicationDirector. This class directs
-all bot activity inside its processNewCommunications. It also responds to 
-system events and closes all bot activity before rollover. The EventSubsystem 
-and HearybeatSubsystem are described in their own sections.
+All subsystems are members of the CommunicationDirector. This class directs
+all bot activity inside its processNewCommunications method. 
+It also responds to system events and closes all bot activity before 
+rollover. The EventSubsystem and HearybeatSubsystem are described in 
+their own sections.
 
 
 2. The Event Subsystem
@@ -121,15 +122,17 @@ super(MyClass, self).__init__(name=NAME, identity=IDENTITY, evSys=EV_SUBSYS)
 ) or by later registering the object with its eventRegister() method.
 An object may only be registered to one EventSubsystem at a time.
 Using the keywords to call __init__ is required.
+In almost all cases, an object's IDENTITY is equal to its section name in
+the modules.ini file; therefore, the identity is set by the end user.
 
-The event subsystem itself uses a stack-based event subsystems. Events
+The event subsystem itself uses a stack-based event subsystem. Events
 are raised, and all objects are notified by calling their _eventCallback()
 method. Those objects can in turn raise another event, or reply to the
 current event to send data back to the caller. In this way, various
 components can "talk to" each other.
 
 An instance O derived from EventCapable implements the O.eventSubsystem
-property, which returns a reference to the objects parent EventSubsystem.
+property, which returns a reference to the object's parent EventSubsystem.
 This method has no threading safeguards, but in almost all cases is safe
 to call, since an object is usually registered at startup and unregistered
 at shutdown.
@@ -139,10 +142,8 @@ The instance O also has the following methods:
 O.eventRegister(self, evSubsystem): this method "links" the object to
 the eventSubsystem provided as an argument. This will throw an 
 EventSubsystem.EventException if O already is linked to an EventSubsystem.
-An exception will be thrown if the object has already been registered
-(including in the constructor). This detection is thread safe. It is
-also safe to register many objects at the same time. This function
-should not be overridden.
+This detection is thread safe. It is also safe to register many objects
+at the same time in different threads. This function should not be overridden.
 
 O.eventUnregister(self): unlinks the object from its EventSubsystem.
 If the object has no EventSubsystem, this will do nothing. If 
@@ -152,9 +153,9 @@ EventSubsystem and object will be in a valid state). This function
 should not be overridden.
 
 O._raiseEvent(self, subject, receiver=None, data={}): raises an event.
-subject should be a string. If receiver is None, all other objects
-are notified. It is also possible to messages to a specific class or
-a specific object. To send to a specific class, use receiver="NAME",
+subject should be a string. If receiver is None, all objects (including
+the sender) are notified. It is also possible to messages to a specific
+class or a specific object. To send to a specific class, use receiver="NAME",
 where NAME is the name specified in the constructor. To send to a
 specific object, use receiver="__IDENTITY__", where IDENTITY is the
 identity specified in the constructor. Optionally, data can be
@@ -162,10 +163,10 @@ included in the message in the form of a dict object. Events are
 handled in a single-threaded manner and only one thread may raise
 an event at a time -- events are thread-safe. Callbacks are called 
 in the order of object registration. An event may be raised inside of another
-event. When this function returns, it will return a list of
-EventData objects -- one for each reply. Not all receivers need to
-reply, and some may reply more than once. The subject of every
-EventData object in the returned list will be "reply". This function
+event and is handled as if it were a stack call. When this function returns, 
+it will return a list of EventData objects -- one for each reply. Not all
+receivers need to reply, and some may reply more than once. The subject
+of every EventData object in the returned list will be "reply". This function
 should not be overridden.
 
 O._eventCallback(self, eData): this function should not be called
@@ -182,8 +183,9 @@ E.data: any DATA supplied with the event (dict)
 It is the responsibility of the object to handle such events however
 they wish. However, since events can be broadcast to all listeners, it's a
 good idea to check the subject of an event and ignore it if it is not
-applicable. The default implementation of this does nothing. If you wish
-to use the event subsystem in a class, you should override this function.
+applicable. The default implementation of this function does nothing. 
+If you wish to use the event subsystem in a class, you should override
+this function.
 
 O._eventReply(self, data={}): sends a reply to the current event. Calling
 this function while not inside an event callback will raise an
@@ -231,7 +233,7 @@ and Events. After the object finishes executing its _heartbeat() method, the
 HeartbeatSubsystem waits for a predefined time before calling it again. Note
 that the call time is not a guarantee. If something requires very precise 
 timing, the heartbeat subsystem is probably not good enough. However, if an
-object needs periodic upkeep, this is a good option. The default 
+object simply  needs periodic upkeep, this is a good option. The default 
 implementation of the _heartbeat() method does nothing. If you wish to use
 the heartbeat subsystem in a class, you should override this function.
 
@@ -305,6 +307,10 @@ O.sendKmail(self, msg): send a Kmail. The msg argument must be a Kmail object,
 	other kmails if you attach items; use a KmailModule instead. This ensures
 	that items are not double-sent if there is some sort of error or power
 	failure.
+    
+(other)
+O.tryRequest(req): works like the cwbot.util.tryRequest function. See utility
+    functions for more information.
 	
 
 --- Methods to OVERRIDE ---
@@ -326,16 +332,18 @@ O.initialize(self, lastKnownState, initData): this method should not be called
 	run. lastKnownState is a dictionary of the object's state from the last
 	shutdown (see O.state and O.initialState below). initData is a dict that is
 	passed to the module from its manager. Each manager can determine what
-	information goes here. At the moment, all modules pass an empty dict here,
+	information goes here. At the moment, all managers pass an empty dict here,
 	except dungeon managers (the HoboChannelManager and DreadChannelManager),
     which passes raid log information. See BaseHoboModule or BaseDreadModule
     for more information. This method should be overridden.
-	Note that if this method throws an exception -- any exception -- when
-	initialized with persistent state, then the state is discarded and the
-	module is initialized with its initialState instead. This method may also
-	be called when O.reset() is called, so you should reset everything to a
-	valid state and not assume that any "good" values are already set. That
-	is, don't set any initial values in the constructor -- put them here.
+	Note that if this method throws an exception -- any exception other than
+    SyntaxError, KeyboardInterrupt, SystemExit, or 
+    cwbot.common.exceptions.FatalError -- when initialized with persistent 
+    state, then the state is discarded and the module is initialized with its 
+    initialState instead. This method may also be called when O.reset() is
+    called, so you should reset everything to a valid state and not assume
+    that any "good" values are already set. That is, don't set any initial
+    values in the constructor -- put them here.
     
     IMPORTANT: state dictionaries are stored as JSON objects; therefore, all
     keys (but not values) are converted to strings. So, if your state
@@ -352,7 +360,8 @@ O.state(self): this method returns the persistent state of the module, in a
 	the module to be compatible with the StateModule. Serialization is 
 	performed by first converting the state to JSON with Python's JSON module,
 	so only the following data types are supported:
-	dict, list,	tuple, str, unicode, int, long, float, True, False, None.
+	dict, list,	tuple, str, unicode, int, long, float, True, False, None;
+    in addition, all keys are stored as strings.
 	After conversion, the data is stored in an sqlite3 database.
 	
 @property
@@ -363,11 +372,11 @@ O.initialState(self): this method returns the default state of the module.
 	this just returns an empty dict.
 	
 O.reset(self, initData): reset the state of the module. This function is not
-	usually	called, except for modules whose parent is a HoboChannelManager, 
-	which resets the state of its child modules whenever a new Hobopolis 
-	instance is created. By default, this calls 
-	self.initialize(self.initialState, initData), but for complicated
-	modules it will probably need to be overridden.
+	usually	called, except for modules whose parent is a HoboChannelManager
+    or DreadChannelManager, which reset the state of their child modules 
+    whenever a new Hobopolis/Dreadsylvania instance is created. By default,
+    this method calls self.initialize(self.initialState, initData), but
+    for complicated modules it will probably need to be overridden.
 
 O.cleanup(self): this function is called before shutdown for rollover. If
 	the module needs to do any important tasks before shutdown, this is
@@ -386,7 +395,7 @@ O.extendedCall(self, command, *args, **kwargs): This call should not be
 	compatibility with other modules. This function is called by the manager,
 	and if the class implements that extended call, that function is called.
 	If it is not, the function returns None. There is no need to call this
-	yourself in a module.
+	yourself in a module. (See the BaseDungeonModule for example use)
 	
 O._registerExtendedCall(self, command, func): used to "register" a call
 	with extendedCall. For example, the BaseChatManager implements the
@@ -436,14 +445,14 @@ O.newMessage(self, uid, text="", meat=0): creates a Kmail object.
 
 --- Methods to OVERRIDE ---
 
-O._processMessage(self, message, uid, text, items, meat): This is where kmail
-	processing takes place in a kmail-based module. This function will be 
-	called by the module's manager to request processing of a kmail. Not every
-	kmail will be processed by every module -- with the MessageManager, if a 
-	higher-priority module indicates that it has successfully processed a
-	kmail, lower-priority modules will not be called.
-	The arguments here are: message contains the message as a Kmail object; to
-	get the pyKol representation, use message.info. message.uid is the user id
+O._processKmail(self, message): This is where kmail processing takes place 
+    in a kmail-based module. This function will be called by the module's
+    manager to request processing of a kmail. Not every kmail will be 
+    processed by every module -- with most managers (including the
+    MessageManager), if a higher-priority module indicates that it has
+    successfully processed a kmail, lower-priority modules will not be called.
+	The message argument contains the message as a Kmail object; to
+	get the pyKol representation, use message.info; message.uid is the user id
 	number of the sender; message.text is the kmail text;
 	message.items is a dict with int -> int entries, with (ITEM_ID, QUANTITY)
 	pairs; and message.meat is an integer with the amount of meat included.
@@ -453,13 +462,16 @@ O._processMessage(self, message, uid, text, items, meat): This is where kmail
 	To IGNORE the kmail, return None. The manager will then pass the kmail
 	to the next module in the priority chain.
 	To PROCESS the kmail, perform whatever computations are possible and then
-	return a Kmail object. The manager will then send that message. This
-	indicates that the message was processed. If you want to indicate that the
-	message was processed, but you do not want to send a kmail reply, return
-	a Kmail with a negative uid; the message will be ignored but the
-	manager will consider the message processed.
-	If, for some reason, you want to process the message but not indicate that
-	it was processed, use the send() method instead to send a kmail.
+	return a Kmail object. The manager will then send that message in response
+    and indicate that the message was processed. If you want to indicate that
+    the message was processed, but you do not want to send a kmail reply,
+    return a Kmail with a negative uid (i.e., return self.newMessage(-1); 
+    the message will be ignored but the manager will consider the message
+    processed. If, for some reason, you want to process the message but
+    not indicate that it was processed, use the sendKmail() method instead
+    to send a kmail. (Do note that the sendKmail() method should not be used
+    to send items in response to kmails; see the send() method in BaseModule
+    and the MailHandler section.)
 	
 O.messageSendFailed(self, sentMessage): This method is called if a kmail fails
 	to send for some reason. By default, this does nothing. But, you might
@@ -502,7 +514,7 @@ O._kmailDescription(self): This method should return a string that describes
 To create a kmail-based module, perform the following, IN ADDITION to what is
 done for a BaseModule:
 	
-- impliment the processMessage() method.
+- impliment the _processKmail() method.
 - (optional) impliment the messageSendFailed() method.
 - impliment the _kmailDescription() method.
 
@@ -522,21 +534,25 @@ O._availableCommands(self): return a dict of string -> string pairs,
 	Note that this information does not have to reflect the actual behavior
 	of the module, but if a user chats "!help ahbg", the text above will
 	be shown. To add a "hidden" command, set its description to None, e.g.,
-	{'ahbg': None}. Note that commands not in this dictionary will be 
-    "hidden" to users, but still function normally.
+	{'ahbg': None}, or simply omit it from the dictionary. 
 	
 O._processCommand(self, message, commandText, commandArgs): this is the chat
-	analogue of BaseKmailManager's processMessage() method. The message
+	analogue of BaseKmailManager's processKmail() method. The message
 	argument is a dict object returned by PyKoL; commandText is the command
 	received itself -- for example, if the user types "!fax lobsterfrogman",
 	commandText is "fax". Similarly, commandArgs is the argument string --
 	in this case "lobsterfrogman". Note that by default, the managers will
 	take arguments out of parentheses as stated in the readme -- so if a
 	user sends "!fax (lobsterfrogman) hobo_elf", commandArgs is 
-	"lobsterfrogman".
+	"lobsterfrogman". The drunk text "-hic-" is automatically stripped from
+    commandArgs.
+    As with the analogous _processKmail() method, your module must decide
+    whether to IGNORE or PROCESS the chat it receives.
 	To IGNORE the chat, return None. To PROCESS it, do whatever processing
 	is necessary and return a string. That string will be sent back in the
 	same chat channel, or back to the user if the message came in a PM.
+    After processing, most managers will not pass the chat to lower priority
+    modules.
 	
 	
 --- Summary ---
@@ -552,8 +568,8 @@ done for a BaseModule:
 ---------------------
 
 The BaseDungeonModule is a subclass of BaseChatModule and is designed to
-interact with the HoboChannelManager. In addition to BaseChatModule, 
-it adds the following:
+interact with the HoboChannelManager and DreadChannelManager. 
+In addition to BaseChatModule, it adds the following:
 
 * the initData arguments for initialize() and reset() can be assumed
 	to have an 'events' key, with a value that is a list of raid log events,
@@ -561,27 +577,29 @@ it adds the following:
 
 __init__ is the same as BaseModule and simply forwards to BaseModule.
 
-O._dungeonActive(self): returns True if Hodgman is still alive in the
-	current Hobopolis instance.
+O._dungeonActive(self): returns True if the parent manager indicates that
+    the dungeon instance is still active.
 
 
 --- Methods to OVERRIDE ---
 	
 O._processDungeon(self, dungeonText, raidlog): this function is called
 	any time a chat from Dungeon is received. The dungeonText argument is a
-	string that has the text in the chat. The lastEvents argument is a list
+	string that has the text in the chat. The raidlog argument is a list
 	of the most recent raid log, as returned from PyKol; these events are
-	read after the chat is received, so lastEvents is AT LEAST as up to date
-	as the chat. It is possible that more recent events are included in
-	lastEvents. It's recommended that you either use dungeonText OR
-	lastEvents if keeping track of event counts, but don't use both.
+	read after the chat is received, so raidlog is AT LEAST as up to date
+	as the chat. The actual PyKol raidlog events are in raidlog['events'];
+    managers may add other keys to this object.
+    It is possible that more recent events are included in
+	raidlog. It's recommended that you either use dungeonText OR
+	raidlog if keeping track of event counts, but don't use both.
 	It's often useful to call self._processLog(raidlog['events']) either at 
-    the beginning or at the end of this function.
+    the beginning or at the end of this function. 
 	
 O._processLog(self, raidlog): this function is called periodically when
 	events are updated. You can do whatever you want with this information.
-	The dungeon managers do this in a different thread, but everything is
-	synchronized, so you can treat this function as if it is called in the
+	The dungeon managers do this update in a different thread, but everything
+    is synchronized, so you can treat this function as if it is called in the
 	same thread as _processDungeon. The variable raidlog has an 'events' key
     which contains the relevant portion of the raidlog.
 
@@ -598,7 +616,10 @@ eventFilter(events, *text) is a shortcut function to filter events from
 	to count the total number of hot hobos killed:
 	N = sum(k['turns'] for k in eventFilter(events, r'defeated\s+Hot hobo'))
 
-ADD HERE ****************************************************************************
+eventDbMatch(events, categoryDict) is similar to eventFilter but uses the
+    event's db-match key and returns any events whose db-match dictionary is
+    a superset of categoryDict. As of this writing, only the
+    DreadChannelManager uses a db-match.
 	
     
 --- Summary ---
@@ -633,7 +654,9 @@ Like modules, managers are split into the kmail variety and the chat variety,
 but all are child classes of BaseManager. It would, of course, be possible to
 create a manager that handles both by inheriting from BaseChatManager and
 BaseKmailManager; however, this is not included in this package and would
-probably be more trouble than it's worth.
+probably be more trouble than it's worth. Note that the manager type determines
+which type of messages to process; both types of managers can SEND
+kmails and chats.
 
 5A. BaseManager
 ---------------
@@ -681,7 +704,8 @@ O._heartbeat(self): if you override _heartbeat, be sure to call
 	BaseManager._heartbeat as well, or the syncing mechanism will not work.
 
 O.cleanup(self) runs before shutdown for rollover. If you override it, be
-	sure to call BaseManager.cleanup, too.
+	sure to call BaseManager.cleanup, too. It's responsible for unregistering
+    its modules and cleaning them up.
 
 	
 BaseManager properties:
@@ -694,25 +718,28 @@ O.properties - return RunProperties. Same as BaseModule.
 
 Other BaseManager methods:
 
-O.errorLog, O.log, and O.debugLog work the same way as in BaseModule. Each 
-	manager writes to its own log file.
-	
-O._processorInitData(self) returns the initData dict that is passed to modules
+O._moduleInitData(self) returns the initData dict that is passed to modules
 	when the manager initializes or resets the module. This function can be
 	overridden to pass different types of data at initialization.
 	
 O._clearPersist(self) clears all persistent state of all modules. It doesn't
-	reset them, though, so if everything is active, their state will be
-	rewritten to disk.
+	reset them, though, so if modules are active, their state will be
+	rewritten to disk. It's best to call the reset() method of the modules
+    first.
 	
-O.checkClan(uid) is a public function available to modules. It returns true
-	if the user with id uid is in the same clan as the bot.
+O.checkClan(uid) is a public function available to modules. It returns a dict
+    of the player's clan info. The 'inClan' key is True if the member is in
+    the same clan as the bot; also included are 'userId', 'rankName', 
+    'userName', 'karma', and 'whitelist'.
 	
 O.defaultChannel(self) returns the default chat channel, and can be overridden
 	based on the type of manager.
 	
 O.sendChatMessage, O.whisper, and O.sendKmail use the same syntax as 
 	BaseModule's corresponding methods.
+    
+O.parseChat, and O.parseKmail default to returning []. Subclasses may
+    override these methods to actually parse kmail or chat.
 	
 
 It's important to note that, like the BaseModule, the BaseManager does not 
@@ -726,9 +753,14 @@ common to all managers.
 The MessageManager adds Kmail capabilities to the BaseManager, including
 the parseKmail method, which is called by the director. 
 
-Most of the MessageManager's processing is done inside _processMessage, which
+Most of the MessageManager's processing is done inside _processKmail, which
 formats a Kmail and then passes it to successive modules until one handles it,
-then sends the resulting Kmail, while handling permissions.
+then sends the resulting Kmail, while handling permissions. There is also
+a _sendHelpMessage method that generates a help message.
+
+Note that the MessageManager was designed with the idea that only one
+MessageManager would ever be present. Some functions will behave oddly
+if more than one is configured.
 
 
 5C. BaseChatManager
@@ -742,7 +774,7 @@ gets all new chats at once, so it's possible for more than one chat to have
 the same checkNum. By default, parseChat checks the _chatApplies(self, msg)
 method, and, if it returns true, calls processChat(self, msg, checkNum).
 
-_chatApplies(self, msg) is the function that determines filtering functions.
+_chatApplies(self, msg) is the method that determines filtering functions.
 Different managers will have different criteria for receiving messages. When
 you create a manager, you will have to think about what chats it will need
 to ignore and return False from this function in those cases.
@@ -757,7 +789,8 @@ modules by order of priority, skipping those for which the user does not have
 sufficient permission. If any return a string, it is sent in chat. This is
 done with the help of the _processCommand method, which sends commands to
 individual modules. Only the first reply is sent in chat; lower-priority
-modules do not handle the chat.
+modules do not handle the chat (though other Managers will still process
+it!)
 
 
 5D. MultiChannelManager and AllChannelManager
@@ -783,20 +816,37 @@ _processDungeonChat() method instead of _processChat(). The _processDungeonChat
 method passes dungeon chats to its modules' _processDungeon() method, if they
 have it.
 
-The HoboChannelManager polls the Hobopolis logs periodically by calling the
-_updateLogs() method. This method checks the amount of time since the last
-update, and if it has been long enough, redownloads the raid logs
-via _getRaidLog() and then calls the _processLog() method for each module.
-It also notifies any other BaseDungeonChannelManagers and they also call
-their _processLog() methods, so the raidlogs are not repeatedly downloaded
+The BaseDungeonChannelManagers polls the Hobopolis logs periodically by 
+calling the _updateLogs() method. This method checks the amount of time
+since the last update, and if it has been long enough, redownloads the 
+raid logs via _getRaidLog(). This function downloads the raidlog and then
+raises a new_raid_log event. 
+All BaseDungeonChannelManagers respond to this event by calling
+their _processLog() methods.
+This event also ensures that the raidlogs are not repeatedly downloaded
 by multiple managers.
 
-There are two properties: O.active is true if the dungeon is active, 
-and O.lastEvents holds a copy of the most recent events.
+The property O.lastEvents holds a copy of the most recent events.
 self.lastEvents returns a copy and is thread safe.
+This class uses several locks and can be quite easy to deadlock if you
+are not careful with any modifications. Always lock self.__eventLock
+before locking self._syncLock! In addition, when using
+self.__raidlogDownloadLock, always lock it before self.__eventLock.
+
+The following methods should be overridden:
+O._filterEvents(self, raidlog): this function is called by 
+    O._notifyModulesOfNewRaidLog and should be used to extract parts
+    of the raidlog that are relevant to the correct dungeon.
+O._handleNewRaidLog(self, raidlog): this function is called with the
+    filtered raid log and should do any necessary processing of the raid
+    log. For example, the HoboChannelManager checks if Hodgman has been
+    killed, and also if the hobopolis instance ID has changed, and if so,
+    resets the entire dungeon.
+O.active(self): return True if the dungeon instance is still open, and
+    False if it is complete and needs to be reset.
 
 Modules that are under the BaseDungeonChannelManager are reset (via their
-reset() methods) whenever a new Hobopolis instance is present.
+reset() methods) whenever a new Hobopolis/Dreadsylvania instance is present.
 
 There are two derived managers: HoboChannelManager and DreadChannelManager. 
 They are nearly identical but perform some log filtering.
@@ -807,6 +857,8 @@ They are nearly identical but perform some log filtering.
 
 The Director is in charge of loading managers. Complete documentation
 is not presented here, but other information should be fairly straightforward.
+The _loadManagers() method loads its managers (like the _loadModules() method
+of a manager) and the cleanup() method deletes them.
 The CommunicationDirector's main method is the processNewCommunications()
 method, which is called every second (unless configured otherwise) by the
 BotSystem. Here, new chats are read and new kmails are downloaded, and these
@@ -820,6 +872,9 @@ is sent from identity "comms" / name "sys.comms". In addition, when a chat
 is sent, it raises the event "chat", with data 
 {'channel': CHANNEL_NAME, 'text': CHAT_TEXT}). No event is raised when a
 whisper is sent or when a Kmail is sent.
+The Director also compiles the list of clan members and is the interface
+between managers and the MailHandler for sending kmails as well as the
+balance/cashout functions for storing kmail items.
 
 
 7. BotSystem / System Events
@@ -870,10 +925,10 @@ pyKol-formatted kmail dict if one is present. When this happens, the state
 of this kmail in the MailHandler is set to RESPONDING, indicating that the 
 kmail is being processed, but no replies have been sent. If there is an
 interruption before any replies are passed back to the MailHandler, these 
-kmails will be reset to the READY state and reprocessed. This shows the
-importance of a REPLY kmail from a NONREPLY kmail: if there is an
-interruption and a module sends a NONREPLY kmail, it might be re-sent, since
-it is not "attached" to a mail in the inbox.
+kmails will be reset to the READY state and reprocessed the next time the
+bot starts up. This shows the importance of a REPLY kmail from a NONREPLY
+kmail: if there is an interruption and a module sends a NONREPLY kmail,
+it might be re-sent, since it is not "attached" to a mail in the inbox.
 
 After processing is done, the CommunicationDirector collects any replies
 and calls respondToKmail() with a list of replies. This must be done even
@@ -967,3 +1022,52 @@ close(self): call this before quitting; it changes the directory back to
 	
 Managers and modules can access the properties through thier properties
 attribute.
+
+
+12. Utility Functions
+---------------------
+
+Some convenient utility functions are included in the cwbot package,
+generally inside cwbot.util:
+
+the cwbot.util.DebugThreading module contains debug versions of
+    threading functions/classes, including Lock, RLock, Semaphore,
+    and BoundedSemaphore. To use these objects, simply replace
+    "import threading" with "import cwbot.util.DebugThreading".
+    
+the ExceptionThread is a special Thread that uses the DebugThreading module.
+    It works like a regular thread, but keeps track if an exception is
+    thrown. It has a special property O.exception that is a Threading.Event
+    object and is set if an exception occurs. When the join() method is
+    called, the exception is reraised.
+    
+the easyImportClass in cwbot.util.importClass is used to dynamically import
+    a class given its classname and an optional base package. If the classname
+    is the same as the filename of its module name, that class is automatically
+    imported. For example, easyImportClass("cwbot.example", "exampleClass")
+    will first attempt to import the class "exampleClass" from "cwbot.example",
+    but will then attempt to import the class from "cwbot.example.exampleClass"
+    instead.
+    
+the textProcessing module holds a few useful functions:
+- stringToBool(txt) converts a string to boolean, allowing for any
+    of: true,false,on,off,1,0,yes,no
+- stringToList(txt) converts a comma-separated string to a list
+- listToString(lst) joins a list with commas
+- intOrFloatToString(val, numDecimal=2) converts a number to a string,
+    adding no decimal if it is an integer, and rounding to a number of
+    decimal places if it is a float.
+- toTypeOrNone(val, type_=str) converts a value to a particular type
+    (str by default), but instead returns None if the string representation
+    of val is empty, the text "none", or consists solely of two quotation
+    marks.
+- tryRequest is a module that contains the tryRequest function and works
+    with PyKol requests. The syntax is
+    tryRequest(requestObj, nothrow=False, numTries=3, initialDelay=1, 
+               scaleFactor=2)
+    the function will run requestObj.doRequest(), up to numTries times
+    if it returns a PyKol error, with a delay of
+    initialDelay * scaleFactor ^ (n - 1), where n is the try number,
+    starting with 1. If nothrow is True, this function will return None
+    if the requests failed; if False, it will throw the exception after
+    numTries attempts.

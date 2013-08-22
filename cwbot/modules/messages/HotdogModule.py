@@ -1,7 +1,6 @@
 from cwbot.modules.BaseKmailModule import BaseKmailModule
 from cwbot.locks import InventoryLock
 from cwbot.kolextra.request.HotdogStockRequest import HotdogStockRequest
-from cwbot.util.tryRequest import tryRequest
 from cwbot.util.textProcessing import intOrFloatToString
 import kol.Error
 from copy import deepcopy
@@ -151,7 +150,7 @@ class HotdogModule(BaseKmailModule):
                                  "notify an administrator.")
             r = HotdogStockRequest(self.session, h['id'], h['quantity'])
             try:
-                tryRequest(r, numTries=1)
+                self.tryRequest(r, numTries=1)
             except kol.Error.Error as e:
                 return createMsg("An error occurred: {}".format(e.msg))
            

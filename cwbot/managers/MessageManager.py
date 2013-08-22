@@ -101,7 +101,7 @@ class MessageManager(BaseManager):
                         "available commands. You can also use "
                         "'!help COMMAND_NAME' to get detailed information on "
                         "a specific command.")
-        txt = '\n\n'.join(helptext)
+            txt = '\n\n'.join(helptext)
         return [KmailResponse(self, self, Kmail(uid, txt))]
 
 

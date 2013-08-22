@@ -310,6 +310,38 @@ and modules to load are placed. Here is an example setting:
             priority = 101
             permission = None
             clan_only = True
+    [[dread]]
+        type = DreadChannelManager
+        priority = 101
+        channel = dread
+        base = cwbot.modules
+        log_check_interval = 15
+        sync_interval = 300
+        accept_private_messages = True
+        [[[Overview]]]
+            type = dread.DreadOverviewModule
+            permission = None
+            priority = 999
+            clan_only = True
+            update-percent = 25,50,75,90
+        [[[Uniques]]]
+            type = dread.DreadUniquesModule
+            permission = None
+            priority = 107
+            clan_only = True
+            announce = True
+        [[[Keys]]]
+            type = dread.DreadKeyModule
+            permission = None
+            priority = 109
+            clan_only = True
+            announce = True
+        [[[Choices]]]
+            type = dread.DreadChoicesModule
+            permission = None
+            priority = 105
+            clan_only = True
+            announce = True
 
 			
 A summary of what this specifies:
@@ -1133,7 +1165,9 @@ cwbot.modules.dread.DreadOverviewModule - Shows an overview of
     the Dreadsylvanian zones with the !summary, !status, or !dread commands.
     This module is REQUIRED for other Dread modules to function and must be
     at a HIGHER priority value.
-    (No options)
+    Options: update-percent: a comma-separated list of percentages that
+        the bot announces when that percent of an area is done 
+        (25,50,75,90,100)
     
 cwbot.modules.dread.DreadKeyModule - Shows which subareas are locked with
     the !keys command.

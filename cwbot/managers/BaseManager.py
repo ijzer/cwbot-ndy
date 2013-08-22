@@ -8,8 +8,6 @@ from cwbot.util.textProcessing import toTypeOrNone
 from cwbot.common.objectContainer import ModuleEntry
 from cwbot.common.exceptions import FatalError
 from cwbot.util.importClass import easyImportClass
-from kol.request.UserProfileRequest import UserProfileRequest
-from cwbot.util.tryRequest import tryRequest
 from cwbot.sys.eventSubsystem import EventSubsystem
 from cwbot.sys.heartbeatSubsystem import HeartbeatSubsystem
 from cwbot.sys.database import encode
@@ -46,7 +44,7 @@ class BaseManager(EventSubsystem.EventCapable,
     same applies to checking in-clan status.
     
     A manager may also pass supplementary information to its modules,
-    by both supplying information via the _processorInitData method and
+    by both supplying information via the _moduleInitData method and
     possibly through other methods.
     
     Managers are also in charge of syncing the state of their constituent
@@ -164,7 +162,7 @@ class BaseManager(EventSubsystem.EventCapable,
         to do, you should override this, but be sure to call the parent's
         _initialize() method to properly initialize the modules. """
         self._log.debug("Initializing...")
-        d = self._processorInitData()
+        d = self._moduleInitData()
         self._log.debug("Loaded initialization data.")
         with self._syncLock:
             self._log.debug("Checking persistent state...")
@@ -179,7 +177,7 @@ class BaseManager(EventSubsystem.EventCapable,
             self._syncState(force=True)
             
             
-    def _processorInitData(self):
+    def _moduleInitData(self):
         """ This is the initialization data that is passed when initializing
         each module. """
         return {}
@@ -211,7 +209,8 @@ class BaseManager(EventSubsystem.EventCapable,
                                             state))
                         mod.initialize(state, initData)
                         success = True
-                    except (KeyboardInterrupt, SystemExit, SyntaxError):
+                    except (KeyboardInterrupt, SystemExit, 
+                            SyntaxError, FatalError):
                         raise
                     except Exception:
                         self._log.exception("ERROR initializing module "

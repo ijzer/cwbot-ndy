@@ -2,12 +2,10 @@ from cwbot.common.exceptions import FatalError
 from cwbot.locks import InventoryLock
 from cwbot.modules.BaseKmailModule import BaseKmailModule
 from cwbot.util.textProcessing import toTypeOrNone
-from cwbot.util.tryRequest import tryRequest
 from cwbot.kolextra.functions.equipCustomOutfitByName \
                        import equipCustomOutfitByName
 from cwbot.kolextra.functions.getUniqueDateString import getUniqueDateString
 from kol.database.SkillDatabase import getSkillFromId
-from kol.request.EquipRequest import EquipRequest
 from kol.request.StatusRequest import StatusRequest
 from cwbot.kolextra.request.UseSkillRequest import UseSkillRequest
 import kol.Error
