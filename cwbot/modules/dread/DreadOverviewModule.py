@@ -2,7 +2,7 @@ from cwbot.modules.BaseDungeonModule import (BaseDungeonModule, eventFilter,
                                              eventDbMatch)
 from cwbot.util.textProcessing import stringToList
 from cwbot.common.exceptions import FatalError
-import math
+from math import log
 
 def dreadPercent(n):
     if n >= 1000:
@@ -39,6 +39,7 @@ class DreadOverviewModule(BaseDungeonModule):
         self._done = None
         self._killed = None # kills by area
         self._kills = None # kills by monster type
+        self._defeats = None # defeats by monster type
         self._balance = None
         self._banished = None
         self._level = None
@@ -137,69 +138,77 @@ class DreadOverviewModule(BaseDungeonModule):
         return txt
     
     
-    def _doLRT(self, oldBanished, oldKills):
+    def _doLRT(self, oldBanished, oldKills, oldDefeats):
         # determine which monster is more numerous using the
         # sequential likelihood ratio test
         # but ignore the kills if the banishments have just changed
+        oldEncounters = None
+        if oldKills is not None and oldDefeats is not None:
+            oldEncounters = {m: oldKills.get(m, 0) + oldDefeats.get(m, 0)
+                             for m in self._monsters}
         for i in range(3):
             printRatio = False
+            
             monsterA = self._monsters[2*i]
             monsterB = self._monsters[2*i+1]
+            monsters = [monsterA, monsterB] 
             
-            banishA = self._banished[monsterA]
-            banishB = self._banished[monsterB]
+            banish = {m: self._banished[m] for m in monsters}
                 
             if (oldBanished is None
                     or self._killed[i] > 1000
                     or self._done[i]):
                 pass
-            elif (banishA == oldBanished[monsterA] 
-                  and banishB == oldBanished[monsterB]):
-                useTotal = (banishA == 0 and banishB == 0)
+            elif all(banish[m] == oldBanished[m] for m in monsters):
+                useTotal = (sum(banish.values()) == 0)
                 if useTotal:
-                    self._logLikelihoodRatio[i] = 0
-                    oldKills[monsterA] = 0
-                    oldKills[monsterB] = 0
+                    oldEncounters[monsterA] = 0
+                    oldEncounters[monsterB] = 0
 
-                newKillsA = self._kills[monsterA] - oldKills.get(monsterA, 0)
-                newKillsB = self._kills[monsterB] - oldKills.get(monsterB, 0)
-                
+                newEncounters = {m: self._kills[m] 
+                                    + self._defeats[m] 
+                                    - oldEncounters[m]
+                                 for m in monsters}
                 
                 # initial probability of monster A is 0.6 or 0.4
                 # BOTH probabilities below are the probability of an A 
                 # appearing; one of the two probabilities is correct
                 
-                probFavoringA = (3.0 - banishA) / (5.0 - banishA - banishB)
-                probFavoringB = (2.0 - banishA) / (5.0 - banishA - banishB)
+                probFavoring = {monsterA: (3.0 - banish[monsterA]) 
+                                          / (5.0 - sum(banish.values())),
+                                monsterB: (2.0 - banish[monsterA]) 
+                                          / (5.0 - sum(banish.values()))}
 
                 # make sure the probability of killing the "wrong" monster
                 # is non-zero (somebody might be in a fight or something!)
-                
-                probFavoringA = min(max(0.05, probFavoringA), 0.95)
-                probFavoringB = min(max(0.05, probFavoringB), 0.95)
+
+                probFavoring = {k: min(max(0.05, v), 0.95)
+                                for k,v in probFavoring.items()}                
                 
                 # probabilities of these kills (newKillsA and newKillsB)
                 # under both assumptions
                 
-                logProbA = (newKillsA * math.log(probFavoringA)
-                            + newKillsB * math.log(1 - probFavoringA))
-                logProbB = (newKillsA * math.log(probFavoringB)
-                            + newKillsB * math.log(1 - probFavoringB))
+                logProb = {m: newEncounters[monsterA]*log(probFavoring[m])
+                              + newEncounters[monsterB]*log(1-probFavoring[m])
+                           for m in monsters}
 
                 oldRatio = self._logLikelihoodRatio[i]
-                self._logLikelihoodRatio[i] += logProbA
-                self._logLikelihoodRatio[i] -= logProbB
+                if useTotal:
+                    self._logLikelihoodRatio[i] = 0
+                self._logLikelihoodRatio[i] += logProb[monsterA]
+                self._logLikelihoodRatio[i] -= logProb[monsterB]
                 if oldRatio != self._logLikelihoodRatio[i]:
                     self.debugLog("Area {}: {} kills [{}, {}], "
                                   "ratio {} -> {}"
                                   .format(i, 
                                           "total" if useTotal else "new",
-                                          newKillsA, newKillsB,
+                                          newEncounters[monsterA], 
+                                          newEncounters[monsterB],
                                           oldRatio, 
                                           self._logLikelihoodRatio[i]))
                 
                 oldCalled = self._likelihoodCalled[i]
-                eta = math.log((1 - self._perror) / self._perror)
+                eta = log((1 - self._perror) / self._perror)
                 if self._logLikelihoodRatio[i] > eta:
                     self._likelihoodCalled[i] = 0
                 elif self._logLikelihoodRatio[i] < -eta:
@@ -214,10 +223,10 @@ class DreadOverviewModule(BaseDungeonModule):
             else:
                 self.debugLog("Different banishments, skipping LRT...")
                 if (self._likelihoodCalled[i] is None
-                        and banishA + banishB > 0):
+                        and sum(banish.values()) > 0):
                     self.chat("I don't know the distribution of {} to {} yet."
                               .format(monsterA, monsterB))
-                elif banishA + banishB > 0:
+                elif sum(banish.values()) > 0:
                     printRatio = True
             if printRatio:
                 a,b = (3,2) if self._likelihoodCalled[i] == 0 else (2,3)
@@ -225,8 +234,8 @@ class DreadOverviewModule(BaseDungeonModule):
                           "currently {}:{}."
                           .format(self._plurals[monsterA], 
                                   self._plurals[monsterB], 
-                                  a - banishA, b - banishB))
-
+                                  a - banish[monsterA], 
+                                  b - banish[monsterB]))
 
 
     def _processLog(self, raidlog):
@@ -252,25 +261,31 @@ class DreadOverviewModule(BaseDungeonModule):
         self._killed = newKilled
 
         oldKills = self._kills
+        oldDefeats = self._defeats
         oldBanished = self._banished
         self._banished = {} 
-        self._kills = {}        
+        self._kills = {}      
+        self._defeats = {}  
         prefix = r'defeated\s+(?:hot|cold|spooky|stench|sleaze)\s+'
+        prefixDef = r'was defeated by\s+(?:hot|cold|spooky|stench|sleaze)\s+'
         for monster in self._monsters:
             self._kills[monster] = (
                 sum(e['turns'] for e in eventFilter(events, 
                                                     prefix + monster)))
+            self._defeats[monster] = (
+                sum(e['turns'] for e in eventFilter(events, 
+                                                    prefixDef + monster)))
             self._banished[monster] = (
                 sum(e['turns'] for e in eventFilter(events,
                             "drove some " + self._plurals[monster])))
             
         # do likelihood ratio test to determine which monsters are more
         # populous
-        self._doLRT(oldBanished, oldKills)
+        self._doLRT(oldBanished, oldKills, oldDefeats)
                         
-        self._balance = dict((i, (self._kills[self._monsters[2*i]]
-                                 - self._kills[self._monsters[2*i+1]]))
-                         for i in range(3))
+        self._balance = {i: (self._kills[self._monsters[2*i]]
+                             - self._kills[self._monsters[2*i+1]])
+                         for i in range(3)}
         
         self._level = [1 + sum(e['turns'] 
                                for e in eventFilter(events, 
@@ -336,7 +351,10 @@ class DreadOverviewModule(BaseDungeonModule):
     
     
     def _eventCallback(self, eData):
-        if eData.subject == "dread":
+        s = eData.subject
+        if s == "state":
+            self._eventReply(self.state)
+        elif s == "dread":
             style = 'list'
             keys = None
             if eData.data:
@@ -350,9 +368,9 @@ class DreadOverviewModule(BaseDungeonModule):
             filteredData = [dFilter(d) for d in dreadData]
 
             if style == 'dict':
-                self._eventReply(dict((dreadData[idx]['fullname'], 
-                                       filteredData[idx]) 
-                                      for idx in range(len(dreadData))))
+                self._eventReply({dreadData[idx]['fullname']: 
+                                       filteredData[idx] 
+                                  for idx in range(len(dreadData))})
             elif style == 'list':
                 self._eventReply(dreadData)
             else:
