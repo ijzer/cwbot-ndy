@@ -202,9 +202,9 @@ class DreadOverviewModule(BaseDungeonModule):
                 eta = math.log((1 - self._perror) / self._perror)
                 if self._logLikelihoodRatio[i] > eta:
                     self._likelihoodCalled[i] = 0
-                elif self._logLikelihoodRatio < -eta:
+                elif self._logLikelihoodRatio[i] < -eta:
                     self._likelihoodCalled[i] = 1
-                elif abs(self._logLikelihoodRatio) < 0.5 * eta:
+                elif abs(self._logLikelihoodRatio[i]) < 0.5 * eta:
                     self._likelihoodCalled[i] = None
                 if (oldCalled != self._likelihoodCalled[i]
                         and self._likelihoodCalled[i] is not None):
@@ -262,7 +262,7 @@ class DreadOverviewModule(BaseDungeonModule):
                                                     prefix + monster)))
             self._banished[monster] = (
                 sum(e['turns'] for e in eventFilter(events,
-                                                    "drove some " + monster)))
+                            "drove some " + self._plurals[monster])))
             
         # do likelihood ratio test to determine which monsters are more
         # populous
