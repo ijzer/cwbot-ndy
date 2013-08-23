@@ -156,8 +156,8 @@ class AhbgModule(BaseDungeonModule):
         if self._ahbgDone:
             return None
         # these don't do anything but change the number of dances available
-        if any([self._chatStrings['flimflam'], self._chatStrings['fail']]
-               in txt): 
+        if any(s in txt for s in [self._chatStrings['flimflam'], 
+                                  self._chatStrings['fail']]): 
             return ("{} {} dances available."
                     .format(self.getTag(), self._availableDances))
         if any([self._chatStrings['watch'], self._chatStrings['dance']]

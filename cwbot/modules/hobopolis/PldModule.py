@@ -33,7 +33,6 @@ class PldModule(BaseDungeonModule):
         
     def initialize(self, state, initData):
         self._db = initData['event-db']
-        print self._db
         self._popularityChangedStrings = [d['chat'] for d in self._db
                                           if d['pld_code'] in ["popular",
                                                                "unpopular"]]
