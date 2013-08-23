@@ -1,10 +1,6 @@
 import re
 import time
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
-
-
-def killPercent(n):
-    return int(max(0, min(99, 100*n / 500.0)))
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 
@@ -84,10 +80,13 @@ class CageModule(BaseDungeonModule):
         
     def initialize(self, state, initData):
         events = initData['events']
+        self._db = initData['event-db']
+        self._chatStrings = {d['sewer_code']: d['chat'] for d in self._db
+                             if d['sewer_code']}
         
         self._totalFreed = sum(
-                f['turns'] for f in eventFilter(
-                    events, r'rescued .* from .* C. H. U. M. cage'))
+                f['turns'] for f in eventDbMatch(
+                    events, {'sewer_code': "rescue"}))
         self._startupSewerActions = sum(
                 s['turns'] for s in events if s['category'] == "Sewers")
         self.debugLog("Detected {} sewer actions at startup"
@@ -175,8 +174,8 @@ class CageModule(BaseDungeonModule):
                     
         # check sewer actions
         newTotalFreed = sum(
-                f['turns'] for f in eventFilter(
-                    events, r'rescued .* from .* C. H. U. M. cage'))
+                f['turns'] for f in eventDbMatch(
+                    events, {'sewer_code': "rescue"}))
         if newTotalFreed > self._totalFreed and self.getCageState() == TRAPPED:
             self.setReleased(self.inCage)
         self._totalFreed = newTotalFreed
@@ -186,15 +185,15 @@ class CageModule(BaseDungeonModule):
 
             
     def _processDungeon(self, txt, raidlog):
-        if "has been imprisoned by the C. H. U. M.s" in txt:
+        if self._chatStrings['cage'] in txt:
             m = re.search(r'^(.*) has been imprisoned by the', txt)
             self.setImprisoned(str(m.group(1)))
-        elif "has rescued" in txt:
+        elif self._chatStrings['rescue'] in txt:
             m = re.search(r'rescued (.*) from the', txt)
             self.setReleased(str(m.group(1)))
-        elif "by gnawing through" in txt:
+        elif self._chatStrings['gnaw'] in txt:
             self.setEscaped()
-        elif "resetCageStartupTime" in txt:
+        elif "resetCageStartupTime" in txt: # from !simulate
             self._startupTime = 0
             self._startupSewerActions = -10000
         self._processLog(raidlog)

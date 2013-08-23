@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 def killPercent(n):
@@ -70,10 +70,12 @@ class BurnbarrelModule(BaseDungeonModule):
         self._totalAvalanches = 0
         
         # detect number of avalanches
-        self._totalAvalanches = sum(
-                a['turns'] for a in eventFilter(events, "tirevalanche"))
-        self._totalTires = sum(
-                t['turns'] for t in eventFilter(events, r'tires? on the fire'))
+        self._totalAvalanches = sum(a['turns'] 
+                                    for a in eventDbMatch(events, 
+                                                    {'bb_code': "avalanche"}))
+        self._totalTires = sum(t['turns'] 
+                               for t in eventDbMatch(events, 
+                                                     {'bb_code': "tire"}))
         self.log("Detected {} avalanches".format(self._totalAvalanches))
         self.log("Detected {} tire tosses".format(self._totalTires))                
         
@@ -84,7 +86,10 @@ class BurnbarrelModule(BaseDungeonModule):
         # on the size of the tire stack, which we don't have available. 
         # So the total damage needs to be estimated in that case.
         events = initData['events']
-
+        self._db = initData['event-db']
+        self._chatStrings = {d['bb_code']: d['chat'] for d in self._db
+                             if d['bb_code']}
+        
         # initialize
         self._bbDone = False
         self.initTotals(events)
@@ -156,13 +161,13 @@ class BurnbarrelModule(BaseDungeonModule):
         #check hot hobos killed (negative for hot door opened)
         #  = defeated - 8 * hot doors opened        
         self._hobosKilled = (
-                      sum(k['turns'] for k in eventFilter(
-                        events, r'defeated +Hot hobo'))
-                - 8 * sum(d['turns'] for d in eventFilter(
-                        events, "for the clan coffer")))
+                      sum(k['turns'] for k in eventDbMatch(
+                        events, {'bb_code': "combat"}))
+                - 8 * sum(d['turns'] for d in eventDbMatch(
+                        events, {'bb_code': "door"})))
 
         # if Ol' Scratch is dead, set burnbarrel to finished
-        self._bbDone = any(eventFilter(events, r'''defeated +Ol' +Scratch'''))
+        self._bbDone = any(eventDbMatch(events, {'bb_code': "boss"}))
                 
         if (self._hobosKilled > 0 or 
                 self._totalTires > 0 or 
@@ -175,13 +180,13 @@ class BurnbarrelModule(BaseDungeonModule):
         self._processLog(raidlog)
         if self._bbDone:
             return None
-        if "put a tire on the fire" in txt:
+        if self._chatStrings['tire'] in txt:
             self._tires += 1
             self._totalTires += 1
             if self._lastTireNotify != self._tires:
                 self._lastTireNotify = self._tires
                 return self.getProgressText(True)
-        elif "started a tirevalanche" in txt:
+        elif self._chatStrings['avalanche'] in txt:
             return self.processTireAvalanche()
         return None
     

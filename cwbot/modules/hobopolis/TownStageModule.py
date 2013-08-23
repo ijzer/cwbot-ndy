@@ -1,22 +1,25 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 def moshCount(events):
-    return sum(m['turns'] for m in eventFilter(
-            events, r'mosh pits? in the tent'))
+    return sum(m['turns'] for m in eventDbMatch(
+                               events, {'town_code': "mosh"}))
 
 def buskCount(events):
-    return sum(b['turns'] for b in eventFilter(
-            events, "passed the hat in the tent"))
+    return sum(b['turns'] for b in eventDbMatch(
+                               events, {'town_code': "busk"}))
 
 def ruinCount(events):
-    return sum(r['turns'] for r in eventFilter(events, r'ruined .* show'))
+    return sum(r['turns'] for r in eventDbMatch(
+                               events, {'town_code': "ruin"}))
 
 def stageCount(events):
-    return sum(s['turns'] for s in eventFilter(events, "took the stage"))
+    return sum(s['turns'] for s in eventDbMatch(
+                               events, {'town_code': "stage"}))
 
 def uniqueStagePlayers(events):
-    players = set(s['userId'] for s in eventFilter(events, "took the stage"))
+    players = set(s['userId'] for s in eventDbMatch(
+                               events, {'town_code': "stage"}))
     return len(players)
     
 

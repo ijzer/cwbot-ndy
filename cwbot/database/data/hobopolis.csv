@@ -1,0 +1,46 @@
+category,zone,subzone,choice,regex,sewer_code,town_code,bb_code,ee_code,heap_code,pld_code,ahbg_code,value,chat
+Town Square,(combat),normal,,defeated\s+Normal hobo,,combat,,,,,,,
+Miscellaneous,(combat),boss,,defeated\s+Hodgman,,boss,,,,,,,
+Burnbarrel Blvd.,(combat),normal,,defeated\s+Hot hobo,,,combat,,,,,,
+Burnbarrel Blvd.,(combat),boss,,defeated\s+Ol'\s+Scratch,,,boss,,,,,,
+Exposure Esplanade,(combat),normal,,defeated\s+Cold hobo,,,,combat,,,,,
+Exposure Esplanade,(combat),boss,,defeated\s+Frosty,,,,boss,,,,,
+The Heap,(combat),normal,,defeated\s+Stench hobo,,,,,combat,,,,
+The Heap,(combat),boss,,defeated\s+Oscus,,,,,boss,,,,
+The Purple Light District,(combat),normal,,defeated\s+Sleaze hobo,,,,,,combat,,,
+The Purple Light District,(combat),boss,,defeated\s+Chester,,,,,,boss,,,
+The Ancient Hobo Burial Ground,(combat),normal,,defeated\s+Spooky hobo,,,,,,,combat,,
+The Ancient Hobo Burial Ground,(combat),boss,,defeated\s+Zombo,,,,,,,boss,,
+Town Square,Attention -- A Tent!,Working the Crowd,Busk like you've never busked before,passed the hat in the tent,,busk,,,,,,,"passed a hat in the tent, collecting"
+Town Square,Attention -- A Tent!,Working the Crowd,Busk like you've never busked before,###NO MESSAGE###,,busk,,,,,,,"passed a hat in the tent, but didn't manage"
+Town Square,Attention -- A Tent!,Working the Crowd,Try to start a mosh pit,mosh pits? in the tent,,mosh,,,,,,,"got a mosh pit going in the tent, knocking"
+Town Square,Attention -- A Tent!,"Here You Are, Up On Stage",Leave the stage,ruined .* show,,ruin,,,,,,,"left the stage, taking the entire crowd"
+Town Square,Attention -- A Tent!,,"Slip in the back, Jack",took the stage,,stage,,,,,,,has taken the stage
+Sewers,Somewhat Higher and Mostly Dry,,Turn the valve,lowered the water level,valve,,,,,,,,lowered the water level
+Sewers,Disgustin' Junction,,Open the grate,sewer grate,grate,,,,,,,,opened a grate
+Sewers,The Former or the Ladder,,Head down the ladder,rescued .* from .* C. H. U. M. cage,rescue,,,,,,,,has rescued
+Sewers,Despite All Your Rage,,,###NO MESSAGE###,cage,,,,,,,,has been imprisoned by the C. H. U. M.s
+Sewers,Despite All Your Rage,,Gnaw through the bars,###UNKNOWN###,gnaw,,,,,,,,by gnawing through
+Burnbarrel Blvd.,Getting Tired,,Toss the tire on the fire violently,tirevalanche,,,avalanche,,,,,,started a tirevalanche
+Burnbarrel Blvd.,Getting Tired,,Toss the tire on the fire gently,tires? on the fire,,,tire,,,,,,put a tire on the fire
+Burnbarrel Blvd.,Hot Dog! I Mean... Door!,,Open the door,for the clan coffer,,,door,,,,,,
+Exposure Esplanade,Piping Cold,,Go all CLUE on the third pipe,broke .* water pipe,,,,pipe3,,,,,
+Exposure Esplanade,There Goes Fritz!,,Yodel a little,yodeled a little bit,,,,yodel0,,,,,
+Exposure Esplanade,There Goes Fritz!,,Yodel a lot,yodeled quite a bit,,,,yodel1,,,,,
+Exposure Esplanade,There Goes Fritz!,,Yodel your heart out,yodeled like crazy,,,,yodel2,,,,,
+The Heap,I Refuse!,,Explore the junkpile,searched for buried treasure,,,,,dive,,,,went treasure-hunting in The Heap
+The Heap,You vs. The Volcano,,Kick the stuff into the hole,trashcano eruption,,,,,trashcano,,,,caused a trashcano eruption in the Heap
+The Purple Light District,The Furtivity of My City,,Intimidate him,some trash to The Heap,,,,,stench,trash,,,moved some trash out of the Purple Light District
+The Ancient Hobo Burial Ground,"Ah, So That's Where They've All Gone",,Send the flowers to The Heap,some flowers to The Heap,,,,,unstench,,flowers,,sent some flowers from the Burial Ground
+The Heap,The Compostal Service,,Be green,batch of compost,,,,,unstench,,,,moved some compost out of the Heap
+The Purple Light District,Getting Clubbed,,Try to bamboozle the crowd,bamboozled some hobos,,,,,,unpopular,,,bamboozled some hobos
+The Purple Light District,Getting Clubbed,,Try to flimflam the crowd,flimflammed some hobos,,,,,,unpopular,flimflam,,flim-flammed some hobos in the Purple Light District
+Exposure Esplanade,Piping Cold,,Turn the second valve,diverted some cold water out of Exposure,,,,pipe2,,unpopular,,,diverted some cold water out of Exposure Esplanade
+The Purple Light District,Exclusive!,,Pick your nose,danced like a superstar,,,,,,popular,,,did some dancing
+Burnbarrel Blvd.,Piping Hot,,Turn the valve,diverted some steam away from Burnbarrel,,,steam,,,popular,,,diverted some steam
+The Purple Light District,The Furtivity of My City,,Wait for him to leave,dumpster,,,,,,dumpster,,,
+The Purple Light District,Exclusive!,,Pick several fights,barfight,,,,,,barfight,,,started a brawl
+The Ancient Hobo Burial Ground,A Chiller Night,,Study the hobos' dance moves,watched some zombie hobos dance,,,,,,,watch,,spent some time observing zombie dancers
+The Ancient Hobo Burial Ground,A Chiller Night,,Dance with them,busted .* move,,,,,,,dance,,busted a move in the Burial Ground
+The Ancient Hobo Burial Ground,A Chiller Night,,Dance with them,failed to impress as a dancer,,,,,,,fail,,failed to bust a move
+The Ancient Hobo Burial Ground,Returning to the Tomb,,Pry open the door,raided .* tomb,,,,,,,tomb,,

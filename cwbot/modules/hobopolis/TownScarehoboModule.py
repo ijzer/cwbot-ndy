@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 from cwbot.kolextra.request.GetScareHoboPartsRequest \
                      import GetScareHoboPartsRequest
 
@@ -83,8 +83,8 @@ class TownScarehoboModule(BaseDungeonModule):
         events = initData['events']
         
         # see number of scarehobos killed
-        self._killed = sum(k['turns'] for k in eventFilter(
-                               events, r'defeated +Normal hobo'))
+        self._killed = sum(k['turns'] for k in eventDbMatch(
+                               events, {'town_code': "combat"}))
         self._scareHoboDamage = state['damage']
         killDiff = self._killed - state['killed']
         
@@ -137,8 +137,8 @@ class TownScarehoboModule(BaseDungeonModule):
 
     def _processLog(self, raidlog):
         events = raidlog['events']
-        self._killed = sum(k['turns'] for k in eventFilter(
-                               events, r'defeated +Normal hobo'))
+        self._killed = sum(k['turns'] for k in eventDbMatch(
+                               events, {'town_code': "combat"}))
             
         newScareHoboParts = self.getParts()
         if newScareHoboParts is not None:

@@ -2,7 +2,6 @@ import re
 import time
 from cwbot.managers.BaseClanDungeonChannelManager \
              import BaseClanDungeonChannelManager
-from cwbot.database import database
 
 
 class DreadError(Exception):
@@ -14,20 +13,21 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
     This manager monitors Dreadsylvania in specific, resetting all its modules
     when the instance is reset.
     """
+    
+    _csvFile = "dread.csv"
 
     capabilities = set(['chat', 'inventory', 'admin', 'dread'])
 
     def __init__(self, parent, identity, iData, config):
         """ Initialize the DreadChannelManager """
         self.__initialized = False
-        self._logEntryDb = database.csvDatabase('dread.csv')
         self._dvid = None
         self._active = None # TRUE if an area is still active
         super(DreadChannelManager, self).__init__(parent, identity, iData, 
                                                  config)
         if 'dread' not in self._channelName:
-            raise Exception("HoboChannelManager must be listening to "
-                            "/hobopolis!")
+            raise Exception("DreadChannelManager must be listening to "
+                            "/dread!")
         self.__initialized = True
         
         
@@ -38,7 +38,7 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
         
     def _initialize(self):
         super(DreadChannelManager, self)._initialize()
-        """ This function initializes the processors with log data and 
+        """ This function initializes the modules with log data and 
         persistent state information. For the DreadChannelManager, old
         persistent state is deleted if a new instance is detected. 
         """
@@ -71,45 +71,17 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
                 self._log.info("Same Dreadsylvania instance as last shutdown.")
         
 
-    def _moduleInitData(self):
-        """ The initData here is the last read Dreadsylvania events. """
-        d = self._filterEvents(self.lastEvents)
-        d['event-db'] = self._logEntryDb
-        return d
-
-        
     def _filterEvents(self, raidlog):
-        relevant_keys = ['dvid', 'dread']
+        relevant_keys = ['dvid', 'dread', 'events']
         relevant_event_categories = ['The Village', 
                                      'The Woods', 
                                      'The Castle', 
                                      'Miscellaneous']
-        try:
-            d = dict((k,raidlog[k]) for k in relevant_keys if k in raidlog)
-            eventList = []
-            for e in raidlog['events']:
-                evt = e['event']
-                e['db-match'] = {}
-                for dbEntry in self._logEntryDb:
-                    if dbEntry['category'].strip() == e['category']:
-                        if re.search(dbEntry['regex'], evt):
-                            if not e['db-match']:
-                                e['db-match'] = dbEntry
-                            else:
-                                raise KeyError("Duplicate match in database: "
-                                               "event {} matches '{}' and "
-                                               "'{}'"
-                                               .format(evt,
-                                                       e['db-match']['regex'],
-                                                       dbEntry['regex']))
-                eventList.append(e)
-                
-            d['events'] = [e for e in eventList 
+        d = {k: v for k,v in raidlog.items() if k in relevant_keys}
+        d = self._dbMatchRaidLog(d)
+        d['events'] = [e for e in d['events'] 
                            if e['category'] in relevant_event_categories]
-            return d
-        except Exception:
-            print(raidlog)
-            raise
+        return d
     
     
     def _syncState(self, force=False):

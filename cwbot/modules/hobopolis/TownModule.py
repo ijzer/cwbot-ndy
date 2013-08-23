@@ -1,14 +1,17 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 import re
 
 
 def stageClearCount(events):
-    return sum(c['turns'] for c in eventFilter(
-                   events, r'ruined .* show', "passed the hat in the tent", 
-                   r'mosh pits? in the tent'))
+    return sum(c['turns'] for c in eventDbMatch(
+                   events, 
+                   {'town_code': "ruin"}, 
+                   {'town_code': "busk"}, 
+                   {'town_code': "mosh"}))
 
 def stageCount(events):
-    return sum(s['turns'] for s in eventFilter(events, "took the stage"))
+    return sum(s['turns'] 
+               for s in eventDbMatch(events, {'town_code': "stage"}))
 
     
 UNKNOWN = 0
@@ -54,7 +57,7 @@ class TownModule(BaseDungeonModule):
     requiredCapabilities = ['chat', 'hobopolis']
     _name = "town"
     
-    # list of openings: (# kills, formal name, processor name, tag name)
+    # list of openings: (# kills, formal name, module name, tag name)
     openings = [(250,  "Burnbarrel Blvd.", "burnbarrel", "Burnbarrel"),
                 (500,  "Exposure Esplanade", "exposure", "Exposure"),
                 (750,  "The Heap", "heap", "Heap"),
@@ -118,18 +121,18 @@ class TownModule(BaseDungeonModule):
         make sure to do this AFTER accounting for scarehobos """
 
         minDamage = 0
-        if any(eventFilter(events, "took the stage")):
+        if any(eventDbMatch(events, {'town_code': "stage"})):
             minDamage = 1500 + 100 * max(0, self._stageClears - 1)
-        elif any(eventFilter(events, r'defeated +Sleaze hobo')):
+        elif any(eventDbMatch(events, {'pld_code': "combat"})):
             minDamage = 1250
-        elif any(eventFilter(events, r'defeated +Spooky hobo')):
+        elif any(eventDbMatch(events, {'ahbg_code': "combat"})):
             minDamage = 1000
-        elif any(eventFilter(events, r'defeated +Stench hobo', 
-                             "trashcano eruption")):
+        elif any(eventDbMatch(events, {'heap_code': "combat"},
+                                      {'heap_code': "trashcano"})):
             minDamage = 750
-        elif any(eventFilter(events, r'defeated +Cold hobo')):
+        elif any(eventDbMatch(events, {'ee_code': "combat"})):
             minDamage = 500
-        elif any(eventFilter(events, r'defeated +Hot hobo')):
+        elif any(eventDbMatch(events, {'bb_code': "combat"})):
             minDamage = 250
             
         if minDamage > damage:
@@ -145,8 +148,10 @@ class TownModule(BaseDungeonModule):
     
     def initialize(self, state, initData):
         events = initData['events']
-        self._killed = sum(k['turns'] for k in eventFilter(
-                               events, r'defeated +Normal hobo'))
+        self._db = initData['event-db']
+        
+        self._killed = sum(k['turns'] for k in eventDbMatch(
+                               events, {'town_code': "combat"}))
         self._stageClears = stageClearCount(events)
         self._totalperformers = stageCount(events)
         self._damageCorrection = state['damageCorrection']
@@ -235,15 +240,15 @@ class TownModule(BaseDungeonModule):
         events = raidlog['events']
         doneAmt = self.getDoneAndState()[0] 
         doneAmt = self.correctDamage(events, doneAmt)
-        self._killed = sum(k['turns'] for k in eventFilter(
-                               events, r'defeated +Normal hobo'))
+        self._killed = sum(k['turns'] for k in eventDbMatch(
+                               events, {'town_code': "combat"}))
         newPerformers = stageCount(events)
         newStageClears = stageClearCount(events)
         if newStageClears > self._stageClears:
             self._tentOpen = KNOWN_CLOSED
             if not suppressChat:
-                self.chat("{} The tent will open when 100 more hobos are killed."
-                          .format(self.getTag()))
+                self.chat("{} The tent will open when 100 more hobos "
+                          "are killed.".format(self.getTag()))
             self._lastTent = self.getDoneAndState()[0]
         elif newPerformers > self._totalperformers:
             self._tentOpen = KNOWN_OPEN

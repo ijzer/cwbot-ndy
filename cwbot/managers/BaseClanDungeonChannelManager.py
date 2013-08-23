@@ -1,10 +1,12 @@
 import abc
 import time
 import copy
+import re
 import cwbot.util.DebugThreading as threading
 from cwbot.util.tryRequest import tryRequest
 from cwbot.kolextra.request.ClanRaidLogRequest import ClanRaidLogRequest
 from cwbot.managers.MultiChannelManager import MultiChannelManager
+from cwbot.database import database
 
 
 class LogDict(dict):
@@ -29,10 +31,11 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     as well. 
     """
 
-    __metaclass__ = abc.ABCMeta
-    
     capabilities = set(['chat', 'inventory', 'admin', 'hobopolis', 'dread'])
+
+    _csvFile = None # override this in child classes
     
+        
     __raidlogDownloadLock = threading.RLock()
     _lastChatNum = None
     delay = 300
@@ -45,10 +48,19 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
         self.__initialized = False
         self.__lastEvents = None
         self._lastEventCheck = 0
+        self._logEntryDb = []
+        printDbLoad = False
+        if self._csvFile is not None:
+            self._logEntryDb = database.csvDatabase(self._csvFile)
+            printDbLoad = True
+        
         super(BaseClanDungeonChannelManager, self).__init__(parent, 
                                                             identity, 
                                                             iData, 
                                                             config)
+        if printDbLoad:
+            self._log.info("Loaded {} entries of data from {}."
+                           .format(len(self._logEntryDb), self._csvFile))
         self.__initialized = True
         
     
@@ -80,7 +92,10 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     
     def _moduleInitData(self):
         """ The initData here is the last read raid log events. """
-        return self._filterEvents(self.lastEvents)
+        d = self._filterEvents(self.lastEvents)
+        d['event-db'] = self._logEntryDb
+        return d
+
 
     
     @property
@@ -211,6 +226,31 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
                     mod = m.module
                     mod.extendedCall('process_log', filteredLog)
                 self._syncState()
+                
+                
+    def _dbMatchRaidLog(self, raidlog):
+        try:
+            eventList = []
+            for e in raidlog['events']:
+                e['db-match'] = {}
+                for dbEntry in self._logEntryDb:
+                    if dbEntry['category'].strip() == e['category']:
+                        if re.search(dbEntry['regex'], e['event']):
+                            if not e['db-match']:
+                                e['db-match'] = dbEntry
+                            else:
+                                raise KeyError("Duplicate match in database: "
+                                               "event {} matches '{}' and "
+                                               "'{}'"
+                                               .format(e['event'],
+                                                       e['db-match']['regex'],
+                                                       dbEntry['regex']))
+                eventList.append(e)
+            raidlog['events'] = eventList
+            return raidlog
+        except Exception:
+            print(raidlog)
+            raise
 
             
             
@@ -219,7 +259,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
     def _filterEvents(self, raidlog):
         """ This function is used by subclasses to remove unrelated event
         information. """
-        return raidlog
+        return self._dbMatchRaidLog(raidlog)
 
 
     def _handleNewRaidlog(self, raidlog):

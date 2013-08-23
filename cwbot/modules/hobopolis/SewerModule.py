@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 class SewerModule(BaseDungeonModule):
@@ -22,6 +22,10 @@ class SewerModule(BaseDungeonModule):
 
         
     def initialize(self, _state, initData):
+        self._db = initData['event-db']
+        self._chatStrings = {d['sewer_code']: d['chat'] for d in self._db
+                             if d['sewer_code']}
+        
         self._lastValveNotify = 0
         self._lastGrateNotify = 0
         self._processLog(initData)
@@ -39,21 +43,21 @@ class SewerModule(BaseDungeonModule):
         
     def _processLog(self, raidlog):
         events = raidlog['events']
-        self._valves = sum(w['turns'] for w in eventFilter(
-                               events, "lowered the water level"))
-        self._grates = sum(g['turns'] for g in eventFilter(
-                               events, "sewer grate"))
+        self._valves = sum(w['turns'] for w in eventDbMatch(
+                               events, {'sewer_code': "valve"}))
+        self._grates = sum(g['turns'] for g in eventDbMatch(
+                               events, {'sewer_code': "grate"}))
         return True
     
 
     def _processDungeon(self, txt, raidlog):
         self._processLog(raidlog)
-        if "has lowered the water level" in txt:
+        if self._chatStrings['valve'] in txt:
             if self._valves != self._lastValveNotify:
                 self._lastValveNotify = self._valves
                 return ("The water has been lowered {}/20 times."
                         .format(self._valves))
-        elif "opened a grate" in txt:
+        elif self._chatStrings['grate'] in txt:
             if self._grates != self._lastGrateNotify:
                 self._lastGrateNotify = self._grates
                 return ("A total of {}/20 grates have been opened."

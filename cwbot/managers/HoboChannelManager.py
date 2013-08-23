@@ -20,6 +20,8 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
     when the hobopolis instance is reset.
     """
 
+    _csvFile = "hobopolis.csv"
+
     capabilities = set(['chat', 'inventory', 'admin', 'hobopolis'])
 
     def __init__(self, parent, identity, iData, config):
@@ -74,15 +76,10 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                 self._clearPersist()
             else:
                 self._log.info("Same hobopolis instance as last shutdown.")
-        
-
-    def _moduleInitData(self):
-        """ The initData here is the last read Hobopolis events. """
-        return self._filterEvents(self.lastEvents)
 
         
     def _filterEvents(self, raidlog):
-        relevant_keys = ['hoid']
+        relevant_keys = ['hoid', 'events']
         relevant_event_categories = ['Sewers', 
                                      'Town Square', 
                                      'Exposure Esplanade', 
@@ -91,7 +88,8 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                                      'The Purple Light District', 
                                      'The Ancient Hobo Burial Ground', 
                                      'Miscellaneous']
-        d = dict((k,raidlog[k]) for k in relevant_keys if k in raidlog)
+        d = {k: v for k,v in raidlog.items() if k in relevant_keys}
+        d = self._dbMatchRaidLog(d)
         d['events'] = [e for e in raidlog['events'] 
                        if e['category'] in relevant_event_categories]
         return d

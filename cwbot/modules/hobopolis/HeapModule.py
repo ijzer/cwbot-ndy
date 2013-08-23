@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 def killPercent(n):
@@ -43,19 +43,25 @@ class HeapModule(BaseDungeonModule):
         
     def initialize(self, state, initData):
         events = initData['events']
+        self._db = initData['event-db']
+        self._chatStrings = {d['heap_code']: d['chat'] for d in self._db
+                             if d['heap_code']}
+        self._unstenchStrings = [d['chat'] for d in self._db
+                                 if d['heap_code'] == "unstench"]
+
         
         self._heapDone = False
         self._open = state['open']
-        self._numDives = sum(d['turns'] for d in eventFilter(
-                                 events, "searched for buried treasure"))
+        self._numDives = sum(d['turns'] for d in eventDbMatch(
+                                 events, {'heap_code': "dive"}))
 
         self._totalStench = (
-                4 + sum(t['turns'] for t in eventFilter(
-                            events, "trashcano eruption", 
-                            "some trash to The Heap"))
-                  - sum(f['turns'] for f in eventFilter(
-                            events, "some flowers to The Heap", 
-                            "batch of compost")))
+                4 + sum(t['turns'] for t in eventDbMatch(
+                            events, {'heap_code': "trashcano"}))
+                  + sum(t['turns'] for t in eventDbMatch(
+                            events, {'heap_code': "stench"}))                             
+                  - sum(f['turns'] for f in eventDbMatch(
+                            events, {'heap_code': "unstench"})))
         self._initStench = self._totalStench
         self.log("OldDives: {}, NewDives: {}"
                  .format(state['dives'], self._numDives))
@@ -111,22 +117,21 @@ class HeapModule(BaseDungeonModule):
     def _processLog(self, raidlog):
         events = raidlog['events']
         # check stench hobos killed
-        self._killed = 0
-        for stenchhobo in eventFilter(events, r'defeated +Stench hobo'):
-            self._killed += stenchhobo['turns']
-        for trashevent in eventFilter(events, "trashcano eruption"):
-            self._killed += 5 * trashevent['turns']
+        self._killed = (sum(stenchhobo['turns'] for stenchhobo in eventDbMatch(
+                                            events, {'heap_code': "combat"}))
+                        + 5 * sum(trash['turns'] for trash in eventDbMatch(
+                                        events, {'heap_code': "trashcano"})))
             
         self._totalStench = (
-                4 + sum(t['turns'] for t in eventFilter(
-                            events, "trashcano eruption", 
-                            "some trash to The Heap"))
-                  - sum(f['turns'] for f in eventFilter(
-                            events, "some flowers to The Heap", 
-                            "batch of compost")))
+                4 + sum(t['turns'] for t in eventDbMatch(
+                            events, {'heap_code': "trashcano"}))
+                  + sum(t['turns'] for t in eventDbMatch(
+                            events, {'heap_code': "stench"}))                             
+                  - sum(f['turns'] for f in eventDbMatch(
+                            events, {'heap_code': "unstench"})))
             
         # if Oscus is dead, set the heap to finished
-        self._heapDone = any(eventFilter(events, r'defeated +Oscus'))
+        self._heapDone = any(eventDbMatch(events, {'heap_code': "boss"}))
                 
         if self._killed > 0:
             self._open = True  
@@ -137,15 +142,15 @@ class HeapModule(BaseDungeonModule):
         self._processLog(raidlog)
         if self._heapDone:
             return None
-        if "went treasure-hunting in The Heap" in txt:
+        if self._chatStrings['dive'] in txt:
             self._numDives += 1
             self._stench = 0
             self.debugLog("New heap level = {}".format(self._stench))
             if self._heapLastNotify != 0:
                 self._heapLastNotify = 0
                 return "{} Stench level reset (0/8).".format(self.getTag())
-        elif ("caused a trashcano eruption in the Heap" in txt or 
-              "moved some trash out of the Purple Light District" in txt):
+        elif (self._chatStrings['trashcano'] in txt 
+              or self._chatStrings['stench'] in txt):
             if (self._totalStench == self._initStench and 
                     self._initStench is not None):
                 # no change from startup
@@ -170,8 +175,7 @@ class HeapModule(BaseDungeonModule):
             elif self._stench is None:
                 return ("{} Stench level increased (total stench unknown)."
                         .format(self.getTag()))
-        elif ("has sent some flowers from the Burial Ground" in txt or 
-              "moved some compost out of the Heap" in txt):
+        elif any(s in txt for s in self._unstenchStrings):
             if self._stench is not None and self._stench >= -1000:
                 self._stench -= 1
                 self._totalStench -= 1

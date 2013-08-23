@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 def killPercent(n):
@@ -78,21 +78,21 @@ class ExposureModule(BaseDungeonModule):
         oldPipes = self._pipes
         
         self._killed = sum(
-                coldhobo['turns'] for coldhobo in eventFilter(
-                    events, r'defeated +Cold hobo'))
+                coldhobo['turns'] for coldhobo in eventDbMatch(
+                    events, {'ee_code': "combat"}))
             
         self._yodel = (
-                [sum(yodel0['turns'] for yodel0 in eventFilter(
-                    events, "yodeled a little bit")),
-                 sum(yodel1['turns'] for yodel1 in eventFilter(
-                    events, "yodeled quite a bit")),
-                 sum(yodel2['turns'] for yodel2 in eventFilter(
-                    events, "yodeled like crazy"))])
+                [sum(yodel0['turns'] for yodel0 in eventDbMatch(
+                    events, {'ee_code': "yodel0"})),
+                 sum(yodel1['turns'] for yodel1 in eventDbMatch(
+                    events, {'ee_code': "yodel1"})),
+                 sum(yodel2['turns'] for yodel2 in eventDbMatch(
+                    events, {'ee_code': "yodel2"}))])
 
-        self._pipes = sum(pipeevent['turns'] for pipeevent in eventFilter(
-                              events, r'broke .* water pipe'))
+        self._pipes = sum(pipeevent['turns'] for pipeevent in eventDbMatch(
+                              events, {'ee_code': "pipe3"}))
 
-        self._exposureDone = any(eventFilter(events, r'defeated +Frosty'))
+        self._exposureDone = any(eventDbMatch(events, {'ee_code': "boss"}))
 
         if self._killed > 0 or self._pipes > 0 or sum(self._yodel) > 0:
             self._open = True

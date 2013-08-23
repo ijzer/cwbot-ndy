@@ -7,7 +7,9 @@ def stringToBool(txt):
         anything else -> raises KeyError
     """
     try:
-        return bool({'true':1,'on':1,'1':1,'yes':1,'false':0,'off':0,'0':0,'no':0}[txt.strip().lower()])
+        return bool({'true':1,'on':1,'1':1,'yes':1,
+                     'false':0,'off':0,'0':0,'no':0}
+                    [txt.strip().lower()])
     except KeyError:
         raise ValueError("invalid literal for stringToBool(): '%s'" % txt)
 

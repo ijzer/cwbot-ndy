@@ -1,6 +1,6 @@
 import math
 import re
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 def killPercent(n):
     return int(max(0, min(99, 100*n / 500.0)))
@@ -42,6 +42,10 @@ class AhbgModule(BaseDungeonModule):
 
     def initialize(self, state, initData):
         self._open = state['open']
+        self._db = initData['event-db']
+        self._chatStrings = {d['ahbg_code']: d['chat'] for d in self._db
+                             if d['ahbg_code']}
+
         self._processLog(initData)
 
             
@@ -73,19 +77,20 @@ class AhbgModule(BaseDungeonModule):
         # first: check number of dances available 
         #        = 5 * flim-flams - dances so far
         # also see who has danced so far.
-        self._watches = dict((w['userName'], w['turns']) 
-                             for w in eventFilter(
-                                 events, "watched some zombie hobos dance"))
-        self._dances = dict((d['userName'], d['turns']) 
-                            for d in eventFilter(events, r'busted .* move'))
+        self._watches = {w['userName']: w['turns']
+                         for w in eventDbMatch({'code': "ahbg_watch"})}
+        self._dances = {w['userName']: w['turns']
+                         for w in eventDbMatch({'code': "ahbg_dance"})}
 
         self._availableDances = (
-                5 * sum(f['turns'] for f in eventFilter(
-                    events, "flimflammed some hobos"))
-                -   sum(e['turns'] for e in eventFilter(
-                    events, "watched some zombie hobos dance",
-                            r'busted .* move',
-                            "failed to impress as a dancer")))
+                5 * sum(f['turns'] for f in eventDbMatch(
+                    events, {'ahbg_code': "flimflam"}))
+                -   sum(f['turns'] for f in eventDbMatch(
+                    events, {'ahbg_code': "dance"}))
+                -   sum(f['turns'] for f in eventDbMatch(
+                    events, {'ahbg_code': "watch"}))
+                -   sum(f['turns'] for f in eventDbMatch(
+                    events, {'ahbg_code': "fail"})))
 
         # any player in hobopolis is added to watch list             
         for hoboplayer in set(item['userName'] for item in events 
@@ -94,16 +99,16 @@ class AhbgModule(BaseDungeonModule):
                 self._watches[hoboplayer] = 0
 
         self._killed = (      
-                  sum(k['turns'] for k in eventFilter(
-                      events, r'defeated +Spooky hobo'))
-            - 9 * sum(t['turns'] for t in eventFilter(
-                      events, r'raided .* tomb')))
+                  sum(k['turns'] for k in eventDbMatch(
+                    events, {'ahbg_code': "combat",}))
+            - 9 * sum(t['turns'] for t in eventDbMatch(
+                    events, {'ahbg_code': "tomb"})))
 
-        self._ahbgDone = any(eventFilter(events, r'defeated +Zombo'))
+        self._ahbgDone = any(eventDbMatch(events, {'ahbg_code': "boss"}))
 
         if not self._open:
-            if any(item['category'] == 'The Ancient Hobo Burial Ground' 
-                   for item in events):
+            if any(eventDbMatch(events, {'category': 
+                                         "The Ancient Hobo Burial Ground"})): 
                 self._open = True
         return True
 
@@ -151,14 +156,12 @@ class AhbgModule(BaseDungeonModule):
         if self._ahbgDone:
             return None
         # these don't do anything but change the number of dances available
-        if any(item in txt for item in [
-                "flim-flammed some hobos in the Purple Light District",
-                "failed to bust a move"]):
+        if any([self._chatStrings['flimflam'], self._chatStrings['fail']]
+               in txt): 
             return ("{} {} dances available."
                     .format(self.getTag(), self._availableDances))
-        
-        elif ("busted a move in the Burial Ground" in txt or
-              "spent some time observing zombie dancers" in txt):
+        if any([self._chatStrings['watch'], self._chatStrings['dance']]
+               in txt):
             m = re.search(r'^(.*) (?:busted a move|spent some time)', txt)
             if m is not None:
                 uname = m.group(1)

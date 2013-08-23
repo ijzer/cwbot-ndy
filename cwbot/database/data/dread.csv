@@ -1,7 +1,4 @@
 category,zone,subzone,choice,regex,notes,verified by,quantity,unique_type,unique_text,code
-Town Square,(combat),normal,,defeated\s+Normal hobo,,,,,,
-Miscellaneous,(combat),boss,,defeated\s+Hodgman,,,,,,
-,,,,,,,,,,
 The Woods,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:werewolf|bugbear),,rlbond86,,,,
 The Woods,(combat),boss,,defeated\s+(?:The Great Wolf of the Air|Falls-From-Sky),,rlbond86,,,,
 The Woods,(unlock),Attic,,unlocked the attic of the cabin,,rlbond86,,,,
@@ -34,7 +31,6 @@ The Woods,Burrows,Cold,Listen to the heart,listened to the forest's heart,+myst,
 The Woods,Burrows,Cold,Drink some of the green stuff,drank some nutritious forest goo,100 turns Nature's Bounty,Xande1,,,,effect
 The Woods,Burrows,Smelly,Smash the eggs,drove some bugbears out of the forest,-bugbears,rlbond86,,,,-bugbear
 The Woods,Burrows,Smelly,Dig through the garbage,found and sold a rare baseball card,FKs,PeKaJe,10,fk,FK-3,FKs
-The Woods,Burrows,Smelly,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
 The Village,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:ghost|zombie),,rlbond86,,,,
 The Village,(combat),boss,,defeated\s+(?:Mayor Ghost|the Zombie Homeowners' Association),,rlbond86,,,,
 The Village,(unlock),Suite,,unlocked the master suite,,rlbond86,,,,
@@ -50,7 +46,6 @@ The Village,Square,Gallows,Stand on the trap door,was hung by a clanmate,wait,sk
 The Village,Square,Gallows,Pull the lever,hung a clanmate,pull lever,,,,,lever
 The Village,Skid Row,Sewers,Unclog the grate,made the village less stinky,-stench,rlbond86,,,,-stench
 The Village,Skid Row,Sewers,Slosh in the muck,swam in a sewer,100 turns sewer drenched,rlbond86,,,,effect
-The Village,Skid Row,Sewers,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
 The Village,Skid Row,Tenements,Drive out the rats,drove some skeletons out of the castle,-skeletons,rlbond86,,,,-skel.
 The Village,Skid Row,Tenements,Paint over the graffiti,made the village less sleazy,-sleaze,rlbond86,,,,-sleaze
 The Village,Skid Row,Tenements,Move bricks around,moved some bricks around,+muscle,rlbond86,,,,+muscle
@@ -85,7 +80,6 @@ The Castle,Tower,Bedroom,Check the dresser,raided a dresser,FKs,Aquacadet08,10,f
 The Castle,Tower,Bedroom,Turn on the magic fingers,got magically fingered,100 turns Magically Fingered,Xande1,,,,effect
 The Castle,Hall,Ballroom,Play the organ,drove some vampires out of the castle,-vampires,rlbond86,,,,-vampire
 The Castle,Hall,Ballroom,Trip the light fantastic,twirled on the dance floor,+moxie,,,,,+moxie
-The Castle,Hall,Ballroom,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,
 The Castle,Hall,Kitchen,Turn down the freezer,made the castle less cold,-cold,rlbond86,,,,-cold
 The Castle,Hall,Kitchen,Hang out in the freezer,frolicked in a freezer,100 turns staying frosty,Aquacadet08,,,,effect
 The Castle,Hall,Dining Room,Grab the roast,got some roast beast,roast,skinz3,1,unique,roast,roast
@@ -99,4 +93,3 @@ The Castle,Dungeon,Boiler Room,Check in the incinerator,sifted through some ashe
 The Castle,Dungeon,Boiler Room,Relax in the furnace,relaxed in a furnace,+substats,PeKaJe,,,,+substats
 The Castle,Dungeon,Guardroom,Break off some choice bits,got some stinking agaric,stinking agaricus,rlbond86,1,unique,agaricus,agaricus
 The Castle,Dungeon,Guardroom,Roll around in it,rolled around in some mushrooms,100 turns Spore Wreathed,rlbond86,,,,effect
-The Castle,Dungeon,Guardroom,,###UNKNOWN###,SPADING: Is there another adventure here?,?,,,,

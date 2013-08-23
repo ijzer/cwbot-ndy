@@ -1,5 +1,5 @@
 import math
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventDbMatch
 
 
 def killPercent(n):
@@ -32,6 +32,14 @@ class PldModule(BaseDungeonModule):
 
         
     def initialize(self, state, initData):
+        self._db = initData['event-db']
+        print self._db
+        self._popularityChangedStrings = [d['chat'] for d in self._db
+                                          if d['pld_code'] in ["popular",
+                                                               "unpopular"]]
+        self._brawlString = next(d['chat'] for d in self._db
+                                 if d['pld_code'] == "barfight")
+        
         self._pldLastNotify = -10000
         self._pldDone = False
         self._open = state['open']
@@ -81,27 +89,25 @@ class PldModule(BaseDungeonModule):
         events = raidlog['events']
         # check stench hobos killed
         self._unpopularity = (  
-                sum(u['turns'] for u in eventFilter(
-                        events, "bamboozled some hobos", 
-                        "flimflammed some hobos",
-                        "diverted some cold water out of Exposure"))
-                - sum(p['turns'] for p in eventFilter(
-                        events, "danced like a superstar",
-                        "diverted some steam away from Burnbarrel")))
+                sum(u['turns'] for u in eventDbMatch(
+                        events, {'pld_code': "unpopular"}))
+                - sum(p['turns'] for p in eventDbMatch(
+                        events, {'pld_code': "popular"})))
         
         self._pldKilled = (      
-                sum(k['turns'] for k in eventFilter(
-                        events, r'defeated +Sleaze hobo'))
-                - 6 * sum(d['turns'] for d in eventFilter(events, "dumpster")))
+                sum(k['turns'] for k in eventDbMatch(
+                                    events, {'pld_code': "combat"}))
+                - 6 * sum(d['turns'] for d in eventDbMatch(
+                                    events, {'pld_code': "dumpster"})))
 
-        self._pldFights = sum(f['turns'] for f in eventFilter(
-                                  events, "barfight"))
+        self._pldFights = sum(f['turns'] for f in eventDbMatch(
+                                  events, {'pld_code': "barfight"}))
             
         # if Chester is dead, set the heap to finished
         if self._pldKilled > 0 or self._pldFights > 0:
             self._open = True
         
-        self._pldDone = any(eventFilter(events, r'defeated +Chester'))
+        self._pldDone = any(eventDbMatch(events, {'pld_code': "boss"}))
         return True
             
 
@@ -126,14 +132,9 @@ class PldModule(BaseDungeonModule):
         if self._pldDone:
             return None
 
-        if any(item in txt for item in 
-                   ["bamboozled some hobos",
-                    "flim-flammed some hobos",
-                    "diverted some cold water out of Exposure Esplanade",
-                    "did some dancing",
-                    "diverted some steam"]):
+        if any(s in txt for s in self._popularityChangedStrings):
             return self.displayProgress(False)
-        if "started a brawl" in txt:
+        if self._brawlString in txt:
             killedSoFar = self._pldFightDamage + self._pldKilled
             remaining = 500 - killedSoFar
             newDamage = int(math.floor(0.1 * remaining))

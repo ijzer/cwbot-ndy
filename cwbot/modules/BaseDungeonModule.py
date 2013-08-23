@@ -15,15 +15,17 @@ def eventFilter(events, *text):
     return (e for e in events if regex.search(e['event']) is not None)
 
 
-def eventDbMatch(events, categoryDict):
+def eventDbMatch(events, *categoryDicts):
     """
     This function is often used in dungeon module parsing. It returns a 
     generator that returns log entries that have an event that matches 
     any of the regexes passed in. It is used so commonly that this function
     is very convenient. Regexes are automatically compiled and cached.
     """
+    sets = [set(d.items()) for d in categoryDicts]
     return (e for e in events 
-            if set(categoryDict.items()).issubset(set(e['db-match'].items())))
+            if any(s.issubset(set(e['db-match'].items()))
+                   for s in sets))
 
     
 class BaseDungeonModule(BaseChatModule):

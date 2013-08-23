@@ -255,7 +255,7 @@ class FaxModule(BaseChatModule):
                                 "(fax lookup unavailable) ", isPM)
             else:
                 return ("Please wait {} more seconds to request a fax."
-                        .format(round(self._faxWait - timeSinceLast)))
+                        .format(int(self._faxWait - timeSinceLast)))
         
 
     def fax(self, monstercode, monstername, prependText="", 
