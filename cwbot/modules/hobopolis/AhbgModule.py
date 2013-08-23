@@ -160,8 +160,8 @@ class AhbgModule(BaseDungeonModule):
                                   self._chatStrings['fail']]): 
             return ("{} {} dances available."
                     .format(self.getTag(), self._availableDances))
-        if any([self._chatStrings['watch'], self._chatStrings['dance']]
-               in txt):
+        if any(s in txt for s in [self._chatStrings['watch'], 
+                                  self._chatStrings['dance']]):
             m = re.search(r'^(.*) (?:busted a move|spent some time)', txt)
             if m is not None:
                 uname = m.group(1)
