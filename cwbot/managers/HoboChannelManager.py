@@ -135,16 +135,15 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                 self._active = False
                 self._log.info("Hodgman killed!")
 
-        if raidlog.get('hoid', None) is not None:
-            oldHoid = self._hoid
-            self._hoid = raidlog['hoid']
-            if self._hoid != oldHoid:
-                self._log.info("Hobopolis instance number {} (old instance {})"
-                               .format(self._hoid, oldHoid))
-                if oldHoid is not None:
-                    # oldHoid is only None upon first startup. So now it's
-                    # time to reset!
-                    self._resetDungeon()
+        newHoid = raidlog.get('hoid', None)
+        if newHoid is not None and newHoid != self._hoid:
+            self._log.info("Hobopolis instance number {} (old instance {})"
+                           .format(newHoid, self._hoid))
+            if self._hoid is not None:
+                # oldHoid is only None upon first startup. So now it's
+                # time to reset!
+                self._resetDungeon()
+            self._hoid = newHoid
         
 
     def active(self):

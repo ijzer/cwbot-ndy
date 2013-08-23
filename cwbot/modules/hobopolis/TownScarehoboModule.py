@@ -139,12 +139,14 @@ class TownScarehoboModule(BaseDungeonModule):
         events = raidlog['events']
         self._killed = sum(k['turns'] for k in eventDbMatch(
                                events, {'town_code': "combat"}))
-            
-        newScareHoboParts = self.getParts()
-        if newScareHoboParts is not None:
-            if newScareHoboParts != self._scareHoboParts:
-                self.processPartChange(newScareHoboParts)
-            self._scareHoboParts = newScareHoboParts
+        if self._dungeonActive():
+            newScareHoboParts = self.getParts()
+            if newScareHoboParts is not None:
+                if newScareHoboParts != self._scareHoboParts:
+                    self.processPartChange(newScareHoboParts)
+                self._scareHoboParts = newScareHoboParts
+        else:
+            self._scareHoboParts = [0] * 6
         return True
 
             

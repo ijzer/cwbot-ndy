@@ -126,16 +126,15 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
                 self._active = False
                 self._log.info("Dread clear!")
 
-        if raidlog.get('dvid', None) is not None:
-            oldDvid = self._dvid
-            self._dvid = raidlog['dvid']
-            if self._dvid != oldDvid:
-                self._log.info("Dread instance number {} (old instance {})"
-                               .format(self._dvid, oldDvid))
-                if oldDvid is not None:
-                    # oldDvid is only None upon first startup. So now it's
-                    # time to reset!
-                    self._resetDungeon()
+        newDvid = raidlog.get('dvid', None)
+        if newDvid is not None and newDvid != self._dvid:
+            self._log.info("Dread instance number {} (old instance {})"
+                           .format(newDvid, self._dvid))
+            if self._dvid is not None:
+                # oldDvid is only None upon first startup. So now it's
+                # time to reset!
+                self._resetDungeon()
+            self._dvid = newDvid
         
 
     def active(self):
