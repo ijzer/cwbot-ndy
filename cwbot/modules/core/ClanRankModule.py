@@ -89,6 +89,7 @@ class ClanRankModule(BaseModule):
         self._lastRun = None
         self._promotionRules = None
         self._execTime = None
+        self._doFinishInit = threading.Event()
         self._titles = {}
         self._safeRanks = self._safeTitles = None
         self._stopNow = threading.Event()
@@ -135,8 +136,15 @@ class ClanRankModule(BaseModule):
         self._userDb = state['userDb']
         self._lastRun = state.get('lastRun', 0)
         self._inactiveAstrals = state.get('inactiveAstrals', {})
+        # initialization will be finished in the first heartbeat thread.
+        # we do NOT want anything that could throw an exception here! That
+        # would reset the state
+        self._doFinishInit.set()
         
+        
+    def _finishInitialization(self):
         # get list of clan members (both in whitelist and roster)
+        self.log("Initializing ranks...")
         r1 = ClanWhitelistRequest(self.session)
         d1 = self.tryRequest(r1)
         self._ranks = {_rankTransform(rank['rankName']): rank 
@@ -617,6 +625,8 @@ class ClanRankModule(BaseModule):
 
     def _eventCallback(self, eData):
         if eData.subject == "raise_days":
+            if not self._finishedInit:
+                return
             self._raiseDaysInClan()
             return
         if eData.fromName == "sys.system":
@@ -630,6 +640,9 @@ class ClanRankModule(BaseModule):
             
             
     def _heartbeat(self):
+        if self._doFinishInit.is_set():
+            self._doFinishInit.clear()
+            self._finishInitialization()
         if self._execTime is None:
             return
         if time.time() > self._execTime:
