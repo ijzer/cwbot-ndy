@@ -203,10 +203,18 @@ class BaseManager(EventSubsystem.EventCapable,
                             self._log.info("Null state for module {}, using "
                                            "default...".format(mod.id))
                             state = mod.initialState
-                        self._log.debug("Initializing module {} ({}) with "
-                                        "state {}".format(
-                                            mod.id, mod.__class__.__name__, 
-                                            state))
+                            
+                        if len(str(state)) > 500:
+                            self._log.debug("Initializing module {} ({}) with "
+                                            "state {{TOO LONG TO FIT}}"
+                                            .format(mod.id, 
+                                                    mod.__class__.__name__))
+                        else:
+                            self._log.debug("Initializing module {} ({}) with "
+                                            "state {}"
+                                            .format(mod.id, 
+                                                    mod.__class__.__name__, 
+                                                    state))
                         mod.initialize(state, initData)
                         success = True
                     except (KeyboardInterrupt, SystemExit, 

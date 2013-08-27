@@ -15,7 +15,7 @@ from cwbot.sys.eventSubsystem import EventSubsystem
 from cwbot.sys.heartbeatSubsystem import HeartbeatSubsystem
 from cwbot.common.InitData import InitData
 from kol.request.StatusRequest import StatusRequest
-from kol.request.UserProfileRequest import UserProfileRequest
+from cwbot.kolextra.request.UserProfileRequest import UserProfileRequest
 from cwbot.util.tryRequest import tryRequest
 
 
@@ -54,7 +54,9 @@ class BotSystem(EventSubsystem.EventCapable,
         # start subsystems
         try:
             oldTxt = None
-            hbSys = HeartbeatSubsystem(5, 5, self._hbStop)
+            hbSys = HeartbeatSubsystem(numThreads=6, 
+                                       period=5, 
+                                       stopEvent=self._hbStop)
             evSys = EventSubsystem()
             
             # initialize subsystems
