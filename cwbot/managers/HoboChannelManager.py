@@ -156,7 +156,6 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
         This function is called when a new Hobopolis instance is detected.
         """
         
-        events = self._getRaidLog()
         with self._syncLock:
             self._active = True
             self.sendChatMessage("The dungeon has been reset!")
