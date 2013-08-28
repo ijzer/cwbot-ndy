@@ -146,6 +146,7 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
         """ 
         This function is called when a new Dreadsylvania instance is detected.
         """
+
         with self._syncLock:
             self._active = True
             self.sendChatMessage("The dungeon has been reset!")
