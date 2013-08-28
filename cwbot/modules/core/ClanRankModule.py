@@ -318,8 +318,10 @@ class ClanRankModule(BaseModule):
                 del self._inactiveAstrals[k]
             
         if newMembers:
-            newMemberList = ["{} (#{})".format(record['userName'],
-                                               record['userId'])
+            newMemberList = ["{} (#{}){}".format(
+                               record['userName'],
+                               record['userId'],
+                               "" if record['inClan'] else " [whitelist only]")
                              for key,record in newUserDb.items()
                              if key in newMembers]    
             txt = ("The following users are new clan members:\n\n{}\n"
