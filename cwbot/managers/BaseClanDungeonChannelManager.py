@@ -35,7 +35,7 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
 
     _csvFile = None # override this in child classes
     
-        
+    __initialRaidlog = None
     __raidlogDownloadLock = threading.RLock()
     _lastChatNum = None
     delay = 300
@@ -54,6 +54,16 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
             self._logEntryDb = database.csvDatabase(self._csvFile)
             printDbLoad = True
         
+        with self.__raidlogDownloadLock:
+            if self.__initialRaidlog is None:
+                rl = ClanRaidLogRequest(iData.session)
+                result = tryRequest(rl, 
+                                    numTries=5, 
+                                    initialDelay=0.5, 
+                                    scaleFactor=2)
+                self.__initialRaidlog = result
+        self.__lastEvents = self.__initialRaidlog
+
         super(BaseClanDungeonChannelManager, self).__init__(parent, 
                                                             identity, 
                                                             iData, 
@@ -64,19 +74,6 @@ class BaseClanDungeonChannelManager(MultiChannelManager):
         self.__initialized = True
         
     
-    def _initialize(self):
-        with self.__raidlogDownloadLock:
-            replies = self._raiseEvent("request_raid_log", None)
-            if replies:
-                self._log.info("Using previously acquired raid log...")
-                self._raiseEvent("new_raid_log", 
-                                 "__" + self.identity + "__", 
-                                 replies[0].data)
-            else:
-                self._getRaidLog(noThrow=False, force=True)
-        super(BaseClanDungeonChannelManager, self)._initialize()
-
-
     def _configure(self, config):
         """ Additional configuration for the log_check_interval option """
         super(BaseClanDungeonChannelManager, self)._configure(config)
