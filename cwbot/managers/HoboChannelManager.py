@@ -44,8 +44,7 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
         
         
     def _initialize(self):
-        super(HoboChannelManager, self)._initialize()
-        """ This function initializes the processors with log data and 
+        """ This function initializes the modules with log data and 
         persistent state information. For the HoboChannelManager, old
         persistent state is deleted if a new instance is detected. 
         """
@@ -70,12 +69,15 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
             self._persist['__hoid__'] = self._hoid
         else:
             hoid_old = self._persist['__hoid__']
+            self._log.info("Old instance: {}".format(hoid_old))
             hoid_new = self._hoid
+            self._log.info("Current instance: {}".format(hoid_new))
             if hoid_old != hoid_new:
                 self._log.info("New hobopolis instance. Clearing state...")
                 self._clearPersist()
             else:
                 self._log.info("Same hobopolis instance as last shutdown.")
+        super(HoboChannelManager, self)._initialize()
 
         
     def _filterEvents(self, raidlog):
@@ -90,7 +92,7 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                                      'Miscellaneous']
         d = {k: v for k,v in raidlog.items() if k in relevant_keys}
         d = self._dbMatchRaidLog(d)
-        d['events'] = [e for e in raidlog['events'] 
+        d['events'] = [e for e in d['events'] 
                        if e['category'] in relevant_event_categories]
         return d
     
@@ -114,6 +116,7 @@ class HoboChannelManager(BaseClanDungeonChannelManager):
                                          item['event']) 
                                is not None for item in raidlog['events'])
         self._log.info("Hobopolis active = {}".format(self._active))
+        self._hoid = raidlog.get('hoid', None)
 
 
     def _handleNewRaidlog(self, raidlog):

@@ -37,7 +37,6 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
         
         
     def _initialize(self):
-        super(DreadChannelManager, self)._initialize()
         """ This function initializes the modules with log data and 
         persistent state information. For the DreadChannelManager, old
         persistent state is deleted if a new instance is detected. 
@@ -63,12 +62,16 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
             self._persist['__dvid__'] = self._dvid
         else:
             dvid_old = self._persist['__dvid__']
+            self._log.info("Old instance: {}".format(dvid_old))
             dvid_new = self._dvid
+            self._log.info("Current instance: {}".format(dvid_new))
             if dvid_old != dvid_new:
+
                 self._log.info("New Dreadsylvania instance. Clearing state...")
                 self._clearPersist()
             else:
                 self._log.info("Same Dreadsylvania instance as last shutdown.")
+        super(DreadChannelManager, self)._initialize()
         
 
     def _filterEvents(self, raidlog):
@@ -100,6 +103,7 @@ class DreadChannelManager(BaseClanDungeonChannelManager):
         
         self._active = self._dungeonIsActive(raidlog)
         self._log.info("Dread active = {}".format(self._active))
+        self._dvid = raidlog.get('dvid', None)
 
 
     def _dungeonIsActive(self, raidlog):
