@@ -4,6 +4,7 @@ from math import floor
 import calendar
 from collections import defaultdict
 import threading
+import copy
 from cwbot.kolextra.request.ClanDetailedMemberRequest \
                      import ClanDetailedMemberRequest
 from cwbot.modules.BaseModule import BaseModule
@@ -55,8 +56,11 @@ class ClanRankModule(BaseModule):
         # set below to none for no message
         boot_message = You have been booted for inactivity.
         simulate = false # if true, do not actually boot/promote users
+        # do not set this to true if your bot runs 24/7
+        run_immediately = false
+        boot_every_n_days = 1
         [[[[rules]]]]
-            [[[[[RankName1]]]]]
+            [[[[[Normal Member]]]]]
                 # karma requirement for this rank
                 min_karma = 0
                 # can a user with this rank be demoted if they lose karma?
@@ -89,6 +93,8 @@ class ClanRankModule(BaseModule):
         self._lastRun = None
         self._promotionRules = None
         self._execTime = None
+        self._immediate = None
+        self._bootFrequencyDays = None
         self._doFinishInit = threading.Event()
         self._titles = {}
         self._safeRanks = self._safeTitles = None
@@ -109,9 +115,17 @@ class ClanRankModule(BaseModule):
         self._bootMessage = toTypeOrNone(config.setdefault('boot_message',
                                                            "none"))
         self._simulate = stringToBool(config.setdefault('simulate', "false"))
+        self._immediate = stringToBool(config.setdefault('run_immediately',
+                                                         "false"))
+        try:
+            self._bootFrequencyDays = int(config.setdefault(
+                                                    'boot_every_n_days', 1))
+        except ValueError:
+            raise FatalError("ClanRankModule: boot_every_n_days must "
+                             "be integral")
 
         rules = config.setdefault('rules', 
-                        {'Rank1': {'demotion_allowed': "false",
+                        {'Normal Member': {'demotion_allowed': "false",
                                    'min_karma': 0,
                                    'min_days_until_next_promotion': 7,
                                    'min_days_in_clan': 0,
@@ -189,8 +203,11 @@ class ClanRankModule(BaseModule):
         elif time.time() > latestPossibleExecTime:
             self.log("Too late to run rankings today.")
         else:
-            self._execTime = random.randint(int(time.time()), 
-                                            latestPossibleExecTime)
+            if self._immediate:
+                self._execTime = int(time.time()) + 15
+            else:
+                self._execTime = random.randint(int(time.time()), 
+                                                latestPossibleExecTime)
             self.log("Running rankings in {} minutes."
                      .format(int((self._execTime - time.time()) / 60)))
 
@@ -214,10 +231,105 @@ class ClanRankModule(BaseModule):
         if not self._stopNow.is_set():
             self._doPromotionDemotion(self._simulate)
         if not self._stopNow.is_set():
-            self._doBooting(self._simulate)
+            self._updateInactiveAstrals()
+        if not self._stopNow.is_set():
+            day = time.gmtime(self._rolloverTime).tm_yday
+            sequenceDay = day % self._bootFrequencyDays
+            if sequenceDay == 0:
+                self._doBooting(self._simulate)
+            else:
+                self.log("Performing booting in {} days."
+                         .format(self._bootFrequencyDays - sequenceDay))
         if not self._stopNow.is_set():
             self._lastRun = self._rolloverTime
         self._running.clear()
+
+
+    # update the database of clan members
+    def _refreshClanMembers(self):
+        self.debugLog("Fetching clan member list...")
+        
+        curTime = int(time.time())
+        newUserDb = copy.deepcopy(self._userDb)
+        for record in newUserDb.values():
+            record['updated'] = False
+
+        # member info comes from two sources: members in the clan right
+        # now are in the detailed roster; members who are whitelisted to a
+        # different clan are on the whitelist. Sadly, the information
+        # contained in each is different. It's impossible to find the karma
+        # of a user who is away on whitelist, and you can't find the
+        # title of a user in the detailed roster.
+        members = defaultdict(dict)        
+        r1 = ClanWhitelistRequest(self.session)
+        d1 = self.tryRequest(r1)
+        r2 = ClanDetailedMemberRequest(self.session)
+        d2 = self.tryRequest(r2)
+        if len(d2['members']) == 0:
+            raise RuntimeError("Could not detect any members of clan!")
+        
+        self.debugLog("{} members on whitelist".format(len(d1['members'])))
+        self.debugLog("{} members in clan".format(len(d2['members'])))
+        for record in d1['members']:
+            uid = int(record['userId'])
+            entry = {'userId': uid,
+                     'userName': record['userName'],
+                     'rank': self._ranks[_rankTransform(record['rankName'])],
+                     'whitelist': True,
+                     'updated': True}
+            self._titles[uid] = record['clanTitle']
+            members[uid] = entry
+        for record in d2['members']:
+            uid = int(record['userId'])
+            entry = {'userId': uid,
+                     'userName': record['userName'],
+                     'rank': self._ranks[_rankTransform(record['rankName'])],
+                     'inClan': True,
+                     'karma': record['karma'],
+                     'updated': True}
+            members[uid].update(entry)
+            
+        self.debugLog("{} members total".format(len(members)))
+        
+        newMembers = []
+        # add some default values and put these in the database
+        for uid, record in members.items():
+            record.setdefault('karma', 0)
+            record.setdefault('inClan', False)
+            record.setdefault('whitelist', False)
+            record['lastData'] = curTime
+            
+            key = str(uid)
+            if key not in newUserDb:
+                newUserDb[key] = {'lastPromotion': self._rolloverTime,
+                                  'entryCreated': self._rolloverTime,
+                                  'lastActiveCheck': 0}
+                newMembers.append(key)
+            newUserDb[key].update(record)
+                
+        # delete old users from database
+        deleteAfterSeconds = _daysToSecs(90)
+        newUserDb = {k: v for k,v in newUserDb.items()
+                        if v.get('lastData') >= curTime - deleteAfterSeconds}
+        
+        # remove deleted users from _inactiveAstrals
+        for k in self._inactiveAstrals.keys():
+            if k not in newUserDb:
+                del self._inactiveAstrals[k]
+            
+        if newMembers:
+            newMemberList = ["{} (#{})".format(record['userName'],
+                                               record['userId'])
+                             for key,record in newUserDb.items()
+                             if key in newMembers]    
+            txt = ("The following users are new clan members:\n\n{}\n"
+                   .format("\n".join(newMemberList)))
+            self.log("New members: {}".format(", ".join(newMemberList)))
+            for uid in self.properties.getAdmins("new_clan_member_notify"):
+                self.sendKmail(Kmail(uid, txt))
+        
+        self._userDb = newUserDb
+        self.debugLog("UserDb updated to {} entries".format(len(newUserDb)))
         
     
     # actually run the promotions/demotions
@@ -227,6 +339,8 @@ class ClanRankModule(BaseModule):
         for record in self._userDb.values():
             if self._stopNow.is_set():
                 return
+            if not record.get('updated', False):
+                continue
             val = self._determinePromotionDemotion(record['userId'])
             if val == 1:
                 self._promote(record['userId'], simulate=simulate)
@@ -239,6 +353,8 @@ class ClanRankModule(BaseModule):
     
     # promote (or demote) a user one rank
     def _promote(self, uid, isDemotion=False, simulate=False):
+        # check to make sure user is in a promotable state
+        # and get their clan title
         r1 = UserProfileRequest(self.session, uid)
         d1 = self.tryRequest(r1)
         userName = d1['userName']
@@ -296,68 +412,8 @@ class ClanRankModule(BaseModule):
                          " (simulated)" if simulate else ""))
         if not isDemotion:
             self._userDb[str(uid)]['lastPromotion'] = self._rolloverTime
-
-
-    # get list of clan members
-    def _refreshClanMembers(self):
-        self.debugLog("Fetching clan member list...")
-        
-        curTime = int(time.time())
-
-        members = defaultdict(dict)        
-        r1 = ClanWhitelistRequest(self.session)
-        d1 = self.tryRequest(r1)
-        r2 = ClanDetailedMemberRequest(self.session)
-        d2 = self.tryRequest(r2)
-        if len(d2['members']) == 0:
-            raise RuntimeError("Could not detect any members of clan!")
-        
-        self.debugLog("{} members on whitelist".format(len(d1['members'])))
-        self.debugLog("{} members in clan".format(len(d2['members'])))
-        for record in d1['members']:
-            uid = int(record['userId'])
-            entry = {'userId': uid,
-                     'userName': record['userName'],
-                     'rank': self._ranks[_rankTransform(record['rankName'])],
-                     'whitelist': True}
-            self._titles[uid] = record['clanTitle']
-            members[uid] = entry
-        for record in d2['members']:
-            uid = int(record['userId'])
-            entry = {'userId': uid,
-                     'userName': record['userName'],
-                     'rank': self._ranks[_rankTransform(record['rankName'])],
-                     'inClan': True,
-                     'karma': record['karma']}
-            members[uid].update(entry)
             
-        self.debugLog("{} members total".format(len(members)))
-        for uid, record in members.items():
-            if 'karma' not in record:
-                record['karma'] = 0
-                record['inClan'] = False
-            if 'whitelist' not in record:
-                record['whitelist'] = False
-            record['lastData'] = curTime
-            
-            key = str(uid)
-            if key not in self._userDb:
-                self._userDb[key] = {'lastPromotion': self._rolloverTime,
-                                     'entryCreated': self._rolloverTime,
-                                     'lastActiveCheck': 0}
-            self._userDb[key].update(record)
-                
-        # delete old users from database
-        deleteAfterSeconds = _daysToSecs(90)
-        self._userDb = {k: v for k,v in self._userDb.items()
-                        if v.get('lastData') >= curTime - deleteAfterSeconds}
-        self.debugLog("UserDb updated to {} entries".format(len(self._userDb)))
         
-        for k in self._inactiveAstrals.keys():
-            if k not in self._userDb:
-                del self._inactiveAstrals[k]
-        
-    
     # should a user be promoted, demoted, or neither?
     # return -1 for demotion, 0 for no change, 1 for promotion
     def _determinePromotionDemotion(self, uid):
@@ -433,6 +489,7 @@ class ClanRankModule(BaseModule):
 
     # perform booting of inactive members
     def _doBooting(self, simulate):
+        bootedMembers = []
         if self._daysUntilBoot <= 0:
             return
         self.log("Running bootings...")
@@ -444,13 +501,15 @@ class ClanRankModule(BaseModule):
         for uid_s, record in self._userDb.items():
             i += 1
             if self._stopNow.is_set():
-                return
+                break
+            if not record.get('updated', False):
+                continue
             nextCheckTime = record.get('lastActiveCheck', 0) + checkSeconds
             if curTime >= nextCheckTime:
-                self._bootIfInactive(int(uid_s), 
-                                     simulate,
-                                     msgPrefix="[{}/{}] "
-                                               .format(i, numRecords))
+                prefix = "[{}/{}] ".format(i, numRecords)
+                booted = self._bootIfInactive(int(uid_s), simulate, prefix)
+                if booted:
+                    bootedMembers.append(uid_s)
             else:
                 nextCheckDays = _secsToDays(nextCheckTime - curTime)
                 self.debugLog("[{}/{}] Skipping boot check for {}; will "
@@ -458,16 +517,64 @@ class ClanRankModule(BaseModule):
                               .format(i, numRecords,
                                       record['userName'], nextCheckDays))
         self.log("Done running bootings.")
+        if bootedMembers:
+            bootedList = ["{} (#{})".format(record['userName'],
+                                            record['userId'])
+                          for key,record in self._userDb.items()
+                          if key in bootedMembers]    
+            txt = ("The following users have been booted and/or "
+                   "removed from the clan whitelist:\n\n{}\n"
+                   .format("\n".join(bootedList)))
+            self.log("Booted members: {}".format(", ".join(bootedList)))
+            for uid in self.properties.getAdmins("boot_clan_member_notify"):
+                self.sendKmail(Kmail(uid, txt))
+
+        
+    # go through the list of inactive astral spirits and visit each player's
+    # profile page. If they're not an astral spirit, remove them from the list
+    def _updateInactiveAstrals(self):
+        self.log("Checking inactive astral spirits...")
+        for s_uid in self._inactiveAstrals.keys():
+            if self._stopNow.is_set():
+                return
+            uid = int(s_uid)
+            r1 = UserProfileRequest(self.session, uid)
+            d1 = self.tryRequest(r1)
+            userName = d1['userName']
+            if not d1['astralSpirit']:
+                del self._inactiveAstrals[s_uid]
+                self.log("User {} (#{}) is no longer an astral "
+                               "spirit.".format(userName, uid))
+            else:
+                self.debugLog("User {} (#{}) is still an astral spirit."
+                              .format(userName, uid))
         
     
     # check if a user is inactive and boot them if not protected
+    # returns True if player was booted
     def _bootIfInactive(self, uid, simulate=False, msgPrefix=""):
+        # most inactivity information is available from the user's profile.
         r1 = UserProfileRequest(self.session, uid)
         d1 = self.tryRequest(r1)
         userName = d1['userName']
-        userText = "{} (#{})".format(userName, uid)
+        
+        # add some flags for logging purposes
+        flags = []
+        record = self._userDb.get(str(uid), {})
+        if record.get('inClan', False):
+            flags.append("inClan")
+        if record.get('whitelist', False):
+            flags.append("whitelist")
+            
+        # userName (#0123456) [flag1/flag2]
+        userText = "{} (#{}) [{}]".format(userName, uid, "/".join(flags))
+        
+        # the one difficult case is if a user is an astral spirit. in this
+        # case, their last login is not listed on their page, so we will
+        # have to track how long they've been a spirit internally.
         if d1['astralSpirit']:
-            # first time we saw this astral spirit
+            # get time since this user was first seen in spirit form
+            # and boot them if it's been more than _daysUntilBoot
             t = self._inactiveAstrals.setdefault(str(uid), self._rolloverTime)
             inactiveDays = _secsToDays(self._rolloverTime - t) + 1
             self._log.info("{}User {} has been an astral spirit for the last "
@@ -480,15 +587,25 @@ class ClanRankModule(BaseModule):
                     self.log("{}Booted user {}{}"
                              .format(msgPrefix, userText, 
                                      " (simulated)" if simulate else ""))
+                    return not simulate
                 else:
                     self.debugLog("{}User {} protected from booting. Changing "
                                   "last active date to compensate..."
                                   .format(msgPrefix, userText))
                     self._inactiveAstrals[str(uid)] += _daysToSecs(28)
-            return
-        else:
-            if str(uid) in self._inactiveAstrals:
-                del self._inactiveAstrals[str(uid)]
+            return False
+
+        # player is NOT an astral spirit, so remove them from the list
+        # of "inactive astrals" if they are on that list
+        if str(uid) in self._inactiveAstrals:
+            del self._inactiveAstrals[str(uid)]
+
+        # now let's take a look at when they last logged in. If it's been
+        # more than _daysUntilBoot, boot them! Otherwise, set their
+        # lastActiveCheck to a time that will make the bot check them again
+        # in a number of days based on how inactive they are.
+        # e.g., if I ban after 100 days and a user has been inactive for 40, 
+        # check back in around 60 days.
         lastLogin = calendar.timegm(d1['lastLogin'].timetuple())
         daysSinceLastLogin = _secsToDays(self._rolloverTime - lastLogin) - 1
         
@@ -499,7 +616,7 @@ class ClanRankModule(BaseModule):
                 self.log("{}Booted user {}{}"
                          .format(msgPrefix, userText, 
                                  " (simulated)" if simulate else ""))
-                return
+                return not simulate
             else:
                 self.debugLog("{}User {} protected from booting. Changing "
                               "last active date to compensate..."
@@ -520,12 +637,11 @@ class ClanRankModule(BaseModule):
                       "ago). Checking again in {} days."
                       .format(msgPrefix, userText, 
                               daysSinceLastLogin, nextCheckDays))
+        return False
 
 
     # boot a member from the clan
     def _boot(self, uid):
-        if self._bootMessage is not None:
-            self.sendKmail(Kmail(uid, self._bootMessage))
         r1 = RemovePlayerFromClanWhitelistRequest(self.session, uid)
         self.tryRequest(r1)
         r2 = BootClanMemberRequest(self.session, uid)
@@ -536,14 +652,21 @@ class ClanRankModule(BaseModule):
 
     # determine if a user is safe from booting
     def _isUserSafe(self, uid):
+        # users are safe for two reasons: either their rank is in _safeRanks
+        # or their title is in _safeTitles.
         record = self._userDb[str(uid)]
+        
+        # check rank (the easy part; it's in the detailed roster)
         if _rankTransform(record['rank']['rankName']) in self._safeRanks:
             return True
+        
+        # check title; title is listed on whitelist or on the player page
         title = None
         if uid in self._titles:
             # player is on whitelist
             title = self._titles[uid]
         else:
+            # load title from player page
             r1 = UserProfileRequest(self.session, uid)
             d1 = self.tryRequest(r1)
             if record['inClan']:
@@ -557,25 +680,32 @@ class ClanRankModule(BaseModule):
                                            .format(uid))
                 title = d1['clanTitle']
             else:
-                raise RuntimeError("User {} should be in clan"
-                                   .format(uid))
+                self._log.warning("User {} should be in clan"
+                                  .format(uid))
+                return True
                 
         if title is not None and _rankTransform(title) in self._safeTitles:
             return True
         return False
     
     
+    # check if an astral spirit is safe from booting. This is more annoying 
+    # than checking a non-spirit because their title isn't on their profile.
     def _isInactiveAstralUserSafe(self, uid):
         record = self._userDb[str(uid)]
+        
+        # check rank first (easy)
         if _rankTransform(record['rank']['rankName']) in self._safeRanks:
             return True
+        
+        # check title
         title = None
         if uid in self._titles:
-            # player is on whitelist
+            # player is on whitelist -- we lucked out
             title = self._titles[uid]
         else:
             try:
-                # let's cheat a bit: add the user to the whitelist
+                # let's cheat a bit: add the user to the whitelist...
                 self.log("Temporarily adding player {} (#{}) to whitelist "
                          "(to read title)..."
                          .format(record['userName'], uid))
@@ -584,7 +714,7 @@ class ClanRankModule(BaseModule):
                                                      uid, 
                                                      normalRank)
                 self.tryRequest(r1)
-                # now let's read the whitelist
+                # now let's read the whitelist and find their title
                 r2 = ClanWhitelistRequest(self.session)
                 d2 = self.tryRequest(r2)
                 
@@ -596,6 +726,7 @@ class ClanRankModule(BaseModule):
                 record = matches[0]
                 title = record['clanTitle']
             finally:
+                # now let's take them off the whitelist.
                 r3 = RemovePlayerFromClanWhitelistRequest(self.session, uid)
                 self.tryRequest(r3)
                 self.log("Player {} (#{}) removed from whitelist."
