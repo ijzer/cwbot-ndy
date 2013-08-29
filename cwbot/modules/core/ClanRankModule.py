@@ -370,8 +370,9 @@ class ClanRankModule(BaseModule):
                               .format(userText))
             self.debugLog("{}".format(d1))
             return
-        isCustomTitle = (d1['clanTitle'] is not None and
-                         _rankTransform(d1['clanTitle']) not in self._ranks)
+        isCustomTitle = (d1['clanTitle'] is not None
+                         and _rankTransform(d1['clanTitle']) not in self._ranks
+                         and _rankTransform(d1['clanTitle']) != "")
         
         # find correct new rank
         newRankId = None
