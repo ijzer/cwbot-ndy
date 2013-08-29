@@ -609,7 +609,7 @@ class ClanRankModule(BaseModule):
         # e.g., if I ban after 100 days and a user has been inactive for 40, 
         # check back in around 60 days.
         lastLogin = calendar.timegm(d1['lastLogin'].timetuple())
-        daysSinceLastLogin = (self._rolloverTime - lastLogin) - 1
+        daysSinceLastLogin = _secsToDays(self._rolloverTime - lastLogin) - 1
         
         if daysSinceLastLogin > self._daysUntilBoot:
             if not self._isUserSafe(uid):
