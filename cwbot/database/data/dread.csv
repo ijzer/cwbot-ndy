@@ -40,7 +40,7 @@ The Village,Square,School,Rummage through the teacher's desk,collected a ghost p
 The Village,Square,School,Read the carvings on the students' desks,read some naughty carvings,+myst,,,,,+myst
 The Village,Square,Blacksmith,Stoke the furnace,made the village less cold,-cold,,,,,-cold
 The Village,Square,Blacksmith,Dig through the till,looted the blacksmith's till,FKs,PeKaJe,10,fk,FK-4,FKs
-The Village,Square,Blacksmith,Approach the anvil, made (?:a|some)? ?cool(?:ing)? iron (?:helmet|greaves|breastplate),"req hothammer, warm fur, cool iron ingot",,,,,anvil
+The Village,Square,Blacksmith,Approach the anvil,made (?:a|some)? ?cool(?:ing)? iron (?:helmet|greaves|breastplate),"req hothammer, warm fur, cool iron ingot",,,,,anvil
 The Village,Square,Gallows,Paint the noose pink,made the village less spooky,-spooky,,,,,-spooky
 The Village,Square,Gallows,Stand on the trap door,was hung by a clanmate,wait,skinz3,1,unique,gallows item,hanged
 The Village,Square,Gallows,Pull the lever,hung a clanmate,pull lever,,,,,lever
