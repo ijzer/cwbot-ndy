@@ -232,7 +232,9 @@ class ClanRankModule(BaseModule):
             self._doPromotionDemotion(self._simulate)
         if not self._stopNow.is_set():
             self._updateInactiveAstrals()
-        if not self._stopNow.is_set():
+        if (not self._stopNow.is_set() 
+            and self._bootFrequencyDays > 0
+            and self._daysUntilBoot > 0):
             day = time.gmtime(self._rolloverTime).tm_yday
             sequenceDay = day % self._bootFrequencyDays
             if sequenceDay == 0:
