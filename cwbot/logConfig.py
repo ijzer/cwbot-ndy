@@ -40,8 +40,8 @@ def logConfig(debug=False):
     log.addHandler(console)
 
     fileHandler = logging.handlers.RotatingFileHandler('log/cwbot.log', 
-                                                       maxBytes=5000000, 
-                                                       backupCount=1, 
+                                                       maxBytes=10*1000*1000, 
+                                                       backupCount=5, 
                                                        delay=True)
     fFormatter = ShortLevelNameFormatter("%(asctime)s %(name)-20s "
                                          "%(shortlevelname)-4s %(message)s",
@@ -55,7 +55,7 @@ def setFileHandler(logName, fileName):
     log = logging.getLogger(logName)
     log.handlers = []
     fileHandler = logging.handlers.RotatingFileHandler(fileName, 
-                                                       maxBytes=5000000, 
+                                                       maxBytes=10*1000*1000, 
                                                        backupCount=1, 
                                                        delay=True)
     fFormatter = ShortLevelNameFormatter("%(asctime)s %(name)-20s "

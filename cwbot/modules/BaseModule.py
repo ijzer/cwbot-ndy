@@ -188,6 +188,7 @@ class BaseModule(EventSubsystem.EventCapable,
         not double-sent. It's especially important if you're sending items. """
         self.parent.sendKmail(kmail)
         
+        
     def tryRequest(self, request, *args, **kwargs):
         """ Use this to perform KoL requests from PyKol. Do not use
         tryRequest() or request.doRequest() directly; running requests through
