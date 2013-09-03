@@ -521,8 +521,9 @@ class ClanRankModule(BaseModule):
                                       record['userName'], nextCheckDays))
         self.log("Done running bootings.")
         if bootedMembers:
-            bootedList = ["{} (#{})".format(record['userName'],
-                                            record['userId'])
+            bootedList = ["{} (#{}) [{}]".format(record['userName'],
+                                                 record['userId'],
+                                                 record['rank']['rankName'])
                           for key,record in self._userDb.items()
                           if key in bootedMembers]    
             txt = ("The following users have been booted and/or "
