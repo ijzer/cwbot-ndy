@@ -1,0 +1,4 @@
+1. Copy one of these files to the base directory (with cwbot.py)
+2. Rename the file to modules.ini
+3. Setup admin.ini and login.ini
+4. Your modules are now set up

@@ -54,13 +54,13 @@ will inevitably crash when an item gets stolen in PVP. If you want a PVP bot,
 you'll have to write your own.
 
 Place account information in 
-admin.ini, which has the following format (ignore lines in <> angle braces):
+login.ini, which has the following format (ignore lines in <> angle braces):
 
-<Beginning of file admin.ini>
+<Beginning of file login.ini>
 username = (account username)
 password = (account password)
 rollover_wait = (number of seconds to wait at rollover; default = 480)
-<End of file admin.ini>
+<End of file login.ini>
 
 To start the bot - at the command line type:
 "python cwbot.py" (without the quotes). You can get help by typing
@@ -180,7 +180,28 @@ Module: The lowest level. A module provides a single function. For example,
 	chats must be under the appropriate type of manager.
 
 
-2A. Modules.ini format
+2A. The TL;DR module setup (AKA easymode setup)
+-----------------------------------------------
+
+1.  Follow the bot setup instructions in section 1.
+
+2.  Copy one of the files in the doc/example_config folder to the root folder
+    (the one with cwbot.py in it), and rename that file to modules.ini.
+    Then go and set up login.ini as described in section 1.
+
+3.  Edit the admin_example.ini file and replace the entry "0000000" with your
+    user ID number. This will allow you to run maintenance commands and get
+    maintenance kmails from the bot. You can add other users with other
+    permissions as well. See section 3. Once you've edited this file, rename
+    it to admin.ini.
+    
+4.  Edit the login_example.ini file and set the bot's username and password,
+    then save the file as login.ini.
+    
+5.  You're done! Run the bot (as described in section 1)
+
+
+2B. Modules.ini format
 ----------------------
 
 The modules.ini file has most configuration options. The general format is
@@ -545,12 +566,14 @@ cwbot.core.AnnouncementModule - A module that announces system events in
 	arguments to the event (though, the only one with any arguments right 
 	now is the crash event). You should not use more than one of these.
 	
+    
 cwbot.modules.core.BreakfastModule - A module that grabs meat and items from
     the clan lounge and buys clovers when the bot first logs on. You
 	should only have one in your configuration.
     
 	Options: clovers: if true, buy clovers from hermit (true)
 	         vip: if true, try to get items from VIP lounge (true)
+             
              
 cwbot.modules.core.ShutdownModule - This module catches messages from
 	KoL about rollover, and shuts down the bot when rollover gets close.
@@ -564,11 +587,123 @@ cwbot.modules.core.ShutdownModule - This module catches messages from
 	should only load one of these.
 	Options: shutdown_time: amount of time, in MINUTES, before rollover 
 		that the bot should shut down (3)
+        
+        
+cwbot.modules.core.ClanRankModule - This module handles clan rank promotions
+    and bootings. Promotions can be based on time in clan, karma, or both.
+    Bootings are based on amount of time a user is inactive and removes
+    a user from the whitelist as well as booting. The promotions/booting
+    code runs once per day. A summary kmail of all booted members is sent
+    to anyone with permission 'boot_clan_member_notify'. A different kmail
+    with the names of all new clan members is sent to anyone with the
+    permission 'new_clan_member_notify'.
+    Here is an example configuration:
+    
+        [[[Ranks]]]
+            type = ClanRankModule
+            priority = 10
+            permission = None
+            clan_only = False
+            # remove a user from the clan after this many days of no login
+            boot_after_days = 121
+            # names of ranks that are immune to booting
+            safe_ranks = 00 Agent, Secret Agent
+            # titles that make a user immune to booting
+            safe_titles = DO NOT DELETE, DO NOT ERASE
+            # message that is sent in a kmail when user is booted
+            boot_message = You have been booted due to inactivity.
+            # if true, prints a simumlation message in the log without
+            # actually booting the user
+            simulate = false
+            # set to FALSE if you leave the bot running all day, this
+            # distributes the computational load on the KoL servers
+            run_immediately = false
+            # how often to run the booting routine (takes a good
+            # amount of time). E.g., set to 7 to run every week.
+            # set to 0 to never run
+            boot_every_n_days = 1
+            [[[[rules]]]]
+                [[[[[Normal Member]]]]]
+                    min_karma = 0
+                    demotion_allowed = False
+                    next_rank = Informant
+                    # you must hold this rank for 2 days
+                    min_days_until_next_promotion = 2
+                    min_days_in_clan = 0
+                [[[[[Informant]]]]]
+                    min_karma = 0
+                    demotion_allowed = False
+                    next_rank = Analyst
+                    min_days_until_next_promotion = 0
+                    min_days_in_clan = 0
+                [[[[[Analyst]]]]]
+                    # you must have 10000 karma to get to this rank
+                    min_karma = 10000
+                    demotion_allowed = False
+                    next_rank = Agent
+                    min_days_until_next_promotion = 0
+                    # you must be in the clan for 7 days to be promoted here
+                    min_days_in_clan = 7
+                [[[[[Agent]]]]]
+                    min_karma = 50000
+                    # if your karma falls below the minimum, you will
+                    # be demoted
+                    demotion_allowed = True
+                    next_rank = Secret Agent
+                    min_days_until_next_promotion = 0
+                    min_days_in_clan = 14
+                [[[[[Secret Agent]]]]]
+                    min_karma = 100000
+                    demotion_allowed = True
+                    # this is the final rank
+                    next_rank = none
+                    min_days_until_next_promotion = 0
+                    min_days_in_clan = 30
+                    
+    DETAILS:
+    min_karma is the karma limit to be promoted to THIS rank.
+    If demotion_allowed is set to True, the bot will automatically demote 
+        anyone with a karma lower than this amount to the previous rank. 
+        If more than one rank  promotes to this rank, one of those ranks 
+        is chosen arbitrarily. If this is the lowest rank, you should set 
+        demotion_allowed to False.
+    next_rank must be the name of the next rank in the clan.
+    min_days_until_next_promotion is the number of CONSECUTIVE days a player
+        must hold THIS rank before they are allowed to be promoted again.
+        This number is stored internally for every clan member and is reset
+        any time they receive a promotion. It is NOT reset when they are
+        demoted, so if someone gets demoted, their number of days spent in
+        their old rank counts towards re-promotion. If a player is promoted
+        manually, they also retain this count.
+    min_days_in_clan is the number of CUMULATIVE days a player must be in
+        the clan before they are eligible to receive this rank. Unlike
+        min_days_until_next_promotion, this count is never reset unless a 
+        player leaves the clan. If a player is on the whitelist, that counts 
+        as being in the clan, even if they have whitelisted to another clan. 
+        Even if a player has left/been booted, if the player returns in less 
+        than 90 days, they get all of the days back, plus the time they were 
+        gone. A player can only be promoted one level per day. Players are 
+        NOT promoted if they are whitelisted out of the clan; they must be 
+        present at the time that the promotion code runs or they will be 
+        skipped over for the day.
+    
+    NOTE: under normal circumstances, you don't need to use both
+    min_days_until_next_promotion and min_days_in_clan. The difference
+    is that min_days_in_clan is cumulative and is not lost upon promotion
+    or demotion.
+    
+    NOTE: The bot must have a rank that allows it to grant promotions to all
+        of the levels specified. It must also have booting priviliges if the
+        booting rules are used. Any ranks above (or equal to) the bot's should
+        be listed in the safe_ranks option. Ranks are not case sensitive.
+
 
 cwbot.modules.core.HealingModule - This module allows the bot to heal
     its HP and MP using items, skills, or a few other things. You may
     create multiple HealingModules, each with different healing methods,
     if the bot needs to heal in different ways for different tasks.
+    Right now, the HealingModule is only necessary if you want to use
+    the BuffbotModule.
     Configuration is as follows:
     
         [[[heal-1]]]
@@ -1172,7 +1307,11 @@ cwbot.modules.dread.DreadOverviewModule - Shows an overview of
 cwbot.modules.dread.DreadKeyModule - Shows which subareas are locked with
     the !keys command.
     (No options)
-    
+ 
+cwbot.modules.dread.DreadKillsModule - Shows how many kills a player has made
+    in Dreadsylvania.
+    (No options)
+ 
 cwbot.modules.dread.DreadUniquesModule - Shows which unique items area still
     in Dreadsylvania, and optionally announces when they are taken. Use the
     !uniques command to check the presence of unique items. 
