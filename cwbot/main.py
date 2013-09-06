@@ -6,6 +6,7 @@ import signal
 import traceback
 import logging
 import inspect
+import socket
 import cwbot.util.DebugThreading as threading
 from cwbot.processArgv import processArgv
 from cwbot.sys.BotSystem import BotSystem
@@ -85,6 +86,7 @@ def loginLoop(myDb, props):
         inv = createInventoryManager(s, myDb)
         cman = createChatManager(s)
         database.flush()
+        socket.setdefaulttimeout(60)
         bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb, exitEvent)
         
         # run the bot main loop. If this function returns, then we are logging
