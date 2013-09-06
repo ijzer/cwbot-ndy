@@ -2,6 +2,9 @@ from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
 from cwbot.common.exceptions import FatalError
 
 
+def _nameKey(x):
+    return "".join(x.split()).strip().lower()
+
 class DreadChoicesModule(BaseDungeonModule):
     """ 
     Displays which choice adventures a player may use in dreadsylvania.
@@ -38,11 +41,11 @@ class DreadChoicesModule(BaseDungeonModule):
         self._properUserNames = {}
         for e in events:
             zone = e['db-match'].get('zone')
-            userName = "".join(e['userName'].split()).strip().lower()
-            self._userAdventures.setdefault(userName, [])
-            self._properUserNames[userName] = e['userName']
+            user = _nameKey(e['userName'])
+            self._userAdventures.setdefault(user, [])
+            self._properUserNames[user] = e['userName']
             if zone in self._choiceLocations:
-                self._userAdventures[userName].append(e['db-match'])
+                self._userAdventures[user].append(e['db-match'])
             
                 
         try:
@@ -63,20 +66,23 @@ class DreadChoicesModule(BaseDungeonModule):
         
     def _processCommand(self, msg, cmd, args):
         if cmd in ["choice", "choices"]:
+            self._properUserNames[_nameKey(msg['userName'])] = msg['userName']
+            
             isSelf = False
             if not self._dungeonActive():
                 return ("How can you choose what doesn't exist?")
-            if args == "":
-                isSelf = True
+            if args.strip() == "":
                 args = msg['userName']
-            user = "".join(args.split()).strip().lower()
+            user = _nameKey(args)
+            properName = self._properUserNames.get(user, args)
+
+            isSelf = (properName == msg['userName'])
             choices = self._userAdventures.get(user)
             if isSelf and choices is None:
                 choices = []
-                self._properUserNames[user] = msg['userName']
             elif choices is None:
                 return ("Player {} has not adventured in this Dreadsylvania "
-                        "instance.".format(args))
+                        "instance.".format(properName))
             
             playerChoicesLeft = []
             playerChoicesMade = []
@@ -90,7 +96,7 @@ class DreadChoicesModule(BaseDungeonModule):
                         playerChoicesLeft.append(zone)
                     else:
                         playerChoicesMade.append((zone, "missed"))
-            txt = "{}: ".format(self._properUserNames[user])
+            txt = "{}: ".format(properName)
             if playerChoicesMade:
                 txt += "[{}] ".format(", ".join("{0[0]}: {0[1]}"
                                                 .format(args)
