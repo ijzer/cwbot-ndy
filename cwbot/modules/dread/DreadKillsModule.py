@@ -63,12 +63,10 @@ class DreadKillsModule(BaseDungeonModule):
                         "instance.".format(properName))
             
             if bosses > 0:
-                return ("Player {} has defeated {} monsters and {} bosses in "
-                        "this Dreadsylvania instance."
+                return ("{}: {} monsters and {} bosses defeated."
                         .format(properName))
             else:
-                return ("Player {} has defeated {} monsters in "
-                        "this Dreadsylvania instance."
+                return ("{}: {} monsters defeated."
                         .format(properName, kills))
         return None
         
