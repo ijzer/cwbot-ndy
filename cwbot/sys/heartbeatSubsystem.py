@@ -3,6 +3,7 @@ import Queue
 import time
 import logging
 import uuid
+from collections import deque
 import cwbot.util.DebugThreading as threading
 from cwbot.util.ExceptionThread import ExceptionThread
 from cwbot.util.emptyObject import EmptyObject
@@ -136,33 +137,38 @@ class HeartbeatSubsystem(object):
             self._objs = []
             self._lock = threading.RLock()
             self._threads = []
-            self._timers = []
             super(HeartbeatSubsystem._HeartbeatMainThread, self).__init__(
                     name="Heartbeat-Main")
             
         def _run(self):
             self._initialize()
+            reAddList = deque()
             try:
                 while not self._stopEvent.is_set():
-                    time.sleep(0.001)
+                    #time.sleep(0.001)
+                    time.sleep(1)
                     self._checkThreadExceptions()
                     self._clearDead()
                     with self._lock:
+                        curTime = time.time()
                         for obj in self._objs:
                             o = obj.obj()
                             if o is not None:
                                 if obj.done.is_set():
                                     obj.done.clear()
-                                    self._addTimer(obj)
+                                    reAddList.append((curTime, obj))
+                        while (reAddList 
+                                and reAddList[0][0] + self._t < curTime):
+                            self._enqueue(reAddList[0][1])
+                            reAddList.popleft()
             finally:
-                for t in self._timers:
-                    t.cancel()
                 for th in self._threads:
                     th.stop()
                 for th in self._threads:
                     self._log.debug("Joining thread {}...".format(th.id))
                     th.join()
                              
+
         def registerObject(self, obj, callback):
             with self._lock:
                 self._clearDead()
@@ -174,8 +180,7 @@ class HeartbeatSubsystem(object):
                             .format(obj))
                 self._objs.append(newHO)
                 self._enqueue(newHO)
-#                print("Registered object {!s} with heartbeat subsystem."
-#                      .format(obj))
+
                 
         def unregisterObject(self, obj):
             with self._lock:
@@ -202,31 +207,26 @@ class HeartbeatSubsystem(object):
                 o = matches[0]
                 with o.lock:
                     o.stop.set()
-#                print("Unregistered object {!s} with heartbeat subsystem."
-#                      .format(obj))
+                                
                                 
         def _initialize(self):
             for _i in range(self._n):
                 newThread = HeartbeatSubsystem._HeartbeatTaskThread(self.queue)
                 newThread.start()
                 self._threads.append(newThread)
+
                             
         def _checkThreadExceptions(self):
             for thread_ in self._threads:
                 if thread_.exception.is_set():
                     # this will cause an exception
                     thread_.join()
+
                     
         def _clearDead(self):
             with self._lock:
                 self._objs = [o for o in self._objs if o.obj() is not None]
-                self._timers = [t for t in self._timers if t.is_alive()]
-                
-        def _addTimer(self, obj):
-            t = threading.Timer(self._t, self._enqueue, args=(obj,))
-            t.start()
-            with self._lock:
-                self._timers.append(t)
+
                 
         def _enqueue(self, obj):
             self.queue.put_nowait(obj)
@@ -236,16 +236,20 @@ class HeartbeatSubsystem(object):
         self._log = logging.getLogger("heartbeat")
         self._thread = self._HeartbeatMainThread(numThreads, period, stopEvent)
         self._thread.start()
+
     
     @property
     def exception(self):
         return self._thread.exception.is_set()
+
     
     def registerObject(self, obj, callback):
         self._thread.registerObject(obj, callback)
         
+
     def unregisterObject(self, obj):
         self._thread.unregisterObject(obj)
+    
     
     def raiseException(self):
         if self.exception:
@@ -254,6 +258,7 @@ class HeartbeatSubsystem(object):
             raise Exception("Tried to get heartbeat exception, but there "
                             "is none.")
         
+    
     def join(self):
         self._log.info("Joining heartbeat threads...")
         self._thread.join()
