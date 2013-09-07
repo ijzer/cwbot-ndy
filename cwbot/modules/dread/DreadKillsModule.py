@@ -64,7 +64,7 @@ class DreadKillsModule(BaseDungeonModule):
             
             if bosses > 0:
                 return ("{}: {} monsters and {} bosses defeated."
-                        .format(properName))
+                        .format(properName, kills, bosses))
             else:
                 return ("{}: {} monsters defeated."
                         .format(properName, kills))
