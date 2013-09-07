@@ -57,6 +57,9 @@ class BaseManager(EventSubsystem.EventCapable,
     
     __clanMembers = set([])
     __clanNonMembers = {}
+
+    _syncLock = threading.RLock() # lock for syncing state
+
     def __init__(self, parent, identity, iData, config):
         """ Initialize the BaseManager. When you call this from a
         derived class, the following occurs:
@@ -73,7 +76,6 @@ class BaseManager(EventSubsystem.EventCapable,
                                           identity=identity, 
                                           evSys=parent.eventSubsystem,
                                           hbSys=parent.heartbeatSubsystem)
-        self._syncLock = threading.RLock() # lock for syncing state
         self.__configureOnline = False
         self.__initializeOnline = False
         self._s = iData.session
