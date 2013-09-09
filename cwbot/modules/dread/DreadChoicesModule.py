@@ -1,4 +1,4 @@
-from cwbot.modules.BaseDungeonModule import BaseDungeonModule, eventFilter
+from cwbot.modules.BaseDungeonModule import BaseDungeonModule
 from cwbot.common.exceptions import FatalError
 
 

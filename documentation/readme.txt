@@ -7,7 +7,7 @@ User's manual for cwbot
 
 If you don't have Python, you can install it from http://www.python.org/ or
 by using your package manager if you run Linux. cwbot requires the latest
-version of Python 2. As of this time, this is Python version 2.7. cwbot
+version of Python 2. As of this time, this is Python version 2.7.4. cwbot
 is not compatible with Python 3.
 
 
@@ -31,7 +31,7 @@ easy_install pip
 pip install -U -r /path/to/cwbot/requirements.txt
 
 
-(or, on windows, run the following from c:\Python27:)
+(or, on windows, run the following from c:\Python27)
 Scripts\easy_install pip
 Scripts\pip install -U -r C:\path\to\cwbot\requirements.txt
 
@@ -88,11 +88,12 @@ If you want to run cwbot to run at startup, you should set it up as a service.
 -------------
 
 If you are using Ubuntu Linux, an Upstart configuration file is included in 
-the doc folder. Simply copy this into your /etc/init folder and reboot, or
-use "sudo service cwbot start" to start the service. You will need to edit
-the path to the cwbot.py file in a text editor. If your Linux distribution 
-does not include Upstart, you will have to set up your own init.d or systemd
-script.
+the doc folder. Simply copy this into your /etc/init folder and edit the
+parameters at the top to match your install location and user account.
+Then reboot, or use "sudo service cwbot start" to start the service. 
+You will need to edit the path to the cwbot.py file in a text editor. If 
+your Linux distribution does not include Upstart, you will have to set up 
+your own init.d or systemd script.
 
 If you're using Linux, you can also delete the w32service.py file, which is
 only used for Windows.

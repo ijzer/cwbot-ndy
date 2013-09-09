@@ -23,6 +23,8 @@ def _versionGreater(new, old, rank):
     for i in range(_ranks[rank]):
         if newSeries[i] > oldSeries[i]:
             return True
+        if newSeries[i] < oldSeries[i]:
+            return False
     return False
 
 
@@ -164,8 +166,7 @@ class AboutModule(BaseChatModule):
                     self._lastAvailableVersion = available
                     self._resetNotified()
                 elif available != self.properties.version:
-                    self.log("New version available, but we have already "
-                             "notified admins.")
+                    self.log("Version is different, but not greater.")
             else:
                 self.log("Could not check for new version...")
             self._lastCheck = time.time()
