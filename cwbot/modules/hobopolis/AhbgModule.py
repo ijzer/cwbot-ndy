@@ -78,9 +78,9 @@ class AhbgModule(BaseDungeonModule):
         #        = 5 * flim-flams - dances so far
         # also see who has danced so far.
         self._watches = {w['userName']: w['turns']
-                         for w in eventDbMatch({'ahbg_code': "watch"})}
+                         for w in eventDbMatch(events, {'ahbg_code': "watch"})}
         self._dances = {w['userName']: w['turns']
-                         for w in eventDbMatch({'ahbg_code': "dance"})}
+                         for w in eventDbMatch(events, {'ahbg_code': "dance"})}
 
         self._availableDances = (
                 5 * sum(f['turns'] for f in eventDbMatch(
