@@ -42,11 +42,11 @@ class DreadChoicesModule(BaseDungeonModule):
         for e in events:
             zone = e['db-match'].get('zone')
             user = _nameKey(e['userName'])
-            self._userAdventures.setdefault(user, [])
-            self._properUserNames[user] = e['userName']
-            if zone in self._choiceLocations:
-                self._userAdventures[user].append(e['db-match'])
-            
+            if e['category'] != "Miscellaneous":
+                self._userAdventures.setdefault(user, [])
+                self._properUserNames[user] = e['userName']
+                if zone in self._choiceLocations:
+                    self._userAdventures[user].append(e['db-match'])
                 
         try:
             replies = self._raiseEvent("dread", "dread-overview", 

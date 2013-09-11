@@ -1,5 +1,4 @@
 from cwbot.modules.BaseDungeonModule import BaseDungeonModule
-from collections import defaultdict
 
 
 def _nameKey(x):
@@ -31,19 +30,22 @@ class DreadKillsModule(BaseDungeonModule):
 
     def _processLog(self, raidlog):
         events = raidlog['events']
-        self._userKills = defaultdict(int)
-        self._userBosses = defaultdict(int)
+        self._userKills = {}
+        self._userBosses = {}
         self._properUserNames = {}
         for e in events:
             user = _nameKey(e['userName'])
-            self._properUserNames[user] = e['userName']
-            zone = e['db-match'].get('zone')
-            if zone == "(combat)":
-                subzone = e['db-match'].get('subzone')
-                if subzone == "normal":
-                    self._userKills[user] += e['turns']
-                elif subzone == "boss":
-                    self._userBosses[user] += e['turns']
+            if e['category'] != "Miscellaneous":
+                self._userKills.setdefault(user, 0)
+                self._userBosses.setdefault(user, 0)
+                self._properUserNames[user] = e['userName']
+                zone = e['db-match'].get('zone')
+                if zone == "(combat)":
+                    subzone = e['db-match'].get('subzone')
+                    if subzone == "normal":
+                        self._userKills[user] += e['turns']
+                    elif subzone == "boss":
+                        self._userBosses[user] += e['turns']
         return True
 
             
@@ -55,9 +57,9 @@ class DreadKillsModule(BaseDungeonModule):
                 args = msg['userName']
             user = _nameKey(args)
             properName = self._properUserNames.get(user, args)
-            kills = self._userKills.get(user, 0)
-            bosses = self._userBosses.get(user, 0)
-            if kills + bosses == 0:
+            kills = self._userKills.get(user)
+            bosses = self._userBosses.get(user)
+            if kills is None or bosses is None:
                 return ("Player {} has not adventured in this Dreadsylvania "
                         "instance.".format(properName))
             
