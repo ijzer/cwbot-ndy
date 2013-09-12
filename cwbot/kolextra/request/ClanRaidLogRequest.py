@@ -57,6 +57,7 @@ class ClanRaidLogRequest(GenericRequest):
                              for x in dreadMatches)
         dreadActivity['drunkenness'] = sum(x['drunkenness'] 
                                            for x in drunkActivity)
+        dreadActivity['drunkActivity'] = drunkActivity
         self.responseData['dread'] = dreadActivity
 
         # Get a list of actions that occurred in Hobopolis.
