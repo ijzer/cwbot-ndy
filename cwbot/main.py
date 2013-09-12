@@ -107,6 +107,20 @@ def loginLoop(myDb, props):
         etype, value, tb = sys.exc_info()
         notifyAdmins(s, props, log, etype, value, tb)
         del tb
+        try:
+            cman.sendChatMessage("FATAL ERROR -- Please have the "
+                                 "administrator read the error log.")
+        except:
+            pass
+        time.sleep(2)
+        log.error("Waiting 60 minutes. Press CTRL+C to exit (or stop the "
+                  "service)")
+        curTime = time.time()
+        onlineTime = 0
+        while time.time() - curTime < 3600:
+            time.sleep(0.1)
+            if exitEvent.is_set():
+                break
         raise
     except kol.Error.Error as inst:
         # standard error with a pyKol component
