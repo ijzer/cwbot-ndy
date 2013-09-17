@@ -372,7 +372,7 @@ class DreadOverviewModule(BaseDungeonModule):
                                        filteredData[idx] 
                                   for idx in range(len(dreadData))})
             elif style == 'list':
-                self._eventReply(dreadData)
+                self._eventReply(filteredData)
             else:
                 raise IndexError("invalid dread event style")
                 
