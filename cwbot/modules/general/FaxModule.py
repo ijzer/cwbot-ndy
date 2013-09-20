@@ -172,7 +172,7 @@ class FaxModule(BaseChatModule):
                          .format(len(self._faxList)))
                 success = True
                 break
-            except (HTTPError, URLError, socket.timeout) as e:
+            except (HTTPError, URLError, socket.timeout, socket.error) as e:
                 self.log("Error loading webpage for fax list: {}: {}"
                          .format(e.__class__.__name__, e.args[0]))
                 if i + 1 != numTries:
