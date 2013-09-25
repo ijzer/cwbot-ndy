@@ -17,6 +17,7 @@ class ClanRaidLogRequest(GenericRequest):
     """
 
     _drunkPattern = re.compile(r'(?:<blockquote>|<br>)([^<]*?)\s+\(#(\d+)\)\s+got the carriageman\s+([\d,]+)\s+sheet\(s\) drunker')
+    _assistPattern = re.compile(r'(?<=>)([^<]*?)\s+\(#(\d+)\)\s+(used The Machine, assisted by [^<]+)')
     _dreadPattern = re.compile(r'<b>([\d,]+)</b>\s+(?:monster\(?s?\)? in the\s*)?(kisses|Castle|Forest|Village)')
     _idPatterns = {'hoid': re.compile(r'hoid:(\d+)'),
                    'slid': re.compile(r'slid:(\d+)'),
@@ -75,6 +76,14 @@ class ClanRaidLogRequest(GenericRequest):
                 action["userId"] = int(match.group(2))
                 action["event"] = match.group(3)
                 action["turns"] = int(match.group(4).replace(',', ''))
+                actions.append(action)
+            for match in self._assistPattern.finditer(categoryMatch.group(2)):
+                action = {}
+                action["category"] = category
+                action["userName"] = match.group(1)
+                action["userId"] = int(match.group(2))
+                action["event"] = match.group(3)
+                action["turns"] = 1
                 actions.append(action)
         self.responseData["events"] = actions
 
