@@ -34,7 +34,7 @@ class DreadTimelineModule(BaseDungeonModule):
     creates a timeline of dreadsylvania.
     """
     requiredCapabilities = ['chat', 'dread']
-    _name = "dread-choices"
+    _name = "dread-timeline"
     
     def __init__(self, manager, identity, config):
         self._snapshots = None
@@ -386,8 +386,17 @@ class DreadTimelineModule(BaseDungeonModule):
             
     def reset(self, initData):
         self._readyForTimeline.clear()
+        newState = self.initialState
+        newState['pastes'] = self._pastes
+        self.initialize(newState, initData)
         
-                
+        
+    def _eventCallback(self, eData):
+        s = eData.subject
+        if s == "state":
+            self._eventReply(self.state)
+
+        
     def _availableCommands(self):
         return {'timeline': "!timeline: Show a timeline of the Dreadsylvania "
                             "instance."}
