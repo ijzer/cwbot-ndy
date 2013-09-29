@@ -314,19 +314,19 @@ class DreadTimelineModule(BaseDungeonModule):
                 return ("Error with timeline: {}".format(data['url']))
             return "Timeline for current instance: {}".format(data['url'])
         elif cmd == "timelines":
-            dvid = self._lastRaidlog.get('dvid')
             timelines = self._pastes.values()
             timelines.sort(key=lambda x: x['time'], reverse=True)
             strings = []
             for item in timelines:
                 urlText = item['url'] if not item['error'] else "ERROR"
+                dvidText = item['dvid']
                 dt_utc = datetime.datetime.fromtimestamp(item['time'],
                                                          pytz.utc)
                 dt_az = dt_utc.astimezone(_tz)
                 timeText = dt_az.strftime("%a %d %b %y")
                 kisses = item['kisses']
                 strings.append("{} - {} [{} kisses]: {}"
-                               .format(timeText, dvid, kisses, urlText))
+                               .format(timeText, dvidText, kisses, urlText))
             sendString = ""
             for string in strings:
                 if len(string) + len(sendString) > 1500:
