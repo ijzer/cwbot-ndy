@@ -332,7 +332,6 @@ class CommunicationDirector(EventSubsystem.EventCapable,
             
             
     def _refreshClanMembers(self):
-        oldClanMembers = copy.deepcopy(self._clanMembers)
         n = len(self._clanMembers)
         self._log.debug("Updating clan member list...")
         
@@ -343,7 +342,6 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         self._log.debug("{} members on whitelist".format(len(d1['members'])))
         self._log.debug("{} members in clan".format(len(d2['members'])))
         with self._clanMemberLock:
-            self._clanMembers = defaultdict(dict)
             for record in d1['members']:
                 uid = int(record['userId'])
                 entry = {'userId': uid,
@@ -370,8 +368,6 @@ class CommunicationDirector(EventSubsystem.EventCapable,
             self._log.info("There are {} clan members (previous count: {})"
                             .format(n2, n))
             self._raiseEvent("new_member_list", None)
-            if not self._clanMembers:
-                self._clanMembers = oldClanMembers
         
         
     def clanMemberInfo(self, uid):
