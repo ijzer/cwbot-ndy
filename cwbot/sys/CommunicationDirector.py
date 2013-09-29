@@ -3,6 +3,7 @@ import re
 import logging
 import random
 import threading
+import copy
 from collections import defaultdict
 from cwbot.common.objectContainer import ManagerEntry
 from cwbot.util.importClass import easyImportClass
@@ -331,6 +332,7 @@ class CommunicationDirector(EventSubsystem.EventCapable,
             
             
     def _refreshClanMembers(self):
+        oldClanMembers = copy.deepcopy(self._clanMembers)
         n = len(self._clanMembers)
         self._log.debug("Updating clan member list...")
         
@@ -365,9 +367,11 @@ class CommunicationDirector(EventSubsystem.EventCapable,
                     record['whitelist'] = False
             self._lastClanMemberRefresh = time.time()
             n2 = len(self._clanMembers)
-            self._log.debug("There are {} clan members (previous count: {})"
+            self._log.info("There are {} clan members (previous count: {})"
                             .format(n2, n))
             self._raiseEvent("new_member_list", None)
+            if not self._clanMembers:
+                self._clanMembers = oldClanMembers
         
         
     def clanMemberInfo(self, uid):
