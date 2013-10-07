@@ -8,7 +8,7 @@ import logging
 import inspect
 import socket
 import cwbot.util.DebugThreading as threading
-from cwbot.util.DebugThreading import _reset_traceback()
+from cwbot.util.DebugThreading import _reset_traceback
 from cwbot.processArgv import processArgv
 from cwbot.sys.BotSystem import BotSystem
 from cwbot.common.exceptions import ManualException, ManualRestartException, \
