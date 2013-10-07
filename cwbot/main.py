@@ -8,6 +8,7 @@ import logging
 import inspect
 import socket
 import cwbot.util.DebugThreading as threading
+from cwbot.util.DebugThreading import _reset_traceback()
 from cwbot.processArgv import processArgv
 from cwbot.sys.BotSystem import BotSystem
 from cwbot.common.exceptions import ManualException, ManualRestartException, \
@@ -244,6 +245,7 @@ def main(curFolder=None, connection=None):
             else:
                 # reset exponential back-off
                 crashWait = 60
+            _reset_traceback()
     except:
         raise
     finally:

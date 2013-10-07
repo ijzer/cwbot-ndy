@@ -36,8 +36,15 @@ def _stop_trace():
         print("Deadlock resolved, trace stopped.")
     except Exception:
         pass
+    
+    
+def _reset_traceback():
+    try:
+        _stacktracer.trace_stop()
+    except Exception:
+        pass
         
-        
+
 class _DebugThread(threading.Thread):
     """ Thread that tracks lock acquisitions. """
     def __init__(self):
