@@ -36,6 +36,8 @@ def _secsToDays(n):
 def _daysToSecs(n):
     return int(n * 86400)
 
+_unknownRank = {'rankId': -1, 'rankName': "?UNKNOWN RANK?", 'rankNumber': -1}
+
 class ClanRankModule(BaseModule):
     """ 
     A module that handles clan rank promotions and demotions, as well
@@ -276,7 +278,9 @@ class ClanRankModule(BaseModule):
             uid = int(record['userId'])
             entry = {'userId': uid,
                      'userName': record['userName'],
-                     'rank': self._ranks[_rankTransform(record['rankName'])],
+                     'rank': self._ranks.get(
+                                        _rankTransform(record['rankName']),
+                                        _unknownRank),
                      'whitelist': True,
                      'updated': True}
             self._titles[uid] = record['clanTitle']
@@ -285,7 +289,9 @@ class ClanRankModule(BaseModule):
             uid = int(record['userId'])
             entry = {'userId': uid,
                      'userName': record['userName'],
-                     'rank': self._ranks[_rankTransform(record['rankName'])],
+                     'rank': self._ranks.get(
+                                        _rankTransform(record['rankName']),
+                                        _unknownRank),
                      'inClan': True,
                      'karma': record['karma'],
                      'updated': True}
