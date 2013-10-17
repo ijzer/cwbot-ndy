@@ -1326,6 +1326,16 @@ cwbot.modules.dread.DreadChoicesModule - Shows which choice adventures are
     check if you have the latest version, then kmail rlbond86 with a copy
     of your log message and exactly which choice you made, in which zone,
     choice adventure, subarea, and button text.
+    
+cwbot.modules.dread.DreadTimelineModule - keeps a "timeline" of past instances
+    that shows when players did actions in the three dread zones and posts
+    them to pastebin.com. The !timeline command can be used to get the timeline
+    of the current instance (if it is complete), and the !timelines command
+    gets a list of timelines for the most recent completed instances.
+    Options: pastebin_api_key: paste your pastebin API key here. To get an
+        API key, sign up at pastebin.com and navigate to 
+        http://pastebin.com/api; your key is highlighted under the heading
+        "Your Unique Developer API Key".
 
 
 4. Contact Info
