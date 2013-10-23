@@ -339,8 +339,16 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         d1 = tryRequest(r1)
         r2 = ClanDetailedMemberRequest(self._s)
         d2 = tryRequest(r2)
-        self._log.debug("{} members on whitelist".format(len(d1['members'])))
-        self._log.debug("{} members in clan".format(len(d2['members'])))
+        whitelistLength = len(d1['members'])
+        if whitelistLength == 0:
+            self._log.warning("No members detected on whitelist.")
+        else:
+            self._log.debug("{} members on whitelist".format(whitelistLength))
+        memberLength = len(d2['members'])
+        if memberLength == 0:
+            self._log.warning("No members detected in clan.")
+        else:
+            self._log.debug("{} members in clan".format(memberLength))
         with self._clanMemberLock:
             for record in d1['members']:
                 uid = int(record['userId'])
