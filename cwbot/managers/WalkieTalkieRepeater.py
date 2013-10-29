@@ -111,7 +111,6 @@ class WalkieTalkieRepeater(BaseChatManager):
             userId = msg['userId']
             if userId not in self._otherBots:
                 newText = self._format
-                print map(ord, self._format)
                 newText = (newText.replace("%username%", userName)
                                   .replace("%userid%", str(userId))
                                   .replace("%text%", text)
