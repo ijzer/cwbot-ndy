@@ -62,13 +62,21 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         self._mailHandler.start()
         self._managers = []
         self._log.info("******** Initializing Communications ********")
+
+        self._clanMemberCheckInterval = 3600
+        self._clanMemberLock = threading.Lock()
+        self._clanMembers = defaultdict(dict)
+        self._refreshClanMembers()
+        self._lastClanMemberRefresh = (
+            time.time() + random.randint(-self._clanMemberCheckInterval/2, 
+                                          self._clanMemberCheckInterval/4))
+        
         try:
             self._loadManagers(config)
         except:
             self._mailHandler.stop()
             raise
         self._mailDelay = config['mail_check_interval']
-        self._clanMembers = defaultdict(dict)
 
         # add random times to refreshes to prevent server hammering
         self._lastChatRefresh = time.time() + random.randint(0, 300)
@@ -77,12 +85,6 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         self._lastEventRefresh = time.time() + random.randint(0, 15)
         self._lastGreenEventAzTime = None
 
-        self._clanMemberCheckInterval = 3600
-        self._clanMemberLock = threading.Lock()
-        self._refreshClanMembers()
-        self._lastClanMemberRefresh = (
-            time.time() + random.randint(-self._clanMemberCheckInterval/2, 
-                                          self._clanMemberCheckInterval/4))
 
         self._log.info("******** Communications Online ********")
         self._initialized = True
@@ -380,9 +382,9 @@ class CommunicationDirector(EventSubsystem.EventCapable,
         
     def clanMemberInfo(self, uid):
         with self._clanMemberLock:
-            if uid not in self._clanMembers:
+            if int(uid) not in self._clanMembers:
                 return {}
-            return self._clanMembers[uid]
+            return self._clanMembers[int(uid)]
             
         
     def _eventCallback(self, eData):

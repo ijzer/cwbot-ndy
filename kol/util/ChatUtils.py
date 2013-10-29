@@ -20,6 +20,7 @@ CHAT_CHANNELS = [
     "pvp",
     "radio",
     "slimetube",
+    "talkie",
     "trade",
     "valhalla",
     "veteran",
