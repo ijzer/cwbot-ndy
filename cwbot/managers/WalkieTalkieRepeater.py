@@ -30,7 +30,7 @@ class WalkieTalkieRepeater(BaseChatManager):
         self._myFreq = None
         self._numPlayersForFreqChange = None
         self._freqChangeTimeout = None
-        self._format = None
+        self._format, self._emoteFormat = None, None
         super(WalkieTalkieRepeater, self).__init__(parent, name, iData, config)
         self._invMan.refreshInventory()
         self._lastOutsiderCheck = 0
@@ -82,6 +82,8 @@ class WalkieTalkieRepeater(BaseChatManager):
                              "be integral")
         self._format = config.setdefault('format', 
                                          "%username% (%hash%%userid%): %text%")
+        self._emoteFormat = config.setdefault('emote_format',
+                                        "%username% (%hash%%userid%) %text%")
 
 
     def defaultChannel(self):
@@ -110,7 +112,8 @@ class WalkieTalkieRepeater(BaseChatManager):
             userName = msg.get('userName', "???")
             userId = msg['userId']
             if userId not in self._otherBots:
-                newText = self._format
+                newText = (self._format if msg['type'] != "emote" 
+                           else self._emoteFormat)
                 newText = (newText.replace("%username%", userName)
                                   .replace("%userid%", str(userId))
                                   .replace("%text%", text)
