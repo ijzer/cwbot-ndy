@@ -125,7 +125,7 @@ class WalkieTalkieRepeater(BaseChatManager):
                 self._handleOutsider(msg['userId'], msg['userName'])
         
         if clanMember:
-            if re.search(r"^!frequency($|\s)", text):
+            if re.search(r"^!(frequency|kenneth)($|\s)", text):
                 return [self._handleFrequencyRequest(msg)]
             elif re.search(r"^!newfrequency($|\s)", text):
                 self._handleNewFrequencyRequest(msg)
