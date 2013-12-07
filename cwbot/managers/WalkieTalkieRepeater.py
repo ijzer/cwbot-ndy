@@ -94,7 +94,7 @@ class WalkieTalkieRepeater(BaseChatManager):
         """ Override of _showCommandSummary """
         if self.director.clanMemberInfo(msg['userId']):
             return ["!newfrequency to request walkie-talkie change; "
-                    "!frequency to get the current walkie-talkie channel"]
+                    "!frequency to get the current walkie-talkie channel."]
         else:
             return []
 
