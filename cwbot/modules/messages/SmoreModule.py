@@ -6,7 +6,7 @@ import kol.Error
 
 class SmoreModule(BaseKmailModule):
     """ 
-    A module that sends smores if you send marshmallows.
+    A module that sends smores if you send marshmallows. It also does time's arrows.
     """
     
     requiredCapabilities = ['kmail', 'inventory']
@@ -17,6 +17,47 @@ class SmoreModule(BaseKmailModule):
         
         
     def _processKmail(self, message):
+        r = self._doMallows(message)
+        if r is not None:
+            return r
+        r = self._doArrow(message)
+        if r is not None:
+            return r
+
+        return None
+
+
+    def _doArrow(self, message):
+        arrows = message.items.get(4939, 0)
+        if arrows == 0:
+            return None
+        if arrows >= 2:
+            return (self.newMessage(message.uid,
+                                    "Please do not send more than one time's arrow.",
+                                    message.meat)
+                                    .addItems(message.items))
+        try:
+            r = CursePlayerRequest(self.session, message.uid, 4939)
+            self.tryRequest(r, numTries=1)
+            return self.newMessage(-1)
+        except kol.Error.Error as e:
+            if e.code == kol.Error.USER_IN_HARDCORE_RONIN:
+                return (self.newMessage(message.uid,
+                                        "You are in hardcore or ronin.",
+                                        message.meat)
+                                        .addItems(message.items))
+            if e.code == kol.Error.ALREADY_COMPLETED:
+                return (self.newMessage(message.uid,
+                                        "You have already been arrow'd today.",
+                                        message.meat)
+                                        .addItems(message.items))
+            return (self.newMessage(message.uid,
+                                    "Unknown error: {}".format(e.msg),
+                                    message.meat)
+                                    .addItems(message.items))
+
+
+    def _doMallows(self, message):
         mallows = message.items.get(3128, 0)
         if mallows == 0:
             return None
@@ -76,6 +117,7 @@ class SmoreModule(BaseKmailModule):
 
 
     def _kmailDescription(self):
-        return ("SMORES: If you send me marshmallows, I will shoot them back "
-                "with my s'more gun so you can enjoy some ooey-gooey s'mores!")
+        return ("SMORES AND ARROWS: If you send me marshmallows or a time's "
+                "arrow, I will shoot them back so you can enjoy some "
+                "ooey-gooey s'mores or some extra adventures!")
         
