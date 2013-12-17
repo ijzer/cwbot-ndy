@@ -56,7 +56,7 @@ class WalkieTalkieRepeater(BaseChatManager):
             freq = re.search(r"The frequency is (\d+.\d), Mr. Rather", txt)
             if freq:
                 self._myFreq = freq.group(1)
-                self._log.debug("My walkie talkie frequency is {}"
+                self._log.info("My walkie talkie frequency is {}"
                                 .format(freq.group(1)))
         if self._myFreq is None:
             raise RuntimeError("Could not determine walkie talkie frequency.")
@@ -163,6 +163,7 @@ class WalkieTalkieRepeater(BaseChatManager):
                        .format(self._myFreq),
                        "Changing walkie-talkie frequency; send '!frequency' "
                        "in a PM to get the new frequency.", waitForReply=True)
+        self._log.info("Changing frequencies to {}.".format(self._myFreq))
         self.sendChatMessage("/kenneth {}".format(self._myFreq), 
                              waitForReply=True, raw=True)
         self._lastOutsiderCheck = 0
