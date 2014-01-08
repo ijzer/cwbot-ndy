@@ -16,6 +16,9 @@ def stringToBool(txt):
 
 def stringToList(txt):
     """ Convert comma-separated string to list """
+    txt1 = toTypeOrNone(txt)
+    if txt1 is None:
+        return []
     list_ = [item.strip() for item in txt.split(",")]
     listWithNones = map(toTypeOrNone, list_)
     if any(True for x in listWithNones if x is not None):

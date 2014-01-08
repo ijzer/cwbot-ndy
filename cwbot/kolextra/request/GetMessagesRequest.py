@@ -13,7 +13,7 @@ class GetMessagesRequest(GenericRequest):
     to use the KmailLock.
     """
 
-    def __init__(self, session, box="Inbox", pageNumber=None, messagesPerPage=None, oldestFirst=None):
+    def __init__(self, session, box="Inbox", pageNumber=None, messagesPerPage=None, oldestFirst=None, allowUnknownItems=False):
         """
         Initializes the GetMessagesRequest object. Due to a bug in KoL,
         it is highly recommended that you do not specify more than one
@@ -40,6 +40,8 @@ class GetMessagesRequest(GenericRequest):
             self.url += "&order=1"
         elif oldestFirst == False:
             self.url += "&order=0"
+            
+        self._allowUnknown = allowUnknownItems
 
     def parseResponse(self):
         """
@@ -108,15 +110,31 @@ class GetMessagesRequest(GenericRequest):
             items = []
             for match in singleItemPattern.finditer(rawText):
                 descId = int(match.group(1))
-                item = ItemDatabase.getOrDiscoverItemFromDescId(descId, self.session)
-                item["quantity"] = 1
-                items.append(item)
+                try:
+                    item = ItemDatabase.getOrDiscoverItemFromDescId(descId, self.session)
+                    item["quantity"] = 1
+                    items.append(item)
+                except Error.Error as e:
+                    if e.code == Error.ITEM_NOT_FOUND and self._allowUnknown:
+                        items.append({'id': None, 
+                                      'quantity': 1, 
+                                      'descId': descId})
+                    else:
+                        raise
             for match in multiItemPattern.finditer(rawText):
                 descId = int(match.group(1))
                 quantity = int(match.group(2).replace(',', ''))
-                item = ItemDatabase.getOrDiscoverItemFromDescId(descId, self.session)
-                item["quantity"] = quantity
-                items.append(item)
+                try:
+                    item = ItemDatabase.getOrDiscoverItemFromDescId(descId, self.session)
+                    item["quantity"] = quantity
+                    items.append(item)
+                except Error.Error as e:
+                    if e.code == Error.ITEM_NOT_FOUND and self._allowUnknown:
+                        items.append({'id': None, 
+                                      'quantity': quantity, 
+                                      'descId': descId})
+                    else:
+                        raise
             m["items"] = items
 
             # Find how much meat was attached to the message.

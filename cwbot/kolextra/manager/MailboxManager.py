@@ -42,7 +42,7 @@ class MailboxManager(object):
                 self.__oldestFirst = oldestFirst
 
     def getMessages(self, box="Inbox", pageNumber=None, messagesPerPage=None, 
-                    oldestFirst=None):
+                    oldestFirst=None, **kwargs):
         """
         A wrapper to GetMessagesRequest. Ensures that the user never specifies
         both messagesPerPage and oldestFirst. Doing so can cause the request
@@ -53,12 +53,12 @@ class MailboxManager(object):
             if oldestFirst != None:
                 self.setOldestFirst(oldestFirst)
             r = GetMessagesRequest(self.session, box=box, 
-                                   pageNumber=pageNumber)
+                                   pageNumber=pageNumber, **kwargs)
             responseData = tryRequest(r)
             return responseData["kmails"]
 
     def getAllMessages(self, box="Inbox", openGiftPackages=False, 
-                       removeGiftPackages=False):
+                       removeGiftPackages=False, **kwargs):
         """
         Gets all messages in the user's box. This method also supports the 
         notion of automatically opening gift packages. In addition, these gift
@@ -76,7 +76,9 @@ class MailboxManager(object):
             messages = []
             while len(messages) == page * 100:
                 page += 1
-                messages.extend(self.getMessages(box=box, pageNumber=page))
+                messages.extend(self.getMessages(box=box, 
+                                                 pageNumber=page, 
+                                                 **kwargs))
     
             # Check to see if we should open gift packages.
             if openGiftPackages:
@@ -94,7 +96,7 @@ class MailboxManager(object):
                 # the messages.
                 if len(messagesWithUnopenedPackages) > 0:
                     self.openAllGiftPackages()
-                    messages = self.getAllMessages(box=box)
+                    messages = self.getAllMessages(box=box, **kwargs)
     
                     # If any of the messages we saw before still has a gift
                     # package that looks unopened, then we are witnessing a

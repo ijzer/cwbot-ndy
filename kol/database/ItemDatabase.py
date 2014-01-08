@@ -10,12 +10,14 @@ from kol.util import Report
 import cPickle as pickle
 import os
 import datetime
+import copy
 
 __isInitialized = False
 __itemsById = {}
 __itemsByDescId = {}
 __itemsByName = {}
 __discoveryDate = None
+__isLoaded = False
 
 discoveryFile = "data/itemDiscovery.dat"
 
@@ -91,7 +93,10 @@ def getOrDiscoverItemFromName(itemName, session):
     return _try3(getItemFromName, session, itemName)
 
 def discoverMissingItems(session):
-    loadItemsFromFile()
+    global __isLoaded
+    if not __isLoaded:
+        loadItemsFromFile()
+    newInformation = False
     from kol.request.InventoryRequest import InventoryRequest
     from kol.request.ItemInformationRequest import ItemInformationRequest
     invRequest = InventoryRequest(session)
@@ -105,12 +110,14 @@ def discoverMissingItems(session):
                 item = itemData["item"]
                 addItem(item)
                 Report.trace("itemdatabase", "Discovered new item: %s" % item["name"])
-                
                 context = { "item" : item }
                 FilterManager.executeFiltersForEvent("discoveredNewItem", context, session=session, item=item)
+                newInformation = True
             except:
                 pass
-    saveItemsToFile()
+    if newInformation or not __isLoaded:
+        saveItemsToFile()
+        __isLoaded = True
 
 def loadItemsFromFile():
     try:
@@ -152,6 +159,7 @@ def reset():
     __itemsByDescId = {}
     __itemsByName = {}
     __discoveryDate = None
+    __isLoaded = False
     init()
 
 def _try3(func, session, *args, **kwargs):

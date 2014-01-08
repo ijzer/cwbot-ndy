@@ -464,13 +464,16 @@ class MailHandler(ExceptionThread):
         try:
             c = con.cursor()
             
-            # check outgoing messages if there was a failure
-            outMsgs = self._m.getAllMessages(box="Outbox")
+            # get all previously sent messages
+            outMsgs = self._m.getAllMessages(box="Outbox", 
+                                             allowUnknownItems=True)
             outMsgIds = []
+                # find if any messages needed to be sent or failed
             c.execute("SELECT * FROM {} WHERE state in (?,?) LIMIT 1"
                       .format(self._name),
                       (self.OUTBOX_FAILED,self.OUTBOX_SENDING))
             if c.fetchone() is not None:
+                # get list of all successfully sent messages
                 outMsgIdList = [self._getEncodedId(m) for m in outMsgs]
                 outMsgIds = set(o for o in outMsgIdList if o is not None)
 
