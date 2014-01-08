@@ -155,7 +155,7 @@ class InventoryManager(object):
                   .format(self._name))
         badRequest = cursor.fetchone()
         if badRequest is not None:
-            iid = badRequest['id']
+            iid = badRequest['iid']
             qtyRequested = iidQtyDict.get(iid, 0)
             reservedAlready = badRequest['reserved'] + qtyRequested 
             if reservedAlready >= 0 and qtyRequested > 0:
