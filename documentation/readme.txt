@@ -863,6 +863,11 @@ cwbot.modules.messages.HotdogModule - A hotdog storing module. Users can send
 	hotdog items to the bot and then send a special message to have the
 	bot place them in the hot dog stand. The bot requires a VIP key for
 	this module to work.
+    
+cwbot.modules.messages.WarbearBlackboxModule - A special module for handling
+    the warbear black box. Give the bot a black box and it will exchange
+    whosits for warbear items. Players can send the text "whosits" in a kmail
+    for instructions.
 	
 cwbot.modules.messages.BuffbotModule - A buffbot module. Users can send a
     specified amount of meat to receive various buffs. An example 
@@ -955,6 +960,52 @@ cwbot.managers.AllChannelManager - A manager that responds to chats received
 	bot's listening channels are specified in the [system] section of
 	modules.ini. The first channel is the "main" channel and used for
 	some error messages and other stuff.
+    
+cwbot.managers.WalkieTalkieRepeater - This is a special manager used with the
+    walkie talkie. This manager cannot have any modules. Instead, it relays
+    all chat from /clan to /talkie, and vice versa. A frequency is randomly 
+    selected in /talkie. Clan members (or those on the whitelist) can use
+    the !kenneth command in chat or PM to find out the channel in question.
+    This allows players whitelisted to a different clan to still chat with
+    other clan members. The !newfrequency command can also be used by players
+    to request a frequency change. The frequency will also automatically be
+    changed if someone from outside the clan visits the channel. The 
+    repeater can be configured to allow multiple bots in different clans to
+    "bridge" their /clan channels.
+    Options:
+        other_bots - if using multiple bots to bridge clan chat, enter a
+                        comma-separated list here of the player id numbers
+                        of the other bots. If not using this feature, just
+                        use the text "none" (without quotes).
+        num_players_to_change - how many players must issue the !newfrequency
+                                command before the frequency is changed (3)
+        change_timeout - the !newfrequency requests must be made in this many
+                         minutes to take effect (10)
+        format - a string that defines how relayed chat is displayed. Certain
+                 variables can be used:
+                    %username% - replaced by the player's username
+                    %userid% - replaced by the player's userid
+                    %text% - replaced by the chat text
+                    %hash% - replaced by the literal "#" character (which is
+                                otherwise interpreted as a comment in a 
+                                .ini file)
+                EXAMPLES:
+                    %username% (%hash%%userid%): %text% 
+                        -> Jick (#1): Bow down before me!
+                    [[%username%]] %text%
+                        -> [[Jick]] Bow down before me!
+        emote_format - a string that defines how relayed chat is displayed
+                       when someone uses the /me command. Note: do not use
+                       "/me" inside the formatting string if using multiple
+                       bots.
+                EXAMPLES:
+                    %username% (%hash%%userid%) %text% 
+                        -> Jick (#1) sees you bow down.
+                    [[%username% %text%]]
+                        -> [[Jick sees you bow down.]]
+        key - this is a string that is used as a random seed for finding a
+              random channel. If using multiple bots, their key values must
+              be identical.
 	
 
 Modules (default options in parentheses):
