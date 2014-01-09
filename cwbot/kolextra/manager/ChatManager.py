@@ -1,4 +1,7 @@
 import logging
+import re
+from unidecode import unidecode
+from HTMLParser import HTMLParser
 from kol.request.GetChatMessagesRequest import GetChatMessagesRequest
 from kol.request.OpenChatRequest import OpenChatRequest
 from kol.util import ChatUtils
@@ -16,7 +19,8 @@ class ChatManager(object):
     using MessageDispatcher.
     
     Improved to use "Emote style": Chats with emote style use a distinctive
-    chat style to make bot chats more noticible.
+    chat style to make bot chats more noticible. Also fix a small kol entity
+    bug in chat.
     
     Improved to have asynchronous chat: to send a chat with "fire-and-forget", 
     use sendChatMessage with waitForReply=False. The function will immediately
@@ -25,6 +29,9 @@ class ChatManager(object):
     waitForReply=True. The function will block until the chat is sent and
     return the response chats in a list (normal pyKol operation). 
     """
+
+    _entityRegex = re.compile(r'&#(\d+);?')
+    _parser = HTMLParser()
 
     def __init__(self, session):
         """Initializes the ChatManager with a particular KoL session and 
@@ -67,6 +74,15 @@ class ChatManager(object):
 
         # Set the channel in each channel-less chat to be the current channel.
         for chat in chats:
+            # fix a little entity bug in kol
+            txt = chat["text"]
+            txt = self._entityRegex.sub(r'&#\1;', txt)
+            txtUnicode = self._parser.unescape(unicode(txt))
+            if txtUnicode:
+                if any(c in txtUnicode[0] for c in [u"\xbf", u"\xa1"]):
+                    txtUnicode = txtUnicode[1:]
+            chat["text"] = unidecode(txtUnicode)
+            
             t = chat["type"]
             if t == "normal" or t == "emote":
                 if "channel" not in chat:
