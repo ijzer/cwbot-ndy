@@ -1065,6 +1065,8 @@ cwbot.modules.general.FaxModule - A module that handles faxing. Users can
         the clan log, but if you find it is using too much bandwidth, it 
         is recommended that you set this OFF.
         If this mode is off, the bot will not announce new faxes.
+        Unfortunately, this can cause some instability. It is recommended
+        OFF by default.
     
     Request mode: if this mode is active, users can request faxes by
         using the command "!fax MONSTERNAME". cwbot will automatically

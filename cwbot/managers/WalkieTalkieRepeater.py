@@ -100,6 +100,9 @@ class WalkieTalkieRepeater(BaseChatManager):
         self._emoteFormat = config.setdefault('emote_format',
                                         "[[%username% %text%]]")
         self._key = str(config.setdefault('key', random.randint(0,999999)))
+        if self._key.strip() == "":
+            config['key'] = random.randint(0,999999)
+            self._key = str(config['key'])
 
 
     def defaultChannel(self):
