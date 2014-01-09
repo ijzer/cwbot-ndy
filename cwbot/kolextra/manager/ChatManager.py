@@ -75,13 +75,17 @@ class ChatManager(object):
         # Set the channel in each channel-less chat to be the current channel.
         for chat in chats:
             # fix a little entity bug in kol
-            txt = chat["text"]
-            txt = self._entityRegex.sub(r'&#\1;', txt)
-            txtUnicode = self._parser.unescape(unicode(txt))
-            if txtUnicode:
-                if any(c in txtUnicode[0] for c in [u"\xbf", u"\xa1"]):
-                    txtUnicode = txtUnicode[1:]
-            chat["text"] = unidecode(txtUnicode)
+            if "text" in chat:
+                txt = chat["text"]
+                txt = self._entityRegex.sub(r'&#\1;', txt)
+                
+                # convert to unicode (KoL/pykol has weird encoding)
+                txtUnicode = u''.join(unichr(ord(c)) for c in txt)
+                txtUnicode = self._parser.unescape(txtUnicode)
+                if txtUnicode:
+                    if any(c in txtUnicode[0] for c in [u"\xbf", u"\xa1"]):
+                        txtUnicode = txtUnicode[1:]
+                chat["text"] = unidecode(txtUnicode)
             
             t = chat["type"]
             if t == "normal" or t == "emote":

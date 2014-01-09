@@ -53,6 +53,10 @@ stone. Many of cwbot's inventory features work from main inventory. The bot
 will inevitably crash when an item gets stolen in PVP. If you want a PVP bot,
 you'll have to write your own.
 
+THE LAST IMPORTANT THING: You need to delete all of the kmails in that
+account's inbox. Otherwise the bot will think that they are newly-sent and,
+depending on your configuration, try to send everything back.
+
 Place account information in 
 login.ini, which has the following format (ignore lines in <> angle braces):
 

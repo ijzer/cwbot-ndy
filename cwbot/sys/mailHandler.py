@@ -2,6 +2,7 @@ import cwbot.util.DebugThreading as threading
 import re
 import logging
 import urllib2
+import HTMLParser
 from unidecode import unidecode
 from cwbot import logConfig
 from collections import defaultdict
@@ -170,6 +171,8 @@ class MailHandler(ExceptionThread):
     _maxKmailLen = 1700
     _maxTotalKmailLen = _maxKmailLen * 5
     
+    _htmlParser = HTMLParser.HTMLParser()
+    
     
     def __init__(self, session, props, invMan, db):
         self._db = db
@@ -236,6 +239,7 @@ class MailHandler(ExceptionThread):
                         msgAccepted = True # accept all messages
                     else:
                         message = decode(msg['data'])
+                        
                         # message accepted only if it does not have items
                         msgAccepted = not message.get('items', {})
                             
@@ -243,6 +247,15 @@ class MailHandler(ExceptionThread):
                           .format(self._name),
                           (self.INBOX_RESPONDING, msg['id']))
                 message = decode(msg['data'])
+
+                # remove unicode characters
+                if 'text' in message:
+                    txt = message['text']
+                    txtUnicode = u''.join(unichr(ord(c)) for c in txt)
+                    txtUnicode = self._htmlParser.unescape(txtUnicode)
+                    message['text'] = unidecode(txtUnicode)
+
+                
                 self._log.debug("Kmail ready -> responding: {}"
                                 .format(msg['id']))
                 return message
