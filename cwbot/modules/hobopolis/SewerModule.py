@@ -91,8 +91,8 @@ class SewerModule(BaseDungeonModule):
     def _eventCallback(self, eData):
         s = eData.subject
         if s == "done":
-            self._eventReply({'done': "Sewer {}/40"
-                                      .format(self._grates + self._valves)})
+            self._eventReply({'done': "Sewer: Grates {}/20, Valves {}/20"
+                                      .format(self._grates, self._valves)})
         elif s == "state":
             self._eventReply(self.state)
 
