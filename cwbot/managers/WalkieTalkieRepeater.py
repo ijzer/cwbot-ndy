@@ -213,11 +213,12 @@ class WalkieTalkieRepeater(BaseChatManager):
     
     def _handleNewFrequencyRequest(self, msg):
         uid = msg['userId']
+        admin = self.properties.getAdmins('admin_command')
         self._changeFreqRequests[uid] = time.time()
         numRequests = len([v for v in self._changeFreqRequests.values()
                           if v >= time.time() - self._freqChangeTimeout * 60])
         
-        if numRequests >= self._numPlayersForFreqChange:
+        if numRequests >= self._numPlayersForFreqChange or uid in admin:
             self._changeFreqRequests = {}
             self._changeFrequencies()
         else:
