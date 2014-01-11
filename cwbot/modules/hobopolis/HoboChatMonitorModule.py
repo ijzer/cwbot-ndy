@@ -104,7 +104,7 @@ class HoboChatMonitorModule(BaseDungeonModule):
     """ 
     A module that monitors /hobopolis to make sure that anyone adventuring
     in Hobopolis is also in the chat channel. A daily dispatch is sent to
-    anyone with the hobo_mon_daily permission, with the names of players
+    anyone with the chat_mon_daily permission, with the names of players
     who are in violation.
     
     Configuration options:
@@ -256,7 +256,7 @@ class HoboChatMonitorModule(BaseDungeonModule):
     def dispatch(self):
         with self._lock:
             self.log("Dispatching chat monitor Kmails...")
-            admins = self.properties.getAdmins('hobo_mon_daily')
+            admins = self.properties.getAdmins('chat_mon_daily')
             n = 0
             for uid in admins:
                 success = self.dispatchKmail(uid, 
