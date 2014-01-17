@@ -96,7 +96,7 @@ class HotdogModule(BaseKmailModule):
             newItems[iid] = qtyInKmail
         if any(n > 0 for n in newItems.values()):
             return self._storeItems(message, newItems)
-        elif message.text[:6].lower() == "hotdog":
+        elif message.text.lower().startswith(("hotdog", "hot dog")):
             afterText = message.text[7:].strip().lower()
             if afterText == "":
                 return (self.newMessage(uid,
