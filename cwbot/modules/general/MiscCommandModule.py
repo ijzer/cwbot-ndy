@@ -4,14 +4,14 @@ from cwbot.modules.BaseChatModule import BaseChatModule
 
 
 class MiscCommandModule(BaseChatModule):
-    """ 
+    """
     A module that responds to various silly commands.
-    
+
     No configuration options.
     """
     requiredCapabilities = ['chat']
     _name = "misc"
-    
+
     def __init__(self, manager, identity, config):
         self._startTime = time.time()
         self._regex = r'(?i)^\Q{}\E( |$)'.format(manager.properties.userName)
@@ -42,9 +42,11 @@ class MiscCommandModule(BaseChatModule):
                 return ("I have been online for {} minutes (debug mode)."
                         .format(upMinutes))
             return "I have been online for {} minutes.".format(upMinutes)
+        elif cmd == "charter":
+            return "NDY Clan Charter: http:// notdeadyet.bongley.n et/charter.php"
         return None
 
 
     def availableCommands(self):
-        return {'crash': None, 'kill': None, 'uptime': None}
+        return {'crash': None, 'kill': None, 'uptime': None, 'charter': None}
 
