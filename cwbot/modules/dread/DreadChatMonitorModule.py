@@ -5,6 +5,7 @@ import threading
 from cwbot.modules.BaseDungeonModule import BaseDungeonModule
 from cwbot.util.textProcessing import stringToBool
 from cwbot.common.kmailContainer import Kmail
+from kol.request.SearchPlayerRequest import SearchPlayerRequest
 
 tz = pytz.timezone('America/Phoenix')
 utc = pytz.utc
@@ -318,10 +319,19 @@ class DreadChatMonitorModule(BaseDungeonModule):
             violations.append(
                             ChatEvent(userName, True, {'inClan': inClanChat}))
             numV = numViolations(violations)
-            self.log("Detected {} adventuring in dread without being "
+            r = SearchPlayerRequest(self.session, userName)
+            ul = self.tryRequest(r)
+            uid = ul["players"][0]["userId"]
+            txt = ('Hi there! You\'ve been detected adventuring in dreadsylvania without listening to the '
+                   'dread chat channel! Please type "/l dread" into chat before continuing '
+                   'to adventure in dreadsylvania. Thanks!')
+            k = Kmail(uid=uid, text=txt)
+            self.debugLog("Warning {} about chat violation".format(userName))
+            self.sendKmail(k)
+            self.log("Detected {} adventuring in hobopolis without being "
                      "in channel (violation number #{})!"
                      .format(userName, numV))
-            self._violations[userName] = violations
+            self._violations[userName] = violations 
 
 
     def registerClear(self, userName):
