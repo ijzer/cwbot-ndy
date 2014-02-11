@@ -130,8 +130,7 @@ class DreadChatMonitorModule(BaseDungeonModule):
     checkDelay = None
     zones = ['The Village',
              'The Woods',
-             'The Castle',
-             'Miscellaneous']
+             'The Castle']
 
 
     def __init__(self, manager, identity, config):
@@ -331,7 +330,7 @@ class DreadChatMonitorModule(BaseDungeonModule):
             self.log("Detected {} adventuring in hobopolis without being "
                      "in channel (violation number #{})!"
                      .format(userName, numV))
-            self._violations[userName] = violations 
+            self._violations[userName] = violations
 
 
     def registerClear(self, userName):
