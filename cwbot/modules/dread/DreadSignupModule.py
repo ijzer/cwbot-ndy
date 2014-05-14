@@ -32,6 +32,12 @@ class DreadSignupModule(BaseChatModule):
     def state(self):
         return self._signupList
 
+#    def reset(self, initData):
+#        pass
+
+    def dungeonReset(self, initData):
+        self.initialize(self.initialState, initData)
+
     def processBoss(self, args):
         boss = process.extractOne(args, self._bosses)
         if boss:
@@ -52,7 +58,7 @@ class DreadSignupModule(BaseChatModule):
         if boss == None:
             return "sorry, i don't know which boss you mean."
         self._signupList[boss].append(user)
-        return ("user: {} (#{}) added to list of hardmode killers for {}"
+        return ("user {} (#{}) added to list of hardmode killers for {}"
                 .format(user[0], user[1], boss))
             
     def removeFromSignup(self, user, boss):
@@ -60,10 +66,10 @@ class DreadSignupModule(BaseChatModule):
             return "sorry, i don't know which boss you mean."
         try:
             self._signupList[boss].remove(user)
-            return ("user: {} (#{}) removed from list of hardmode killers for {}"
+            return ("user {} (#{}) removed from list of hardmode killers for {}"
                     .format(user[0], user[1], boss))
-        except KeyError:
-            return ("user: {} (#{}) was not on the list of hardmode killers for {}"
+        except ValueError:
+            return ("user {} (#{}) was not on the list of hardmode killers for {}"
                     .format(user[0], user[1], boss))
 
     def sendSignup(self, boss):
@@ -82,7 +88,7 @@ class DreadSignupModule(BaseChatModule):
             if args == "reset":
                 admins = self.properties.getAdmins("dungeon_master")
                 if user[1]  in admins:
-                    self.reset(None)
+                    self.dungeonReset(None)
                     return "resetting signup list"
                 else:
                     return "you don't have permission to reset the signup list. ask a dungeon master"
