@@ -32,11 +32,11 @@ class DreadSignupModule(BaseChatModule):
     def state(self):
         return self._signupList
 
-#    def reset(self, initData):
-#        pass
+    def reset(self, initData):
+        pass
 
-    def dungeonReset(self, initData):
-        self.initialize(self.initialState, initData)
+    def dungeonReset(self):
+        self.initialize(self.initialState, None)
 
     def processBoss(self, args):
         boss = process.extractOne(args, self._bosses)
@@ -57,9 +57,13 @@ class DreadSignupModule(BaseChatModule):
     def addToSignup(self, user, boss):
         if boss == None:
             return "sorry, i don't know which boss you mean."
-        self._signupList[boss].append(user)
-        return ("user {} (#{}) added to list of hardmode killers for {}"
-                .format(user[0], user[1], boss))
+        elif user in self._signupList[boss]:
+            return ("user {} (#{}) is already on the list of hardmode killers for {}"
+                    .format(user[0], user[1], boss))
+        else:
+            self._signupList[boss].append(user)
+            return ("user {} (#{}) added to list of hardmode killers for {}"
+                    .format(user[0], user[1], boss))
             
     def removeFromSignup(self, user, boss):
         if boss == None:
@@ -81,14 +85,19 @@ class DreadSignupModule(BaseChatModule):
             msg = self.printBossList(boss)
         return msg
 
+    def _eventCallback(self, eData):
+        s = eData.subject
+        if s == "state":
+            self._eventReply(self.state)
+
     def _processCommand(self, msg, cmd, args):
         if cmd == "signup":
-            user = (msg["userName"], msg["userId"])
+            user = [msg["userName"], msg["userId"]]
             argsp = args.partition(" ")
             if args == "reset":
                 admins = self.properties.getAdmins("dungeon_master")
                 if user[1]  in admins:
-                    self.dungeonReset(None)
+                    self.dungeonReset()
                     return "resetting signup list"
                 else:
                     return "you don't have permission to reset the signup list. ask a dungeon master"
