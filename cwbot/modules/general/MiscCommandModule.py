@@ -44,6 +44,10 @@ class MiscCommandModule(BaseChatModule):
             return "I have been online for {} minutes.".format(upMinutes)
         elif cmd == "charter":
             return "NDY Clan Charter: http:// notdeadyet.bongley.n et/charter.php"
+        elif cmd == "spoilers":
+            return ("Use /kenneth 1442.5 for the clan spoiler channel."
+                    "Please refrain from discussing content from recent updates "
+                    "in /clan.")
         return None
 
 
