@@ -2,7 +2,7 @@ import kol.Error as Error
 from GenericRequest import GenericRequest
 from kol.util import Configuration
 
-import json
+import simplejson as json
 
 class ApiRequest(GenericRequest):
     def __init__(self, session):

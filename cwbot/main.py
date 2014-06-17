@@ -21,6 +21,7 @@ from cwbot.database import database
 from kol.Session import Session
 import kol.Error
 from cwbot.sys.database import Database
+from cwbot.util.tryRequest import TryRequestException
 
 exitEvent = threading.Event()
 databaseName = 'data/cwbot.db'
@@ -82,22 +83,26 @@ def loginLoop(myDb, props):
     fastCrash = False
     cman = None
     try:
-        loginWait = 60
-        s = openSession(props)
-        inv = createInventoryManager(s, myDb)
-        cman = createChatManager(s)
-        database.flush()
-        socket.setdefaulttimeout(60)
-        bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb, exitEvent)
-        
-        # run the bot main loop. If this function returns, then we are logging
-        # out for rollover. If it throws an exception, then we are either
-        # shutting down manually or crashing.
-        bsys.loop()
+        try:
+            loginWait = 60
+            s = openSession(props)
+            inv = createInventoryManager(s, myDb)
+            cman = createChatManager(s)
+            database.flush()
+            socket.setdefaulttimeout(60)
+            bsys = BotSystem(s, cman, props, inv, 'modules.ini', myDb, exitEvent)
+            
+            # run the bot main loop. If this function returns, then we are logging
+            # out for rollover. If it throws an exception, then we are either
+            # shutting down manually or crashing.
+            bsys.loop()
 
-        loginWait = props.rolloverWait
-        successfulShutdown = True
-        log.info("Preparing for rollover...")
+            loginWait = props.rolloverWait
+            successfulShutdown = True
+            log.info("Preparing for rollover...")
+        except TryRequestException as e:
+            log.error("Received too many errors: {}".format(e.exceptionList))
+            raise e.exceptionList[-1]
     except (SystemExit, KeyboardInterrupt):
         # manual quit
         log.info("Exiting application.")

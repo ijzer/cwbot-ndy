@@ -2,6 +2,17 @@ import time
 import cwbot.util.DebugThreading as threading
 import kol.Error
 import urllib2, urllib
+import simplejson
+import httplib
+import logging
+
+class TryRequestException(Exception):
+    def __init__(self):
+        self.exceptionList = []
+    
+    def addException(self, e):
+        self.exceptionList.append(e)
+
 
 def emptyFunction():
     pass
@@ -11,17 +22,25 @@ def tryRequest(requestObj, nothrow=False, numTries=3, initialDelay=1,
                scaleFactor=2):
     """Try to execute a request a number of times before throwing, or 
     optionally swallowing the error and returning None."""
+    exc = TryRequestException()
     for i in range(numTries):
         try:
             result = requestObj.doRequest()
             return result
+        except (KeyboardInterrupt, SystemExit, SyntaxError):
+            raise
         except (kol.Error.Error, 
                 urllib2.URLError, 
-                urllib.ContentTooShortError):
+                urllib.ContentTooShortError,
+                simplejson.JSONDecodeError,
+                httplib.BadStatusLine,
+                Exception) as e:
             if i != numTries - 1:
                 time.sleep(initialDelay * scaleFactor ** i)
+                exc.addException(e)
             elif not nothrow:
-                raise
+                exc.addException(e)
+                raise exc
     return None
     
     
