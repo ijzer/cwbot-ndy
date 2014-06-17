@@ -112,8 +112,11 @@ class DreadTimelineModule(BaseDungeonModule):
                 
         # now, loop over all players and db entries
         for dbm in dbEntries:
+            
+            # skip unmatched events
             if not dbm:
                 continue
+            
             matchingDoneEvents = list(eventDbMatch(
                                     itertools.chain.from_iterable(
                                                 self._snapshots), dbm))
@@ -199,7 +202,10 @@ class DreadTimelineModule(BaseDungeonModule):
                     
                 bossEvents = eventDbMatch(snapshot, {'category': areaName,
                                                      'zone': "(combat)",
-                                                     'subzone': "boss"})
+                                                     'subzone': "boss"},
+                                                    {'category': areaName,
+                                                     'zone': "(combat)",
+                                                     'subzone': "boss_defeat"})
                 for e in bossEvents:
                     txtList.append("*{} {}"
                                    .format(nameShorthands[e['userId']], 
