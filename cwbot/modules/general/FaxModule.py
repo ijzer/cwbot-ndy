@@ -75,11 +75,11 @@ class FaxModule(BaseChatModule):
     faxbot_id_number - player id number of faxbot [default = 2194132]
     fax_list_url - url of kolspading faxbot list [def. = http://goo.gl/Q352Q]
     [[[[alias]]]]
-        ALIASNAME - ALIAS (monster alias name)
+        ALIASNAME = ALIAS (monster alias name)
         
     Configuration example:
     [[[[alias]]]]
-        lobsterfrogman - lfm    # now you can type '!fax lfm' 
+        lobsterfrogman = lfm    # now you can type '!fax lfm' 
     """
         
     requiredCapabilities = ['chat']
