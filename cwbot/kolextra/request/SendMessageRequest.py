@@ -39,6 +39,7 @@ class SendMessageRequest(GenericRequest):
         notEnoughItemsPattern = PatternManager.getOrCompilePattern('notEnoughItemsToSend')
         sentMessagePattern = PatternManager.getOrCompilePattern('messageSent')
         trendyPattern = PatternManager.getOrCompilePattern('kmailNotSentUserTrendy')
+        ignoringUserPattern = PatternManager.getOrCompilePattern('weAreIgnoringUser')
 
         if hardcoreRoninPattern.search(self.responseText):
             raise Error.Error("Unable to send items or meat. User is in hardcore or ronin.", Error.USER_IN_HARDCORE_RONIN)
@@ -48,6 +49,8 @@ class SendMessageRequest(GenericRequest):
             raise Error.Error("You don't have enough of one of the items you're trying to send.", Error.ITEM_NOT_FOUND)
         elif trendyPattern.search(self.responseText):
             raise Error.Error("Unable to send items or meat. User is too trendy.", Error.USER_IN_HARDCORE_RONIN)
+        elif ignoringUserPattern.search(self.responseText):
+            raise Error.Error("Unable to send message. We are ignoring the other player.", Error.USER_IS_IGNORING)
         elif _badPlayerId.search(self.responseText):
             raise Error.Error("Cannot send Kmail. Bad userId.", Error.INVALID_USER)
         elif sentMessagePattern.search(self.responseText) == None:

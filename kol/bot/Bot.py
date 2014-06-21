@@ -16,6 +16,7 @@ from kol.util import Report
 import httplib
 import os
 import pickle
+import socket
 import threading
 import time
 import urllib2
@@ -177,6 +178,10 @@ class Bot(threading.Thread):
                     timeToSleep = 120
                 except httplib.BadStatusLine, inst:
                     Report.error("bot", "Bad HTTP Status! Let's try logging in again and maybe get a new server in the process.", inst)
+                    self.session = None
+                    timeToSleep = 120
+                except socket.error, inst:
+                    Report.error("bot", "Socket error! Let's try logging in again and maybe get a new server in the process.", inst)
                     self.session = None
                     timeToSleep = 120
                 except Exception, inst:
@@ -444,12 +449,18 @@ class Bot(threading.Thread):
 
     def returnKmail(self, message, introText):
         m = {"userId":message["userId"], "meat":message["meat"], "items":message["items"]}
-        m["text"] = introText + "\n\nOriginalMessage:\n--------------------\n" + message["text"]
+        try:
+            m["text"] = introText + "\n\nOriginalMessage:\n--------------------\n" + message["text"]
+        except:
+            m["text"] = introText
         self.sendKmail(m)
 
     def quoteKmail(self, message, newText):
         m = {"userId":message["userId"]}
-        m["text"] = newText + "\n\nOriginalMessage:\n--------------------\n" + message["text"]
+        try:
+            m["text"] = newText + "\n\nOriginalMessage:\n--------------------\n" + message["text"]
+        except:
+            m["text"] = newText
         self.sendKmail(m)
 
     def sendKmail(self, m):
@@ -478,6 +489,13 @@ class Bot(threading.Thread):
 
         # Here we try to actually send the message.
         if "sentMessage" not in state:
+
+            # Add a common footer to the kmail
+            if "commonKmailFooter" in self.params and len(self.params["commonKmailFooter"]) > 0:
+                if len(m["text"]) > 0:
+                    m["text"] = m["text"] + "\n\n" + self.params["commonKmailFooter"]
+                else:
+                    m["text"] = self.params["commonKmailFooter"]
 
             # Log the message we are sending
             Report.info("bot", "Sending message to %s." % m["userId"])

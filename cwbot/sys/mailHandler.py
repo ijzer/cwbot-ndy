@@ -1,4 +1,5 @@
 import cwbot.util.DebugThreading as threading
+import time
 import re
 import logging
 import urllib2
@@ -175,6 +176,9 @@ class MailHandler(ExceptionThread):
     
     
     def __init__(self, session, props, invMan, db):
+        self._lastOnlineCheck = 0
+        self._lastCanReceiveItemsCheck = 0
+        self._lastCanReceiveItems = False
         self._db = db
         self._receivedMessages = defaultdict(list)
         self._clearedItems = dict((iid, False) for iid in _doNotSendItems)
@@ -198,6 +202,10 @@ class MailHandler(ExceptionThread):
 
 
     def canReceiveItems(self):
+        now = time.time()
+        if now - self._lastCanReceiveItemsCheck <= 3600:
+            return self._lastCanReceiveItems
+        self._lastCanReceiveItemsCheck = now
         r = StatusRequest(self._s)
         d = tryRequest(r, numTries=6, initialDelay=3, scaleFactor=1.25)
         canReceive = ((int(d.get('hardcore',"1")) == 0 and
@@ -206,6 +214,7 @@ class MailHandler(ExceptionThread):
                       int(d.get('casual',"0")) == 1 
                       or
                       int(d.get('freedralph',"0")) == 1)
+        self._lastCanReceiveItems = canReceive
         return canReceive
 
 
@@ -218,9 +227,6 @@ class MailHandler(ExceptionThread):
         You will need to call the respondToKmail() method to set that it has
         been processed, even if you do nothing.
         """
-        if not self._online():
-            return None
-        getItems = self.canReceiveItems()
         con = self._db.getDbConnection(isolation_level="IMMEDIATE")
         try:
             with con:
@@ -235,6 +241,14 @@ class MailHandler(ExceptionThread):
                     msg = c.fetchone()
                     if msg is None:
                         return None # no new messages
+
+                    # we got a message! Are we online?
+                    if not self._online():
+                        return None
+                    
+                    # can we receive items?
+                    getItems = self.canReceiveItems()
+
                     if getItems:
                         msgAccepted = True # accept all messages
                     else:
@@ -645,9 +659,13 @@ class MailHandler(ExceptionThread):
         
     
     def _online(self):
+        now = time.time()
+        if now - self._lastOnlineCheck <= 2:
+            return True
         try:
             tryRequest(StatusRequest(self._s), nothrow=False, numTries=6,
                        initialDelay=10, scaleFactor=1)
+            self._lastOnlineCheck = now
             return True
         except (kol.Error.Error, urllib2.HTTPError):
             pass
@@ -785,16 +803,11 @@ class MailHandler(ExceptionThread):
             
             
     def _send(self, con):
-        if self._online():
-            self._handleSending(con)
-        if self._online():
-            self._handleToDelete(con)
-        if self._online():
-            self._handleFailed(con)
-        if self._online():
-            self._handleWithheld(con)
-        if self._online():
-            self._handleCouldNotSend(con)
+        self._handleSending(con)
+        self._handleToDelete(con)
+        self._handleFailed(con)
+        self._handleWithheld(con)
+        self._handleCouldNotSend(con)
 
 
     def _handleSending(self, con):
