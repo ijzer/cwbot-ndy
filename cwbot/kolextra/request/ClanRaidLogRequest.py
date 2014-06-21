@@ -2,6 +2,7 @@ from kol.request.GenericRequest import GenericRequest
 from kol.manager import PatternManager
 import re
 from datetime import datetime
+import kol.Error
 
 def decomma(num_str):
     return "".join(num_str.split(","))
@@ -40,13 +41,20 @@ class ClanRaidLogRequest(GenericRequest):
                 txt = txt[:index]
             self.responseData['id'] = int(self.raidId)
         else:
+            foundId = False
             for k,regex in self._idPatterns.items():
                 m = regex.search(txt)
-                if m is not None: 
+                if m is not None:
+                    foundId = True 
                     idval = int(m.group(1))
                     self.responseData[k] = idval
                 else:
                     self.responseData[k] = None
+            if not foundId:
+                if txt.find('<b>Current Clan Dungeons:</b>') == -1:
+                    raise kol.Error.Error("Error retrieving basement log", 
+                                          kol.Error.REQUEST_GENERIC)     
+            
                     
         drunkMatches = self._drunkPattern.findall(txt)
         drunkActivity = [{'userName': x[0], 
@@ -86,6 +94,9 @@ class ClanRaidLogRequest(GenericRequest):
                 action["turns"] = 1
                 actions.append(action)
         self.responseData["events"] = actions
+        if self.raidId and not actions:
+            raise kol.Error.Error("Error retrieving basement log", 
+                                  kol.Error.REQUEST_GENERIC)   
 
         # Retrieve a list of loot that has been distributed.
         lootDistributed = []
