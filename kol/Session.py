@@ -8,12 +8,8 @@ from kol.request.CharpaneRequest import CharpaneRequest
 
 import cookielib
 import hashlib
-
-try:
-    import requests
-    from Opener import RequestsOpener as Opener
-except ImportError:
-    from Opener import StandardOpener as Opener
+import requests # requests library is required
+from Opener import RequestsOpener as Opener
 
 
 class Session(object):
