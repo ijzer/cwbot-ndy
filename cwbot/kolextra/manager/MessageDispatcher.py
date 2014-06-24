@@ -86,24 +86,25 @@ class MessageThread(threading.Thread):
                         replyQueue = newChat.get("replyQueue", None) 
                         
                         r = SendChatRequest(self._session, newChat["text"])
-                        data = tryRequest(r, nothrow=True, numTries=8, 
+                        data = tryRequest(r, numTries=8, 
                                           initialDelay=1, scaleFactor=1.25)
-                        if data is not None: 
-                            self._log.debug("({})> {}"
-                                            .format(target, newChat["text"]))
-                            chats = []
-                            tmpChats = data["chatMessages"]
-                            for chat in tmpChats:
-                                chats.append(chat)
-                            if replyQueue is not None:
-                                replyQueue.put(chats)
-                        else:
-                            self._log.error("E({})> {}"
-                                            .format(target, newChat["text"]))
-                            if replyQueue is not None:
-                                replyQueue.put([])
-                            raise Exception(
-                                    "Target {} unreachable.".format(target))
+
+
+                        self._log.debug("({})> {}"
+                                        .format(target, newChat["text"]))
+                        chats = []
+                        tmpChats = data["chatMessages"]
+                        for chat in tmpChats:
+                            chats.append(chat)
+                        if replyQueue is not None:
+                            replyQueue.put(chats)
+                    except:
+                        self._log.exception("E({})> {}"
+                                        .format(target, newChat["text"]))
+                        if replyQueue is not None:
+                            replyQueue.put([])
+                        raise Exception(
+                                "Target {} unreachable.".format(target))
                     finally:
                         if replyQueue is not None:
                             replyQueue.put([])
