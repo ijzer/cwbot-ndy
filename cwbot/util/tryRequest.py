@@ -2,6 +2,9 @@ import time
 import cwbot.util.DebugThreading as threading
 import kol.Error
 import urllib2, urllib
+import httplib
+import logging
+
 
 def emptyFunction():
     pass
@@ -15,9 +18,13 @@ def tryRequest(requestObj, nothrow=False, numTries=3, initialDelay=1,
         try:
             result = requestObj.doRequest()
             return result
+        except (KeyboardInterrupt, SystemExit, SyntaxError):
+            raise
         except (kol.Error.Error, 
                 urllib2.URLError, 
-                urllib.ContentTooShortError):
+                urllib.ContentTooShortError,
+                httplib.BadStatusLine,
+                Exception) as e:
             if i != numTries - 1:
                 time.sleep(initialDelay * scaleFactor ** i)
             elif not nothrow:

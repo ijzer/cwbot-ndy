@@ -201,11 +201,11 @@ class BuffbotModule(BaseKmailModule):
         text = message.text
         if items:
             return None
-        if text.strip() != "":
-            return None
         if meat == 0:
             if text.lower() == "buffs":
                 return self._sendBuffKmail(message)
+            return None
+        if text.strip() != "":
             return None
         buffName = next((k for k,v in self._buffs.items() 
                         if v['cost'] == meat), None)

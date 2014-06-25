@@ -274,10 +274,12 @@ class WalkieTalkieRepeater(BaseChatManager):
             return
         timeSinceLastOutsiderCheck = time.time() - self._lastOutsiderCheck
         if timeSinceLastOutsiderCheck >= 2 * 60:
-            self._lastOutsiderCheck = time.time()
             whoVals = self.sendChatMessage("/who talkie", "DEFAULT", 
                                            waitForReply=True, raw=True)
+            if 'users' not in whoVals[0]:
+                return
             allUsers = whoVals[0]['users']
+            self._lastOutsiderCheck = time.time()
             self._log.debug("Users in /talkie: {}"
                             .format(', '.join(user['userName'] 
                                             for user in allUsers)))

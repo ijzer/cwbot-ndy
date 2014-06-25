@@ -1,6 +1,7 @@
 category,zone,subzone,choice,regex,notes,verified by,quantity,unique_type,unique_text,code
 The Woods,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:werewolf|bugbear),,rlbond86,,,,
 The Woods,(combat),boss,,defeated\s+(?:The Great Wolf of the Air|Falls-From-Sky),,rlbond86,,,,
+The Woods,(combat),boss_defeat,,was defeated by\s+(?:The Great Wolf of the Air|Falls-From-Sky),,rlbond86,,,,
 The Woods,(unlock),Attic,,unlocked the attic of the cabin,,rlbond86,,,,
 The Woods,(unlock),Fire Tower,,unlocked the fire watchtower,,rlbond86,,,,
 The Woods,Cabin,Kitchen,Raid the spice rack,acquired some dread tarragon,dread tarragon,Aquacadet08,,,,tarragon
@@ -33,6 +34,7 @@ The Woods,Burrows,Smelly,Smash the eggs,drove some bugbears out of the forest,-b
 The Woods,Burrows,Smelly,Dig through the garbage,found and sold a rare baseball card,FKs,PeKaJe,10,fk,FK-3,FKs
 The Village,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:ghost|zombie),,rlbond86,,,,
 The Village,(combat),boss,,defeated\s+(?:Mayor Ghost|the Zombie Homeowners' Association),,rlbond86,,,,
+The Village,(combat),boss_defeat,,was defeated by\s+(?:Mayor Ghost|the Zombie Homeowners' Association),,rlbond86,,,,
 The Village,(unlock),Suite,,unlocked the master suite,,rlbond86,,,,
 The Village,(unlock),School,,unlocked the schoolhouse,,rlbond86,,,,
 The Village,Square,School,Clean the erasers,drove some ghosts out of the village,-ghosts,rlbond86,,,,-ghost
@@ -65,11 +67,12 @@ The Village,Estate,Suite,Check the nightstand,got a bottle of eau de mort,eau de
 The Village,Estate,Suite,Mess with the loom,made a ghost shawl,req 10 ghost threads,,,,,loom
 The Castle,(combat),normal,,defeated\s+(?:hot|cold|stench|spooky|sleaze)\s+(?:skeleton|vampire),,rlbond86,,,,
 The Castle,(combat),boss,,defeated\s+(?:Count Drunkula|The Unkillable Skeleton),,rlbond86,,,,
+The Castle,(combat),boss_defeat,,was defeated by\s+(?:Count Drunkula|The Unkillable Skeleton),,rlbond86,,,,
 The Castle,(unlock),Lab,,unlocked the lab,,rlbond86,,,,
 The Castle,(unlock),Ballroom,,unlocked the ballroom,,rlbond86,,,,
 The Castle,Tower,Lab,Turn on the lamp,drove some bugbears out of the forest,-bugbears,,,,,-bugbear
 The Castle,Tower,Lab,Examine the brains in jars,drove some zombies out of the village,-zombies,,,,,-zombie
-The Castle,Tower,Lab,Approach The Machine (gain skill),###NO MESSAGE###,machine to make skills,,,,,skill
+The Castle,Tower,Lab,Approach The Machine (gain skill),used The Machine,machine to make skills,,,,,skill
 The Castle,Tower,Lab,Approach The Machine (assist),###NO MESSAGE###,,,,,,assist
 The Castle,Tower,Lab,Use the still,made a blood kiwitini,mox class; use still w/ kiwi+eau de mort,PeKaJe,,,,still
 The Castle,Tower,Books,"Read ""Bone-Dissolving Incantations: A Treatise""",drove some skeletons out of the castle,myst class; -skeletons,rlbond86,,,,-skel.

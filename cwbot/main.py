@@ -214,6 +214,7 @@ def main(curFolder=None, connection=None):
     myDb = Database(databaseName) 
     loginWait = 0
     log = logging.getLogger()
+    logging.getLogger("requests").setLevel(logging.INFO)
 
     # register signals
     signal.signal(signal.SIGTERM, signalHandler)

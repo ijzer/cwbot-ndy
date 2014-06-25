@@ -1,5 +1,6 @@
 import kol.Error as Error
 from kol.util import Report
+import requests
 
 import urllib
 from cStringIO import StringIO
@@ -24,13 +25,10 @@ class GenericPartialRequest(object):
 
         Report.debug("request", "Requesting %s" % self.url)
 
-        self.response = self.session.opener.open(self.url, urllib.urlencode(self.requestData))
+        self.response = self.session.opener.opener.post(self.url, self.requestData, stream=True)
         responseStr = StringIO()
         try:
-            while True:
-                chunk = self.response.read(self.chunkSize)
-                if not chunk:
-                    break
+            for chunk in self.response.iter_content(self.chunkSize):
                 responseStr.write(chunk)
                 s = responseStr.getvalue()
                 
@@ -51,11 +49,11 @@ class GenericPartialRequest(object):
         Report.debug("request", "Received response: %s" % self.url)
         Report.debug("request", "Response Text: %s" % self.responseText)
 
-        if self.response.geturl().find("/maint.php") >= 0:
+        if self.response.url.find("/maint.php") >= 0:
             self.session.isConnected = False
             raise Error.Error("Nightly maintenance in progress.", Error.NIGHTLY_MAINTENANCE)
 
-        if self.response.geturl().find("/login.php") >= 0:
+        if self.response.url.find("/login.php") >= 0:
             if self.session.isConnected:
                 self.session.isConnected = False
                 raise Error.Error("You are no longer connected to the server.", Error.NOT_LOGGED_IN)

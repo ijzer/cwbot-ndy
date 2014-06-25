@@ -19,8 +19,9 @@ def eventDbMatch(events, *categoryDicts):
     """
     This function is often used in dungeon module parsing. It returns a 
     generator that returns log entries that have an event that matches 
-    any of the regexes passed in. It is used so commonly that this function
-    is very convenient. Regexes are automatically compiled and cached.
+    any of the dictionaries passed in. It is used so commonly that this 
+    function is very convenient. Regexes are automatically compiled and 
+    cached.
     """
     sets = [set(d.items()) for d in categoryDicts]
     return (e for e in events 

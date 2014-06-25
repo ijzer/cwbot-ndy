@@ -109,9 +109,12 @@ class DiceModule(BaseChatModule):
     def rollOrder(self, args):
         """ permute a list """
         names = []
+        maxLength = 100
         try:
             # convert !permute 10 to !permute 1,2,3,4,5,6,7,8,9,10
             n = int(re.findall(r'^\d+[^,]*$', args)[0])
+            if n > maxLength:
+                return "I'm not permuting that many things!"
             names = [str(num+1) for num in range(n)]
         except (ValueError, IndexError):
             names = self.getNameList(args)
@@ -123,8 +126,8 @@ class DiceModule(BaseChatModule):
         if len(names) == 1:
             return ("It doesn't make much sense to randomly permute a list "
                     "of one item.")
-        if len(names) > 99:
-            return "I'm not permuting that many things!"
+        if len(names) > maxLength:
+            return "I can't keep track of all that!"
         random.shuffle(names)
         return ', '.join(names)
         
