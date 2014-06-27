@@ -220,14 +220,17 @@ Show the message for the next [[9999]] days (counting today)
         messageStrs = []
         for k,v in self._messages.items():
             if not v['hard']:
+                secondsLeft = v['expires'] - self._rolloverTime
+                daysLeft = int(math.floor(secondsLeft / (24 * 60 * 60)))
                 messageStrs.append('Announcement {}: send "{}" on channels '
                                    '{} every {} minutes, starting {} minutes '
-                                   'after rollover'
+                                   'after rollover. {} days left.'
                                    .format(k,
                                            v['description'],
                                            ', '.join(v['channels']),
                                            v['period'],
-                                           v['offset']))
+                                           v['offset'],
+                                           daysLeft))
             else:
                 messageStrs.append('Announcement {}: send on channels '
                                    '{} every {} minutes, starting {} minutes '
