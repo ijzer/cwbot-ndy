@@ -110,8 +110,6 @@ Show the message for the next [[9999]] days (counting today)
             if v['order'] is None:
                 v['order'] = []
             if k in self._messages and v['hard']: 
-                print "self.messages={}".format(self._messages)
-                print "v={}".format(v)
                 messageEntry = self._messages[k]
                 messageEntry['last'] = int(v['last'])
                 if v['mode'] != messageEntry['mode']: 
@@ -221,16 +219,24 @@ Show the message for the next [[9999]] days (counting today)
     def _getAnnouncementsKmail(self, uid):
         messageStrs = []
         for k,v in self._messages.items():
-            if v['hard']:
-                continue
-            messageStrs.append('Announcement {}: send "{}" on channels '
-                               '{} every {} minutes, starting {} minutes '
-                               'after rollover'
-                               .format(k,
-                                       v['description'],
-                                       ', '.join(v['channels']),
-                                       v['period'],
-                                       v['offset']))
+            if not v['hard']:
+                messageStrs.append('Announcement {}: send "{}" on channels '
+                                   '{} every {} minutes, starting {} minutes '
+                                   'after rollover'
+                                   .format(k,
+                                           v['description'],
+                                           ', '.join(v['channels']),
+                                           v['period'],
+                                           v['offset']))
+            else:
+                messageStrs.append('Announcement {}: send on channels '
+                                   '{} every {} minutes, starting {} minutes '
+                                   'after rollover; hard-configured by admin'
+                                   .format(k,
+                                           ', '.join(v['channels']),
+                                           v['period'],
+                                           v['offset']))
+                
         s = ("Periodic announcements:\n\n{}\n\n----------------\n\n"
              "To add a message, send \"announcements add\" and follow the "
              "instructions.\nTo delete an announcement, send "
@@ -244,7 +250,7 @@ Show the message for the next [[9999]] days (counting today)
         for k,v in self._messages.items():
             if not v['order']:
                 continue
-            period = max(v['period'] * 60, 1)
+            period = max(v['period'] * 60, 60)
             offset = v['offset'] * 60
             prevRollover = self._rolloverTime - 60 * 60 * 24
             tPastRolloverLast = v['last'] - (prevRollover + offset)
@@ -305,11 +311,9 @@ Show the message for the next [[9999]] days (counting today)
         m = self._messageMatcher.search(text)
         if m is None:
             return failMessage 
-        print "m1"
         newMessages = self._messageExtractor.findall(m.group("messageSection"))
         if not newMessages:
             return failMessage
-        print "m2"
         messageName = "m{}".format(int(_epochTime()))
         newMessage = {'last': 0,
                       'hard': False,
@@ -364,3 +368,10 @@ Show the message for the next [[9999]] days (counting today)
         s = eData.subject
         if s == "state":
             self._eventReply(self.state)
+
+
+    def _kmailDescription(self):
+        return ("ANNOUNCEMENTS: I can be configured to run periodic "
+                "announcements. Kmail the text \"announcements\" to get "
+                "a list of announcements or for instructions on how to add "
+                "or delete an announcement.") 
