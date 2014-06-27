@@ -243,7 +243,8 @@ Show the message for the next [[9999]] days (counting today)
         s = ("Periodic announcements:\n\n{}\n\n----------------\n\n"
              "To add a message, send \"announcements add\" and follow the "
              "instructions.\nTo delete an announcement, send "
-             "\"announcements delete NAME\"."
+             "\"announcements delete NAME\". NAME is usually something like "
+             "m12345678."
              .format("\n\n".join(messageStrs)))
         return self.newMessage(uid, s)
         
@@ -336,7 +337,8 @@ Show the message for the next [[9999]] days (counting today)
             return failMessage
         
         self._messages[messageName] = newMessage
-        return self.newMessage(uid, "Your announcement has been added.")
+        return self.newMessage(uid, "Your announcement {} has been added."
+                                    .format(messageName))
             
             
     def _deleteExpired(self):
