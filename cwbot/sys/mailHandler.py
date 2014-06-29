@@ -829,8 +829,8 @@ class MailHandler(ExceptionThread):
         c.execute("SELECT * FROM {} WHERE state=? ORDER BY id ASC"
                   .format(self._name),
                   (self.OUTBOX_SENDING,))
-        sending = c.fetchall()
-        for idx,msg in enumerate(sending):
+        sentTimes = {}
+        for msg in c.fetchall():
             message = decode(msg['data'])
             self._log.debug("Sending message {}: {}".format(msg['id'],
                                                             message))
@@ -839,7 +839,10 @@ class MailHandler(ExceptionThread):
             success = False
             exc = None
             try:
+                while time.time() - sentTimes.get(message['userId'], 0) < 2:
+                    time.sleep(0.1)
                 self._sendKmail(msg['id'], message)
+                sentTimes[message['userId']] = time.time()
                 success = True
             except kol.Error.Error as e:
                 if not self._online():
@@ -847,8 +850,6 @@ class MailHandler(ExceptionThread):
                 exc = e
             
             if success:
-                if idx != len(sending) - 1:
-                    time.sleep(2)
                 with con:
                     c2 = con.cursor()
                     c2.execute("UPDATE {} SET state=? WHERE id=?"
