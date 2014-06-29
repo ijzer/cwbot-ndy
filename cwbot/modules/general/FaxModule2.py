@@ -410,6 +410,11 @@ class FaxModule2(BaseChatModule):
                         newMonsters[mname] = FaxMonsterEntry(name, 
                                                              code, 
                                                              faxbot)
+                        for n,alias in self._alias.items():
+                            if n.lower().strip() in [mname, 
+                                                     code, 
+                                                     name.lower().strip()]:
+                                newMonsters[mname].addAlias(alias)
 
                     for k,v in self._monsters.items():
                         self._monsters[k] = [entry for entry in v
@@ -467,7 +472,7 @@ class FaxModule2(BaseChatModule):
                             self._requestQueue.popleft()
                             if not self._requestQueue:
                                 self.chat("Could not receive fax. "
-                                          "Try one of:"
+                                          "Try one of: {}"
                                           .format(", "
                                                 .join(self._faxCommands)))
                                 self._faxCommands = []
@@ -476,10 +481,18 @@ class FaxModule2(BaseChatModule):
                     else:
                         # no fax reply yet
                         if (time.time() - self._faxState.requestTime
-                                > self._timeout):
+                                > self._abortTime):
                             self.chat("{} did not reply.".format(
                                         request.faxbot.name))
                             self._requestQueue.popleft()
+                            self._faxState = None
+                            self._faxReply = None
+                            if not self._requestQueue:
+                                self.chat("Could not receive fax. "
+                                          "Try one of: {}"
+                                          .format(", "
+                                                .join(self._faxCommands)))
+                                self._faxCommands = []
                 
                 elif self._delayMode.is_set():
                     if time.time() - self._delayStart > self._faxWait:
@@ -494,6 +507,9 @@ class FaxModule2(BaseChatModule):
                     self._faxState = _FaxState(requestTime=time.time(),
                                                requestId=request.faxbot.id)
                     self.whisper(request.faxbot.id, request.code)
+                    self._faxCommands.append("/w {} {}".format(
+                                                    request.faxbot.name,
+                                                    request.code))
                 elif time.time() - self._lastXmlUpdate > 60 * self._xmlMins:
                     self._refreshMonsterList()
 
