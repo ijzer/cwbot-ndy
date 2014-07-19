@@ -1,0 +1,45 @@
+kmail:
+balance, cashout - if ndy wants to send you an item but you are in
+ronin or hardcore, he'll hold on to it for you. sending a kmail with
+the text "balance" will give you a list of items he's holding for you,
+and a kmail with the text "cashout" will have ndy send you your items.
+hookah - attach 6 hookah items to a kmail with the text "hookah" and
+ndy will send you a full set of hookah items back.
+arrows, smores - send ndy a marshmallow or a time's arrow and he will
+shoot it back at you. that's pretty cool.
+
+chat: prefix all commands with !, okay? so if the command is "help"
+you type "!help" into chat.
+/clan:
+roll - roll N rolls a dN. you can also roll MdN+OdP+Q. or roll
+name1,name2,name3 to select from a list of names.
+permute - permute name1,name2,name3 rearranges the list for you.
+uneffect - lists active effects. uneffect <effect_id> will remove an
+effect. bruised jaw should be taken care of automatically.
+about - checks for updates, links to cwbot's homepage, and gives a
+version number.
+fax - displays what's in the fax machine and how long it's been
+there. fax <monster> will have faxbot bring us a fax, but can only be
+used 10 times a day.
+link - gives a list of all the things ndy can link to. link <category>
+displays the links. useful categories are "wiki", "loot" for dungoen
+loot spreadsheets, "charter", "forum", and "dungeon" for dungeon
+rules.
+hookah - lists how many hookahs ndy can hand out. hookah stock lists
+individual parts.
+
+/dread
+status - displays an overview of dread. lists ratios of monsters in
+the zones, completion percentage, if the boss is up, or how much drunk
+the carriageman needs to open the zone.
+uniques - lists areas with fks still available.
+pencils - how many pencils are left?
+keys - which areas are unlocked?
+choices - what choice adventures are still available to me?
+kills - displays how many monsters you've killed in an instance. add
+50 for hard mode kills to get your dread turncount for loot purposes.
+
+/ho
+coming soon i guess.
+
+

@@ -5,6 +5,7 @@ import threading
 from cwbot.modules.BaseDungeonModule import BaseDungeonModule
 from cwbot.util.textProcessing import stringToBool
 from cwbot.common.kmailContainer import Kmail
+from kol.request.SearchPlayerRequest import SearchPlayerRequest
 
 tz = pytz.timezone('America/Phoenix')
 utc = pytz.utc
@@ -104,7 +105,7 @@ class HoboChatMonitorModule(BaseDungeonModule):
     """ 
     A module that monitors /hobopolis to make sure that anyone adventuring
     in Hobopolis is also in the chat channel. A daily dispatch is sent to
-    anyone with the hobo_mon_daily permission, with the names of players
+    anyone with the chat_mon_daily permission, with the names of players
     who are in violation.
     
     Configuration options:
@@ -256,7 +257,7 @@ class HoboChatMonitorModule(BaseDungeonModule):
     def dispatch(self):
         with self._lock:
             self.log("Dispatching chat monitor Kmails...")
-            admins = self.properties.getAdmins('hobo_mon_daily')
+            admins = self.properties.getAdmins('chat_mon_daily')
             n = 0
             for uid in admins:
                 success = self.dispatchKmail(uid, 
@@ -321,6 +322,15 @@ class HoboChatMonitorModule(BaseDungeonModule):
             violations.append(
                             ChatEvent(userName, True, {'inClan': inClanChat}))
             numV = numViolations(violations)
+            r = SearchPlayerRequest(self.session, userName)
+            ul = self.tryRequest(r)
+            uid = ul["players"][0]["userId"]
+            txt = ('Hi there! You\'ve been detected adventuring in hobopolis without listening to the '
+                   'hobopolis chat channel! Please type "/l hobopolis" into chat before continuing '
+                   'to adventure in hobopolis. Thanks!')
+            k = Kmail(uid=uid, text=txt)
+            self.debugLog("Warning {} about chat violation".format(userName))
+            self.sendKmail(k)
             self.log("Detected {} adventuring in hobopolis without being "
                      "in channel (violation number #{})!"
                      .format(userName, numV))
