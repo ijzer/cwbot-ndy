@@ -393,7 +393,7 @@ class FaxModule2(BaseChatModule):
                         ExpatError) as e:
                     self.log("Error loading webpage "
                              "for fax list: {}: {}"
-                             .format(e.__class__.__name__, e.args[0]))
+                             .format(e.__class__.__name__, e.args))
                 else:
                     entryCount = genLen(chain.from_iterable(
                                                     self._monsters.values()))
