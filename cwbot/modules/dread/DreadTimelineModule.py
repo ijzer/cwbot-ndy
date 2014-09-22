@@ -400,7 +400,11 @@ class DreadTimelineModule(BaseDungeonModule):
     def _eventCallback(self, eData):
         s = eData.subject
         if s == "state":
-            self._eventReply(self.state)
+            if eData.to is None:
+                self._eventReply({
+                        'warning': '(omitted for general state inquiry)'})
+            else:
+                self._eventReply(self.state)
 
         
     def _availableCommands(self):

@@ -123,8 +123,8 @@ class Database(object):
             c.execute("SELECT module, state FROM {} "
                       "WHERE manager=?"
                       .format(tableName), (managerName,))
-            stateDict = dict((modName, decode(sDict))
-                             for modName,sDict in c.fetchall())
+            for modName,sDict in c.fetchall():
+                stateDict[modName] = decode(sDict)
             return stateDict
         finally:
             _closeConnection(con)

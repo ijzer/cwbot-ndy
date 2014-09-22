@@ -170,7 +170,8 @@ class MailHandler(ExceptionThread):
     ERROR = "ERROR"
     
     _maxKmailLen = 1700
-    _maxTotalKmailLen = _maxKmailLen * 5
+    _minKmailLen = 1500 # minimum length if not the last kmail
+    _maxTotalKmailLen = _maxKmailLen * 6 - 100
     
     _htmlParser = HTMLParser.HTMLParser()
     
@@ -421,18 +422,31 @@ class MailHandler(ExceptionThread):
                             .format(oldText, text))
         
         # split text into multiple kmails
-        messageWords = re.split(r'(\s+)', text)
-        textList = [""]
-        for word in messageWords:
-            if len(word) > 1000:
-                word = word[:1000] + "..."
-            if len(textList[-1]) + len(word) <= self._maxKmailLen:
-                textList[-1] += word
+        messageLines = re.split(r'(\n+)', text)
+        kmailTextList = [""]
+        for line in messageLines:
+            if len(kmailTextList[-1]) + len(line) <= self._maxKmailLen:
+                kmailTextList[-1] += line
             else:
-                if re.search(r'\S', word) is not None:
-                    textList[-1] += " ..."
-                    textList.append(word)
-                    
+                # line does not fit.
+                if (len(kmailTextList[-1]) >= self._minKmailLen
+                        and len(line) < self._maxKmailLen):
+                    kmailTextList[-1] += " ..."
+                    kmailTextList.append("... " + line)
+                else:
+                    # split line
+                    lineWords = re.split(r'(\s+)', line)
+                    for word in lineWords:
+                        if len(word) > 1000:
+                            word = word[:1000] + "..."
+                        if (len(kmailTextList[-1]) + len(word) 
+                                <= self._maxKmailLen):
+                            kmailTextList[-1] += word
+                        else:
+                            if re.search(r'\S', word) is not None:
+                                kmailTextList[-1] += " ..."
+                                kmailTextList.append("... " + word)
+                        
         # split items into multiple kmails
         itemList = [{}]
         for iid,qty in items.items():
@@ -443,7 +457,7 @@ class MailHandler(ExceptionThread):
         mailItemList = map(_itemsToList, itemList)
 
         mails = [{'userId': uid, 'text': txt, 'meat': 0, 'items': []}
-                 for txt in textList]
+                 for txt in kmailTextList]
         itemMails = []
         for idx,d in enumerate(mailItemList):
             if idx == 0:
@@ -815,6 +829,7 @@ class MailHandler(ExceptionThread):
         c.execute("SELECT * FROM {} WHERE state=? ORDER BY id ASC"
                   .format(self._name),
                   (self.OUTBOX_SENDING,))
+        sentTimes = {}
         for msg in c.fetchall():
             message = decode(msg['data'])
             self._log.debug("Sending message {}: {}".format(msg['id'],
@@ -824,7 +839,10 @@ class MailHandler(ExceptionThread):
             success = False
             exc = None
             try:
+                while time.time() - sentTimes.get(message['userId'], 0) < 2:
+                    time.sleep(0.1)
                 self._sendKmail(msg['id'], message)
+                sentTimes[message['userId']] = time.time()
                 success = True
             except kol.Error.Error as e:
                 if not self._online():

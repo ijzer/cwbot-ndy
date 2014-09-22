@@ -215,6 +215,7 @@ def main(curFolder=None, connection=None):
     loginWait = 0
     log = logging.getLogger()
     logging.getLogger("requests").setLevel(logging.INFO)
+    logging.getLogger("urllib3").setLevel(logging.INFO)
 
     # register signals
     signal.signal(signal.SIGTERM, signalHandler)
