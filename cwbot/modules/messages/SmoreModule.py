@@ -6,7 +6,7 @@ import kol.Error
 
 class SmoreModule(BaseKmailModule):
     """ 
-    A module that sends smores if you send marshmallows. It also does time's arrows.
+    A module that sends smores if you send marshmallows. It also does time's arrows. And rubber spiders.
     """
     
     requiredCapabilities = ['kmail', 'inventory']
@@ -21,6 +21,9 @@ class SmoreModule(BaseKmailModule):
         if r is not None:
             return r
         r = self._doArrow(message)
+        if r is not None:
+            return r
+        r = self._doSpider(message)
         if r is not None:
             return r
 
@@ -49,6 +52,35 @@ class SmoreModule(BaseKmailModule):
             if e.code == kol.Error.ALREADY_COMPLETED:
                 return (self.newMessage(message.uid,
                                         "You have already been arrow'd today.",
+                                        message.meat)
+                                        .addItems(message.items))
+            return (self.newMessage(message.uid,
+                                    "Unknown error: {}".format(e.msg),
+                                    message.meat)
+                                    .addItems(message.items))
+
+    def _doSpider(self, message):
+        spiders = message.items.get(7698, 0)
+        if spiders == 0:
+            return None
+        if spiders >= 2:
+            return (self.newMessage(message.uid,
+                                    "Please do not send more than one rubber spider.",
+                                    message.meat)
+                                    .addItems(message.items))
+        try:
+            r = CursePlayerRequest(self.session, message.uid, 7698)
+            self.tryRequest(r, numTries=1)
+            return self.newMessage(-1)
+        except kol.Error.Error as e:
+            if e.code == kol.Error.USER_IN_HARDCORE_RONIN:
+                return (self.newMessage(message.uid,
+                                        "You are in hardcore or ronin.",
+                                        message.meat)
+                                        .addItems(message.items))
+            if e.code == kol.Error.ALREADY_COMPLETED:
+                return (self.newMessage(message.uid,
+                                        "You have already been spidered today.",
                                         message.meat)
                                         .addItems(message.items))
             return (self.newMessage(message.uid,
@@ -117,7 +149,7 @@ class SmoreModule(BaseKmailModule):
 
 
     def _kmailDescription(self):
-        return ("SMORES AND ARROWS: If you send me marshmallows or a time's "
-                "arrow, I will shoot them back so you can enjoy some "
-                "ooey-gooey s'mores or some extra adventures!")
+        return ("SMORES AND ARROWS AND SPIDERS: If you send me marshmallows "
+                "or a time's arrow, I will shoot them back so you can enjoy "
+                "some ooey-gooey s'mores or some extra adventures!")
         
