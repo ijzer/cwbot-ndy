@@ -36,3 +36,7 @@ class RequestsOpener(object):
 #        traceback.print_stack()
         self.response = self.opener.post(url, data=requestData)
         return Response(self.response.text, self.response.url)
+
+    def get(self, url, requestData):
+        self.response = self.opener.get(url, params=requestData)
+        return Response(self.response.text, self.response.url)

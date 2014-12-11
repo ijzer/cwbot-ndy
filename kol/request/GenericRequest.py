@@ -10,16 +10,19 @@ class GenericRequest(object):
         self.requestData = {}
         self.skipParseResponse = False
 
-    def doRequest(self):
+    def doRequest(self, get=False):
         """
         Performs the request. This method will ensure that nightly maintenance is not occuring.
         In addition, this method will throw a NOT_LOGGED_IN error if the session thinks it is
         logged in when it actually isn't. All specific KoL requests should inherit from this class.
         """
 
-        Report.debug("request", "Requesting %s" % self.url)
-
-        self.response = self.session.opener.open(self.url, self.requestData)
+        if get:
+            Report.debug("request", "Requesting %s via GET".format(self.url))
+            self.response = self.session.opener.get(self.url, self.requestData)
+        else:
+            Report.debug("request", "Requesting %s via POST".format(self.url))
+            self.response = self.session.opener.open(self.url, self.requestData)
         self.responseText = self.response.text
 
         Report.debug("request", "Received response: %s" % self.url)
