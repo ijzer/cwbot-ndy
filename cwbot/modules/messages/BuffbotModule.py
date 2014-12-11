@@ -202,7 +202,7 @@ class BuffbotModule(BaseKmailModule):
         if items:
             return None
         if meat == 0:
-            if text.lower() == "buffs":
+            if "buff" in text.lower():
                 return self._sendBuffKmail(message)
             return None
         if text.strip() != "":
