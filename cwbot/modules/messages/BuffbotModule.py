@@ -7,7 +7,7 @@ from cwbot.kolextra.functions.equipCustomOutfitByName \
 from cwbot.kolextra.functions.getUniqueDateString import getUniqueDateString
 from kol.database.SkillDatabase import getSkillFromId
 from kol.request.StatusRequest import StatusRequest
-from cwbot.kolextra.request.UseSkillRequest import UseSkillRequest
+from cwbot.kolextra.request.UseSkillRequestExtra import UseSkillRequestExtra
 import kol.Error
 
 BUFF_SUCCESS = 0
@@ -149,9 +149,10 @@ class BuffbotModule(BaseKmailModule):
             except IndexError:
                 raise FatalError("Invalid healer {}".format(self._healer))
 
-        self.log("Casting skill {} x{}".format(buff['id'], n))
-        r1 = UseSkillRequest(self.session, str(buff['id']), n, uid)
+        self.log("Casting skill {} x{} on {}".format(buff['id'], n, uid))
+        r1 = UseSkillRequestExtra(self.session, buff['id'], n, uid)
         _d1 = self.tryRequest(r1, numTries=1)
+        self.debugLog("UseSkillRequestExtra returned {}".format(_d1['results']))
         r2 = StatusRequest(self.session)
         d2 = self.tryRequest(r2)
         mpAfter = int(d2['mp'])

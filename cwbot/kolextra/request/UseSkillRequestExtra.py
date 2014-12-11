@@ -1,10 +1,10 @@
-from kol.request.GenericRequest import GenericRequest
+from kol.request.UseSkillRequest import UseSkillRequest
 from kol.database import SkillDatabase
 from kol.manager import PatternManager
 from kol import Error
 import re
 
-class UseSkillRequest(GenericRequest):
+class UseSkillRequestExtra(UseSkillRequest):
     _hc_ronin = re.compile(r"That player is in Hardcore mode, and cannot receive buffs from other players|That player cannot currently receive buffs from other players")
     _noskill = re.compile(r"You don't have that skill")
     _nouser = re.compile(r"Invalid target player selected")
@@ -12,23 +12,7 @@ class UseSkillRequest(GenericRequest):
     _tooManyATBuffs = re.compile(r"That player already has too many songs stuck in his \(or her\) head")
     
     def __init__(self, session, skillId, numTimes=1, targetPlayer=None):
-        super(UseSkillRequest, self).__init__(session)
-        self.url = session.serverURL + "skills.php"
-        self.requestData["pwd"] = session.pwd
-        self.requestData["action"] = "Skillz"
-        self.requestData["whichskill"] = skillId
-
-        skill = SkillDatabase.getSkillFromId(skillId)
-        if skill["type"] == "Buff":
-            self.requestData["bufftimes"] = numTimes
-            if targetPlayer != None:
-                self.requestData["specificplayer"] = targetPlayer
-                self.requestData["targetplayer"] = ""
-            else:
-                self.requestData["specificplayer"] = ""
-                self.requestData["targetplayer"] = session.userId
-        else:
-            self.requestData["quantity"] = numTimes
+        super(UseSkillRequestExtra, self).__init__(session, skillId, numTimes, targetPlayer)
 
     def parseResponse(self):
         resultsPattern = PatternManager.getOrCompilePattern('results')
