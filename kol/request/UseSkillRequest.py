@@ -5,22 +5,17 @@ from kol.manager import PatternManager
 class UseSkillRequest(GenericRequest):
     def __init__(self, session, skillId, numTimes=1, targetPlayer=None):
         super(UseSkillRequest, self).__init__(session)
-        self.url = session.serverURL + "skills.php"
+        self.get = True
+        self.url = session.serverURL + "runskillz.php"
         self.requestData["pwd"] = session.pwd
         self.requestData["action"] = "Skillz"
         self.requestData["whichskill"] = skillId
-
-        skill = SkillDatabase.getSkillFromId(skillId)
-        if skill["type"] == "Buff":
-            self.requestData["bufftimes"] = numTimes
-            if targetPlayer != None:
-                self.requestData["specificplayer"] = targetPlayer
-                self.requestData["targetplayer"] = ""
-            else:
-                self.requestData["specificplayer"] = ""
-                self.requestData["targetplayer"] = session.userId
+        self.requestData["ajax"] = 1
+        self.requestData["quantity"] = numTimes
+        if targetPlayer != None:
+            self.requestData["targetplayer"] = targetPlayer
         else:
-            self.requestData["quantity"] = numTimes
+            self.requestData["targetplayer"] = session.userId
 
     def parseResponse(self):
         resultsPattern = PatternManager.getOrCompilePattern('results')
