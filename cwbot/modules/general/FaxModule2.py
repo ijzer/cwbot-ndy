@@ -398,9 +398,13 @@ class FaxModule2(BaseChatModule):
                     entryCount = genLen(chain.from_iterable(
                                                     self._monsters.values()))
                     d1 = d[d.keys()[0]]
-                    faxbot = _Faxbot(d1['botdata']['name'].encode('ascii'), 
-                                     int(d1['botdata']['playerid']),
-                                     address)
+                    try:
+                        faxbot = _Faxbot(d1['botdata']['name'].encode('ascii'), 
+                                         int(d1['botdata']['playerid']),
+                                         address)
+                    except KeyError:
+                        continue
+                    
                     monsters = d1['monsterlist']['monsterdata']
                     newMonsters = {}
                     for monster in monsters:
