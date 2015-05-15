@@ -302,7 +302,7 @@ class FaxModule2(BaseChatModule):
             return "I can't tell what's in the fax machine."
         elapsed = utcTime() - self._lastFaxTime
         timeStr = "{} minutes".format(int((elapsed+59) // 60))
-        return ("The fax has held a(n) {} for the last {}. "
+        return ("The fax has been holding a(n) {} for the last {}. "
                 "(Send \"!fax list\" for a list of monsters.)"
                 .format(self._lastFax, timeStr))
         
