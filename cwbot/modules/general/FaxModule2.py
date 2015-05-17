@@ -104,12 +104,10 @@ class FaxModule2(BaseChatModule):
     _xmlMins = 30
     _checkFrequency = 15
     
-    _defaultXml = {'1': "http://hogsofdestiny.com/faxbot/faxbot.xml",
-                   '2': "http://faust.kolbots.com/faustbot.xml",
-                   '3': "https://sourceforge.net/p/easyfax/"
+    _defaultXml = {'1': "http://faust.kolbots.com/faustbot.xml",
+                   '2': "https://sourceforge.net/p/easyfax/"
                               "code/HEAD/tree/Easyfax.xml?format=raw"}
-    _defaultSuccess = {'FaxBot': "has copied",
-                       'faustbot': "has been delivered",
+    _defaultSuccess = {'faustbot': "has been delivered",
                        'Easyfax': "fax is ready"}
     
     def __init__(self, manager, identity, config):
